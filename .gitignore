@@ -1,11 +1,13 @@
-# Dependencies
+# Development/test BEAR.Sunday project
 app/vendor/
+app/composer.lock
+app/var/log/
+app/var/tmp/
+app/.env
+
+# Dependencies
 vendor/
 composer.lock
-
-# Generated files
-app/var/tmp/
-app/var/log/*.log
 
 # IDE
 .idea/
