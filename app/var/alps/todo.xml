@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alps
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://alps-io.github.io/schemas/alps.xsd">
+
+    <!-- Descriptors -->
+    <descriptor id="id" def="https://schema.org/identifier" />
+    <descriptor id="title" def="https://schema.org/name" />
+    <descriptor id="completed" def="https://schema.org/Boolean" />
+    <descriptor id="dateCreated" def="https://schema.org/dateCreated" />
+
+    <!-- Entity -->
+    <descriptor id="Todo" type="semantic">
+        <descriptor href="#id" />
+        <descriptor href="#title" />
+        <descriptor href="#completed" />
+        <descriptor href="#dateCreated" />
+    </descriptor>
+
+    <!-- Operations -->
+    <descriptor id="todoList" type="safe" rt="#Todo">
+        <doc>Get all todos</doc>
+    </descriptor>
+
+    <descriptor id="todoAdd" type="unsafe" rt="#Todo">
+        <doc>Add a new todo</doc>
+        <descriptor href="#title" />
+    </descriptor>
+</alps>

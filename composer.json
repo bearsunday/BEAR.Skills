@@ -1,0 +1,5 @@
+{
+    "require": {
+        "ray/media-query": "^1.0-rc1"
+    }
+}

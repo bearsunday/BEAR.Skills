@@ -1,0 +1,28 @@
+{
+  "$id": "todo.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Todo",
+  "type": "object",
+  "required": ["id", "title", "completed", "dateCreated"],
+  "properties": {
+    "id": {
+      "description": "The unique identifier for a todo.",
+      "type": "string",
+      "maxLength": 64
+    },
+    "title": {
+      "description": "Todo title.",
+      "type": "string",
+      "maxLength": 255
+    },
+    "completed": {
+      "description": "Whether the todo is completed.",
+      "type": "boolean"
+    },
+    "dateCreated": {
+      "description": "The date and time that the todo was created.",
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

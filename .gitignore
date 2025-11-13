@@ -1,0 +1,12 @@
+# Dependencies
+app/vendor/
+vendor/
+composer.lock
+
+# Generated files
+app/var/tmp/
+app/var/log/*.log
+
+# IDE
+.idea/
+.vscode/
