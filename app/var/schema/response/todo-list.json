@@ -7,7 +7,29 @@
     "todos": {
       "type": "array",
       "items": {
-        "$ref": "todo.json"
+        "type": "object",
+        "required": ["id", "title", "completed", "dateCreated"],
+        "properties": {
+          "id": {
+            "description": "The unique identifier for a todo",
+            "type": "string",
+            "maxLength": 64
+          },
+          "title": {
+            "description": "The title of the todo",
+            "type": "string",
+            "maxLength": 255
+          },
+          "completed": {
+            "description": "Whether the todo is completed",
+            "type": "boolean"
+          },
+          "dateCreated": {
+            "description": "The date and time when the todo was created",
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     }
   }

@@ -21,7 +21,7 @@ class Todo extends ResourceObject
     public function onGet(): static
     {
         $this->body = [
-            'todos' => $this->query->list(), // @return array<Todo> - auto-converted
+            'todos' => $this->query->list(),
         ];
 
         return $this;
@@ -31,7 +31,7 @@ class Todo extends ResourceObject
     public function onPost(string $title): static
     {
         $id = $this->generateId();
-        $this->command->add($id, $title); // DateTimeInterface auto-injected
+        $this->command->add($id, $title);
 
         $this->code = 201;
         $this->headers['Location'] = "/todo?id={$id}";
