@@ -276,8 +276,11 @@ public function __construct(
 ```php
 // ✅ OK: ドメイン/値オブジェクト
 $article = new ArticleDomain($data);
-$dateTime = new DateTimeImmutable();
+$dateTime = new DateTimeImmutable();  // イミュータブル推奨
 $thumbnail = new Thumbnail($data);
+
+// ⚠️ 警告: ミュータブルなDateTime
+$date = new DateTime();  // → DateTimeImmutableを使用すべき
 
 // ❌ NG: サービスはDIすべき
 $client = new HttpClient();        // → HttpClientInterface を注入
@@ -540,6 +543,43 @@ public function onPost(#[UploadFiles] array $files): static
 | 削除成功 | 204 No Content |
 | 見つからない | 404 Not Found |
 | バリデーションエラー | 400 Bad Request |
+
+#### 201 Created と Location ヘッダー
+
+リソースを作成する `onPost` では、201ステータスと `Location` ヘッダーをセットで返す。
+
+```php
+// ❌ 問題: 作成しているのに200のまま、Locationもない
+public function onPost(string $title): static
+{
+    $id = $this->command->create($title);
+    $this->body = ['id' => $id];
+    return $this;
+}
+
+// ✅ 推奨: 201 + Location ヘッダー
+public function onPost(string $title): static
+{
+    $id = $this->command->create($title);
+
+    $this->code = 201;
+    $this->headers['Location'] = "/article?id={$id}";
+    $this->body = ['id' => $id];
+
+    return $this;
+}
+```
+
+**検出パターン:**
+- `onPost` で `$this->command->create` や `$this->command->add` を呼んでいる
+- しかし `$this->code = 201` がない
+- または `$this->headers['Location']` がない
+
+| パターン | 評価 |
+|----------|------|
+| 201 + Location あり | ✅ 推奨 |
+| 201 あり、Location なし | ⚠️ 警告（Locationも追加推奨） |
+| 200のまま（作成処理あり） | ❌ 問題 |
 
 #### Pageリソースの制限
 
