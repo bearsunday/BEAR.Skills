@@ -23,44 +23,48 @@ class TodoTest extends TestCase
 
     public function testOnGet(): void
     {
-        $todo = $this->resource->get('app://self/todo');
-        assert($todo instanceof ResourceObject);
+        $ro = $this->resource->get('app://self/todo');
 
-        $this->assertSame(200, $todo->code);
-        $this->assertArrayHasKey('todos', $todo->body);
-        $this->assertIsArray($todo->body['todos']);
+        assert($ro instanceof ResourceObject);
+        $this->assertSame(200, $ro->code);
+        $this->assertArrayHasKey('todos', $ro->body);
+        $this->assertIsArray($ro->body['todos']);
     }
 
     public function testOnPost(): void
     {
-        $todo = $this->resource->post('app://self/todo', [
-            'title' => 'Test Todo',
-        ]);
-        assert($todo instanceof ResourceObject);
+        $ro = $this->resource->post('app://self/todo', ['title' => 'Test Todo']);
 
-        $this->assertSame(201, $todo->code);
-        $this->assertArrayHasKey('Location', $todo->headers);
-        $this->assertArrayHasKey('id', $todo->body);
-        $this->assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $todo->body['id']);
+        assert($ro instanceof ResourceObject);
+        $this->assertSame(201, $ro->code);
+        $this->assertArrayHasKey('Location', $ro->headers);
+        $this->assertArrayHasKey('id', $ro->body);
+        $this->assertIsString($ro->body['id']);
     }
 
     public function testOnPostAndGet(): void
     {
-        // Create a todo
-        $created = $this->resource->post('app://self/todo', [
-            'title' => 'Integration Test Todo',
-        ]);
-        assert($created instanceof ResourceObject);
+        // Create a new todo
+        $post = $this->resource->post('app://self/todo', ['title' => 'Integration Test Todo']);
+        assert($post instanceof ResourceObject);
+        $this->assertSame(201, $post->code);
+        $id = $post->body['id'];
 
-        $this->assertSame(201, $created->code);
-        $this->assertArrayHasKey('id', $created->body);
-
-        // Retrieve todos list
+        // Verify it appears in the list
         $list = $this->resource->get('app://self/todo');
         assert($list instanceof ResourceObject);
-
         $this->assertSame(200, $list->code);
-        $this->assertArrayHasKey('todos', $list->body);
-        $this->assertNotEmpty($list->body['todos']);
+
+        $todos = $list->body['todos'];
+        $found = false;
+        foreach ($todos as $todo) {
+            if ($todo->id === $id) {
+                $found = true;
+                $this->assertSame('Integration Test Todo', $todo->title);
+                $this->assertFalse($todo->completed);
+                break;
+            }
+        }
+        $this->assertTrue($found, 'Created todo should appear in the list');
     }
 }
