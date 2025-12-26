@@ -610,17 +610,51 @@ public function __construct(
 )
 ```
 
-#### Providerの回避
+#### Providerの過剰使用
 
-`Provider` より `toConstructor` 束縛を優先。
+`Provider` は複雑な生成ロジックが必要な場合のみ使用。単純な `new` だけなら `toConstructor` を使用すべき。
 
 ```php
-// ❌ 問題: Provider経由
+// ❌ 問題: Providerで単純にnewしているだけ
+class FooProvider implements ProviderInterface
+{
+    public function __construct(
+        private readonly BarInterface $bar,
+        #[Named('config')] private readonly array $config,
+    ) {}
+
+    public function get(): Foo
+    {
+        return new Foo($this->bar, $this->config['timeout']);
+    }
+}
+
+// Module
 $this->bind(Foo::class)->toProvider(FooProvider::class);
 
-// ✅ 推奨: toConstructor束縛
-$this->bind(Foo::class)->toConstructor(Foo::class, ['arg' => 'value']);
+// ✅ 推奨: toConstructor束縛（Providerクラス不要）
+$this->bind(Foo::class)->toConstructor(
+    Foo::class,
+    ['timeout' => 'config[timeout]']  // 設定値の注入
+);
 ```
+
+**Providerが必要なケース（許容）:**
+- 条件分岐による生成（環境によって異なるインスタンス）
+- ファクトリパターン（引数に基づく動的生成）
+- 遅延初期化が必要な場合
+- 外部リソースの接続確立
+
+**Providerが不要なケース（問題）:**
+- `get()` 内で単に `new` して返すだけ
+- 依存を受け取って渡すだけの中継
+
+| パターン | 評価 |
+|----------|------|
+| `toConstructor` で済む | ✅ 推奨 |
+| 単純な `new` だけの Provider | ❌ 過剰（toConstructorを使用） |
+| 条件分岐のある Provider | ✅ 許容 |
+| ファクトリ的な Provider | ✅ 許容 |
 
 #### グローバル参照禁止
 
