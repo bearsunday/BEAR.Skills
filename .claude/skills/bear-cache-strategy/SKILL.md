@@ -73,7 +73,7 @@ public function onGet(int $id): static
 
 ## 判定フロー
 
-```
+```text
 リソースクラスを読む
     ↓
 onGet のみ？ ─No→ キャッシュしない（書き込み操作）
@@ -165,7 +165,7 @@ public function onGet(int $id): static
 public function onGet(int $id): static
 ```
 
-```
+```text
 ┌─────────────────────────────┐
 │  ヘッダー（キャッシュ）      │
 ├─────────────────────────────┤
@@ -268,9 +268,9 @@ public function onGet(): static
 | 許容遅延が明確 | `#[Cacheable(expirySecond: N)]` |
 | ユーザー固有/セッション依存 | キャッシュなし |
 
-## 判定フロー
+## 戦略選択フロー
 
-```
+```text
 リソースを分析
     ↓
 書き込み操作？ ─Yes→ キャッシュ不可
@@ -293,7 +293,7 @@ public function onGet(): static
 
 ## 出力例
 
-```
+```markdown
 ## キャッシュ戦略レポート
 
 ### コンテンツAPI（#[Cacheable]適用推奨）
