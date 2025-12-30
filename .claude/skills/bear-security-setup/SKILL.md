@@ -74,6 +74,10 @@ Add taint plugin and stubs to existing `psalm.xml`.
     "scripts": {
         "security": "./vendor/bin/bear.security-scan src",
         "taint": "./vendor/bin/psalm --taint-analysis 2>&1 | grep -E 'Tainted' || true"
+    },
+    "scripts-descriptions": {
+        "security": "Run SAST security scan",
+        "taint": "Run Psalm taint analysis"
     }
 }
 ```
