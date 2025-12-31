@@ -184,6 +184,52 @@ Detects business logic issues that pattern matching cannot find:
 - **Re-scan after fixes**: Confirm vulnerabilities are resolved
 - **Review existing ignores**: Check if previously ignored issues are still valid
 
+## Reporting to User
+
+After completing the security workflow, provide a summary report:
+
+### Report Template
+
+```
+## Security Scan Summary
+
+### SAST Results
+- **Total findings**: X issues detected
+- **Files scanned**: Y files
+
+### Analysis Results
+| Finding | File:Line | Assessment | Action |
+|---------|-----------|------------|--------|
+| TaintedSql | User.php:42 | False positive | @security-ignore added |
+| TaintedHtml | Index.php:15 | Real vulnerability | Fixed |
+
+### @security-ignore Added
+- `src/Resource/App/User.php:42` - path-traversal: $id is validated integer from router
+- `src/Resource/Page/Index.php:28` - tainted-html: Output is escaped by Qiq template
+
+### AI Auditor Results
+- Business logic issues: X found
+- (List any IDOR, authorization, or other logic issues)
+
+### Action Required
+The following items require your review:
+1. [ ] Verify @security-ignore comments are appropriate
+2. [ ] Review any real vulnerabilities that were fixed
+3. [ ] Confirm business logic issues are addressed
+
+### Final Status
+- SAST: ✓ Passed (X issues resolved, Y ignored with justification)
+- AI Audit: ✓ Passed / ⚠ Issues found
+```
+
+### Report Guidelines
+
+- **Always report counts**: Total findings, resolved, and ignored
+- **Show locations**: Include file:line for all @security-ignore comments
+- **Explain reasoning**: Why each false positive was ignored
+- **Require confirmation**: User must review and approve ignored items
+- **Be transparent**: Never hide or omit findings
+
 ## References
 
 - [BEAR.Security GitHub](https://github.com/bearsunday/BEAR.Security)
