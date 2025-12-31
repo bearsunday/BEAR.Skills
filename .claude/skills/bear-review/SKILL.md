@@ -635,8 +635,9 @@ $this->bind(Foo::class)->toProvider(FooProvider::class);
 // ✅ 推奨: toConstructor束縛（Providerクラス不要）
 $this->bind(Foo::class)->toConstructor(
     Foo::class,
-    ['timeout' => 'config[timeout]']  // 設定値の注入
+    ['timeout' => 'foo_timeout']
 );
+$this->bind()->annotatedWith('foo_timeout')->toInstance($config['timeout']);
 ```
 
 **Providerが必要なケース（許容）:**
