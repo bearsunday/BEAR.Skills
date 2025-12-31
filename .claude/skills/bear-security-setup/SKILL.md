@@ -134,6 +134,56 @@ After setup, verify:
 3. If AI Auditor configured, `./vendor/bin/bear-security-audit src` runs
 4. If GitHub Actions configured, results appear in Security > Code scanning tab
 
+## Security Workflow
+
+After setup is complete, run the security workflow:
+
+### 1. Run SAST
+
+```bash
+vendor/bin/bear.security-scan src
+```
+
+### 2. Review & Fix Vulnerabilities
+
+For each finding:
+- **Real vulnerability**: Fix the code
+- **False positive**: Add `@security-ignore` comment on the same line:
+
+```php
+$code; // @security-ignore <issue-type>: <reason>
+```
+
+Example:
+```php
+$path = $this->buildPath($id); // @security-ignore path-traversal: $id is validated integer from router
+```
+
+### 3. Run AI Auditor
+
+```bash
+vendor/bin/bear-security-audit src
+```
+
+Detects business logic issues that pattern matching cannot find:
+- IDOR (Insecure Direct Object Reference)
+- Mass Assignment
+- Race Conditions
+- Authorization bypasses
+
+### 4. Verify & Re-scan
+
+- Review all `@security-ignore` comments are justified
+- Re-run scans to confirm issues are resolved
+- Never ignore a real vulnerability
+
+## Important Guidelines
+
+- **@security-ignore format**: `// @security-ignore <issue-type>: <reason>`
+- **Always provide a reason**: Explain why this is a false positive
+- **Re-scan after fixes**: Confirm vulnerabilities are resolved
+- **Review existing ignores**: Check if previously ignored issues are still valid
+
 ## References
 
 - [BEAR.Security GitHub](https://github.com/bearsunday/BEAR.Security)
