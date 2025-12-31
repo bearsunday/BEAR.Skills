@@ -94,7 +94,7 @@ Set up [BEAR.Security](https://github.com/bearsunday/BEAR.Security) with SAST, A
 
 Pre-deployment comprehensive check covering compile, security, performance, quality, and configuration.
 
-```
+```text
 ✅ Compile    - bear.compile + runtime bindings (Ray.MediaQuery Entity, etc.)
 ✅ Security   - SAST, hardcoded credentials, env settings
 ✅ Performance - Cache attributes, SQL quality, N+1 detection
