@@ -134,6 +134,102 @@ After setup, verify:
 3. If AI Auditor configured, `./vendor/bin/bear-security-audit src` runs
 4. If GitHub Actions configured, results appear in Security > Code scanning tab
 
+## Security Workflow
+
+After setup is complete, run the security workflow:
+
+### 1. Run SAST
+
+```bash
+vendor/bin/bear.security-scan src
+```
+
+### 2. Review & Fix Vulnerabilities
+
+For each finding:
+- **Real vulnerability**: Fix the code
+- **False positive**: Add `@security-ignore` comment on the same line:
+
+```php
+$code; // @security-ignore <issue-type>: <reason>
+```
+
+Example:
+```php
+$path = $this->buildPath($id); // @security-ignore path-traversal: $id is validated integer from router
+```
+
+### 3. Run AI Auditor
+
+```bash
+vendor/bin/bear-security-audit src
+```
+
+Detects business logic issues that pattern matching cannot find:
+- IDOR (Insecure Direct Object Reference)
+- Mass Assignment
+- Race Conditions
+- Authorization bypasses
+
+### 4. Verify & Re-scan
+
+- Review all `@security-ignore` comments are justified
+- Re-run scans to confirm issues are resolved
+- Never ignore a real vulnerability
+
+## Important Guidelines
+
+- **@security-ignore format**: `// @security-ignore <issue-type>: <reason>`
+- **Always provide a reason**: Explain why this is a false positive
+- **Re-scan after fixes**: Confirm vulnerabilities are resolved
+- **Review existing ignores**: Check if previously ignored issues are still valid
+
+## Reporting to User
+
+After completing the security workflow, provide a summary report:
+
+### Report Template
+
+```markdown
+## Security Scan Summary
+
+### SAST Results
+- **Total findings**: X issues detected
+- **Files scanned**: Y files
+
+### Analysis Results
+| Finding | File:Line | Assessment | Action |
+|---------|-----------|------------|--------|
+| TaintedSql | User.php:42 | False positive | @security-ignore added |
+| TaintedHtml | Index.php:15 | Real vulnerability | Fixed |
+
+### @security-ignore Added
+- `src/Resource/App/User.php:42` - path-traversal: $id is validated integer from router
+- `src/Resource/Page/Index.php:28` - tainted-html: Output is escaped by Qiq template
+
+### AI Auditor Results
+- Business logic issues: X found
+- (List any IDOR, authorization, or other logic issues)
+
+### Action Required
+The following items require your review:
+1. [ ] Verify @security-ignore comments are appropriate
+2. [ ] Review any real vulnerabilities that were fixed
+3. [ ] Confirm business logic issues are addressed
+
+### Final Status
+- SAST: ✓ Passed (X issues resolved, Y ignored with justification)
+- AI Audit: ✓ Passed / ⚠ Issues found
+```
+
+### Report Guidelines
+
+- **Always report counts**: Total findings, resolved, and ignored
+- **Show locations**: Include file:line for all @security-ignore comments
+- **Explain reasoning**: Why each false positive was ignored
+- **Require confirmation**: User must review and approve ignored items
+- **Be transparent**: Never hide or omit findings
+
 ## References
 
 - [BEAR.Security GitHub](https://github.com/bearsunday/BEAR.Security)
