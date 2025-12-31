@@ -190,7 +190,7 @@ After completing the security workflow, provide a summary report:
 
 ### Report Template
 
-```
+```markdown
 ## Security Scan Summary
 
 ### SAST Results
