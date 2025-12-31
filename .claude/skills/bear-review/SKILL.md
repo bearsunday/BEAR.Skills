@@ -276,8 +276,11 @@ public function __construct(
 ```php
 // ✅ OK: ドメイン/値オブジェクト
 $article = new ArticleDomain($data);
-$dateTime = new DateTimeImmutable();
+$dateTime = new DateTimeImmutable();  // イミュータブル推奨
 $thumbnail = new Thumbnail($data);
+
+// ⚠️ 警告: ミュータブルなDateTime
+$date = new DateTime();  // → DateTimeImmutableを使用すべき
 
 // ❌ NG: サービスはDIすべき
 $client = new HttpClient();        // → HttpClientInterface を注入
@@ -541,6 +544,43 @@ public function onPost(#[UploadFiles] array $files): static
 | 見つからない | 404 Not Found |
 | バリデーションエラー | 400 Bad Request |
 
+#### 201 Created と Location ヘッダー
+
+リソースを作成する `onPost` では、201ステータスと `Location` ヘッダーをセットで返す。
+
+```php
+// ❌ 問題: 作成しているのに200のまま、Locationもない
+public function onPost(string $title): static
+{
+    $id = $this->command->create($title);
+    $this->body = ['id' => $id];
+    return $this;
+}
+
+// ✅ 推奨: 201 + Location ヘッダー
+public function onPost(string $title): static
+{
+    $id = $this->command->create($title);
+
+    $this->code = 201;
+    $this->headers['Location'] = "/article?id={$id}";
+    $this->body = ['id' => $id];
+
+    return $this;
+}
+```
+
+**検出パターン:**
+- `onPost` で `$this->command->create` や `$this->command->add` を呼んでいる
+- しかし `$this->code = 201` がない
+- または `$this->headers['Location']` がない
+
+| パターン | 評価 |
+|----------|------|
+| 201 + Location あり | ✅ 推奨 |
+| 201 あり、Location なし | ⚠️ 警告（Locationも追加推奨） |
+| 200のまま（作成処理あり） | ❌ 問題 |
+
 #### Pageリソースの制限
 
 Pageリソースは `onGet` と `onPost` のみ使用。
@@ -570,17 +610,52 @@ public function __construct(
 )
 ```
 
-#### Providerの回避
+#### Providerの過剰使用
 
-`Provider` より `toConstructor` 束縛を優先。
+`Provider` は複雑な生成ロジックが必要な場合のみ使用。単純な `new` だけなら `toConstructor` を使用すべき。
 
 ```php
-// ❌ 問題: Provider経由
+// ❌ 問題: Providerで単純にnewしているだけ
+class FooProvider implements ProviderInterface
+{
+    public function __construct(
+        private readonly BarInterface $bar,
+        #[Named('config')] private readonly array $config,
+    ) {}
+
+    public function get(): Foo
+    {
+        return new Foo($this->bar, $this->config['timeout']);
+    }
+}
+
+// Module
 $this->bind(Foo::class)->toProvider(FooProvider::class);
 
-// ✅ 推奨: toConstructor束縛
-$this->bind(Foo::class)->toConstructor(Foo::class, ['arg' => 'value']);
+// ✅ 推奨: toConstructor束縛（Providerクラス不要）
+$this->bind(Foo::class)->toConstructor(
+    Foo::class,
+    ['timeout' => 'foo_timeout']
+);
+$this->bind()->annotatedWith('foo_timeout')->toInstance($config['timeout']);
 ```
+
+**Providerが必要なケース（許容）:**
+- 条件分岐による生成（環境によって異なるインスタンス）
+- ファクトリパターン（引数に基づく動的生成）
+- 遅延初期化が必要な場合
+- 外部リソースの接続確立
+
+**Providerが不要なケース（問題）:**
+- `get()` 内で単に `new` して返すだけ
+- 依存を受け取って渡すだけの中継
+
+| パターン | 評価 |
+|----------|------|
+| `toConstructor` で済む | ✅ 推奨 |
+| 単純な `new` だけの Provider | ❌ 過剰（toConstructorを使用） |
+| 条件分岐のある Provider | ✅ 許容 |
+| ファクトリ的な Provider | ✅ 許容 |
 
 #### グローバル参照禁止
 
