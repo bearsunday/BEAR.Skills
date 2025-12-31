@@ -2,120 +2,108 @@
 
 Claude Code skills for BEAR.Sunday framework development.
 
+## Overview
+
+A collection of AI-powered skills that understand BEAR.Sunday's resource-oriented architecture. These skills help maintain code quality, generate boilerplate, and enforce framework conventions.
+
 ## Skills
 
-### bear-review
+### Code Quality
 
-Code quality evaluation using PHPMD metrics and BEAR.Sunday-specific patterns.
+#### bear-review
 
-**Evaluates:**
-- PHPMD metrics (Cyclomatic Complexity, NPath, Parameters, Fields)
-- Resource design (Embed usage, body assignment, loop delegation)
-- Dependency injection (constructor injection, trait prohibition)
-- Type safety, exception design, try-catch patterns
-- PHP 8 attributes, validation, AOP, authentication
-- 201 Created + Location header patterns
-- DateTime immutability, Provider overuse
+Comprehensive code quality evaluation using PHPMD metrics and BEAR.Sunday-specific patterns.
 
-### bear-resource-generator
+| Category | Checks |
+|----------|--------|
+| Metrics | Cyclomatic Complexity, NPath, Parameters, Fields |
+| Resource Design | Embed usage, body assignment, loop delegation |
+| DI | Constructor injection, trait prohibition, Provider overuse |
+| REST | 201 + Location header, HTTP status codes |
+| Type Safety | Exception design, DateTime immutability |
 
-Generate complete BEAR.Sunday resource sets from specifications.
-
-**Generates:**
-- Phinx migrations
-- Query/Command interfaces (CQRS)
-- SQL files (flat structure in `var/sql/`)
-- Entity classes (readonly properties)
-- Resource classes with full CRUD
-- JsonSchema (request/response)
-- Tests (unit and integration)
-
-### bear-security-setup
-
-Set up [bear/security](https://github.com/bearsunday/BEAR.Security) for BEAR.Sunday projects.
-
-**Features:**
-- Configure psalm.xml with taint plugin and stubs
-- Add composer scripts for security scanning
-- Set up AI Auditor (API key or Claude CLI)
-- Add GitHub Actions workflow
-- Security workflow with reporting guidelines
-
-### bear-hypermedia
-
-Add `#[Link]` attributes to resources and implement HyperMedia tests.
-
-**Features:**
-- Analyze resources and add appropriate `#[Link]` declarations
-- Generate HyperMedia tests that express use cases as workflows
-- Generate ALPS profiles from resource classes
-
-### bear-resource-test
-
-Generate smoke test dataProvider for all resources.
-
-**Features:**
-- Scan resource classes and extract method signatures
-- Generate dataProvider with method, URI, query, expected code
-- Single test class tests all resources
-
-### bear-cache-strategy
-
-Add cache attributes to resources.
-
-**Features:**
-- Detect resources without cache declarations
-- Classify as content API or computation API
-- Apply appropriate `#[Cacheable]`, `#[DonutCache]`, or TTL-based caching
-
-### fix-return-static
-
-Bulk convert `ResourceObject` return types to `static`.
-
-**Usage:**
-```bash
-find src/Resource -name "*.php" -exec sed -i '' 's/): ResourceObject/): static/g' {} +
-```
-
-### sql-quality
+#### sql-quality
 
 SQL performance analysis using [Koriym.SqlQuality](https://github.com/koriym/Koriym.SqlQuality).
 
-**Detects:**
-- Full table scans
-- Inefficient JOINs
-- Index invalidation by functions
+- Full table scan detection
+- Inefficient JOIN analysis
+- Index invalidation warnings
 
-### const-documenter
+### Code Generation
 
-Auto-generate PHPDoc comments for constant classes.
+#### bear-resource-generator
 
-**Features:**
-- Infer intent from constant names and values
-- Add confidence levels (high/medium/low)
-- Optional `@todo` markers for review
+Generate complete resource sets from specifications or ALPS profiles.
 
-### named-to-qualifier
+```
+Specification → Migration + Query/Command + SQL + Entity + Resource + JsonSchema + Tests
+```
+
+### Documentation
+
+#### const-documenter
+
+Auto-generate PHPDoc for constant classes with confidence levels.
+
+#### resource-documenter
+
+Auto-generate PHPDoc for Resource classes based on REST semantics.
+
+### Refactoring
+
+#### named-to-qualifier
 
 Convert `#[Named('string')]` to type-safe `#[Qualifier]` attributes.
 
-**Features:**
-- Search and list Named string usage
-- Generate Qualifier attribute classes
-- Update NamedModule configuration
+```php
+// Before
+#[Named('api_endpoint')] string $endpoint
 
-### resource-documenter
+// After
+#[ApiEndpoint] string $endpoint
+```
 
-Auto-generate PHPDoc comments for Resource classes.
+#### fix-return-static
 
-**Features:**
-- Infer intent from class names and method signatures
-- Add confidence levels based on REST semantics
-- Optional `@todo` markers for review
+Bulk convert `ResourceObject` return types to `static`.
+
+### Resource Enhancement
+
+#### bear-hypermedia
+
+Add `#[Link]` attributes and generate HyperMedia tests expressing use cases as workflows.
+
+#### bear-cache-strategy
+
+Analyze resources and apply appropriate cache attributes (`#[Cacheable]`, `#[DonutCache]`, TTL).
+
+#### bear-resource-test
+
+Generate smoke test dataProvider covering all resource endpoints.
+
+### Security
+
+#### bear-security-setup
+
+Set up [BEAR.Security](https://github.com/bearsunday/BEAR.Security) with SAST, AI Auditor, and GitHub Actions.
 
 ## Installation
 
-Copy `.claude/skills/` to your project's `.claude/` directory.
+```bash
+# Copy skills to your project
+cp -r .claude/skills/ /path/to/your/project/.claude/skills/
+```
+
+## Requirements
+
+- Claude Code CLI
+- BEAR.Sunday project
+
+## References
+
+- [BEAR.Sunday Documentation](https://bearsunday.github.io/)
+- [Ray.Di Documentation](https://ray-di.github.io/)
 
 ## License
 
