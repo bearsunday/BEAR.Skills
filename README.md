@@ -88,6 +88,21 @@ Generate smoke test dataProvider covering all resource endpoints.
 
 Set up [BEAR.Security](https://github.com/bearsunday/BEAR.Security) with SAST, AI Auditor, and GitHub Actions.
 
+### Deployment
+
+#### bear-preflight
+
+Pre-deployment comprehensive check covering compile, security, performance, quality, and configuration.
+
+```text
+✅ Compile    - bear.compile + runtime bindings (Ray.MediaQuery Entity, etc.)
+✅ Security   - SAST, hardcoded credentials, env settings
+✅ Performance - Cache attributes, SQL quality, N+1 detection
+✅ Quality    - Static analysis, tests, coverage
+✅ Dependencies - composer audit, lock file
+✅ Configuration - Context, environment variables
+```
+
 ## Installation
 
 ```bash
