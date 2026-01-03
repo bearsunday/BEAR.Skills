@@ -216,10 +216,14 @@ public function onGet(int $id): self
 
 #### セッターインジェクションの判定
 
-**原則**: コンストラクタインジェクションを使用すべき。
+**原則**: コンストラクタインジェクションを推奨。PHP 8のコンストラクタプロモーションにより、従来のインジェクショントレイトは不要。
+
+**Ray.Diの使い分け:**
+- **必須の依存関係** → コンストラクタインジェクション
+- **オプショナルな依存関係** → セッターインジェクション（`optional: true`）も許容
 
 ```php
-// ❌ 問題: トレイトでセッターインジェクション
+// ⚠️ 非推奨: トレイトでセッターインジェクション（必須依存）
 trait MetaTag
 {
     protected Article $articleMeta;
@@ -235,18 +239,26 @@ trait MetaTag
 public function __construct(
     private readonly Article $articleMeta,
 )
+
+// ✅ OK: オプショナルな依存（存在しない場合は無視される）
+#[Inject(optional: true)]
+public function setDebugger(?DebuggerInterface $debugger): void
+{
+    $this->debugger = $debugger;
+}
 ```
 
 | パターン | 評価 |
 |----------|------|
 | コンストラクタインジェクション | ✅ 推奨 |
-| トレイトによる `#[Inject]` セッター | ❌ 問題 |
-| `use ResourceInject` | ❌ 問題（セッターインジェクション） |
-| `use AInject` 系トレイト | ❌ 問題 |
+| トレイトによる `#[Inject]` セッター（必須依存） | ⚠️ 非推奨 |
+| `#[Inject(optional: true)]` セッター | ✅ OK（オプショナル依存） |
+| `use ResourceInject` | ⚠️ 非推奨（コンストラクタ注入を推奨） |
+| `use AInject` 系トレイト | ⚠️ 非推奨 |
 | ResourceObject固有のセッター（`setRenderer`等） | ✅ OK（フレームワーク用） |
 
 ```php
-// ❌ 問題: トレイトでリソース注入
+// ⚠️ 非推奨: トレイトでリソース注入
 use ResourceInject;
 
 // ✅ 推奨: コンストラクタで注入
@@ -259,6 +271,8 @@ public function __construct(
 - 依存関係が隠蔽される（コンストラクタを見ても分からない）
 - テストが困難（セッターを呼ぶかリフレクションが必要）
 - 依存がミュータブル（後から変更可能）
+
+**注**: 既存コードでResourceInjectを使用している場合、即座にエラーではないが、新規コードではコンストラクタインジェクションを使用すべき。
 
 #### `new` の使用判定
 
@@ -393,13 +407,13 @@ PHP 8ではDoctrineアノテーション `/** @Embed */` ではなくネイテ�
 
 #### 定数と設定値
 
-設定値はクラス定数ではなく注入すべき。ドメイン不変値はEnumを使用。
+**環境依存の設定値**はクラス定数ではなく注入すべき。**アプリケーション構造の定義**はクラス定数でOK。ドメイン不変値はEnumを使用。
 
 ```php
-// ❌ 問題: 設定値をクラス定数に
+// ❌ 問題: 環境依存の設定値をクラス定数に
 private const API_URL = 'https://api.example.com';
-private const LIMIT = 100;
-private const USER_ID = 456;
+private const TIMEOUT = 30;
+private const API_KEY = 'xxx';
 
 // ✅ 推奨: NamedModuleでバインド、#[Named]で注入
 // Module:
@@ -408,8 +422,15 @@ $this->bind()->annotatedWith('API_URL')->toInstance($apiUrl);
 // Resource:
 public function __construct(
     #[Named('API_URL')] private readonly string $apiUrl,
-    #[Named('DEFAULT_LIMIT')] private readonly int $limit,
+    #[Named('TIMEOUT')] private readonly int $timeout,
 )
+
+// ✅ OK: アプリケーション構造の定義（環境非依存）
+private const RESOURCE_URI_LIST = [
+    ['list' => 'app://self/article/publishable', 'update' => 'app://self/article/publish'],
+    // ...
+];
+private const SUPPORTED_CONTENT_TYPES = ['article', 'blog', 'news'];
 
 // ✅ ドメイン不変値はEnum
 enum ContentStatus: string {
@@ -421,8 +442,9 @@ enum ContentStatus: string {
 | 種類 | クラス定数 | 注入 |
 |------|-----------|------|
 | URL、パス、APIキー | ❌ | ✅ |
-| 制限値、タイムアウト | ❌ | ✅ |
-| ID、マジックナンバー | ❌ | ✅ |
+| タイムアウト、認証情報 | ❌ | ✅ |
+| 環境依存のID | ❌ | ✅ |
+| **アプリ構造の定義（URIリスト等）** | **✅** | - |
 | ステータス、型識別子 | △ Enum推奨 | - |
 
 #### リソース内のDB直接アクセス
