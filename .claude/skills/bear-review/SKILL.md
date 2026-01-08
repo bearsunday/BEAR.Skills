@@ -15,6 +15,124 @@ description: BEAR.SundayプロジェクトのPHPコード品質を評価する�
 ./vendor-bin/tools/vendor/bin/phpmd [ファイルパス] text codesize,design 2>/dev/null | grep -v "^Deprecated"
 ```
 
+### 1.1 統計レポートの自動生成（推奨）
+
+プロジェクト全体の品質状況を把握するため、PHPMD違反の統計レポートを自動生成することを強く推奨します。
+
+#### baselineなしでの実行
+
+`phpmd.baseline.xml`が存在する場合、真の品質状態を把握するために一時的に無効化します：
+
+```bash
+# 1. baselineを一時的にリネーム
+mv phpmd.baseline.xml phpmd.baseline.xml.bak
+
+# 2. 全リソースディレクトリに対してPHPMD実行
+./vendor-bin/tools/vendor/bin/phpmd src/Resource text phpmd.xml 2>&1 > phpmd_output.txt
+
+# 3. 復元
+mv phpmd.baseline.xml.bak phpmd.baseline.xml
+```
+
+#### 統計集計コマンド
+
+PHPMDの出力から自動的に統計を生成：
+
+```bash
+# 総違反数
+cat phpmd_output.txt | wc -l
+
+# カテゴリ別集計
+echo "=== カテゴリ別統計 ==="
+echo "LongVariable:           $(grep -c 'LongVariable' phpmd_output.txt) 件"
+echo "CouplingBetweenObjects: $(grep -c 'CouplingBetweenObjects' phpmd_output.txt) 件"
+echo "StaticAccess:           $(grep -c 'StaticAccess' phpmd_output.txt) 件"
+echo "ElseExpression:         $(grep -c 'ElseExpression' phpmd_output.txt) 件"
+echo "UnusedFormalParameter:  $(grep -c 'UnusedFormalParameter' phpmd_output.txt) 件"
+
+# 複雑度違反（重要度高）
+echo ""
+echo "=== 複雑度違反（高優先度） ==="
+echo "CyclomaticComplexity:   $(grep -c 'CyclomaticComplexity' phpmd_output.txt) 件"
+echo "NPathComplexity:        $(grep -c 'NPathComplexity' phpmd_output.txt) 件"
+echo "ExcessiveMethodLength:  $(grep -c 'ExcessiveMethodLength' phpmd_output.txt) 件"
+echo "ExcessiveClassLength:   $(grep -c 'ExcessiveClassLength' phpmd_output.txt) 件"
+echo "TooManyFields:          $(grep -c 'TooManyFields' phpmd_output.txt) 件"
+```
+
+#### 統計レポート例
+
+実行結果の例：
+
+```
+=== PHPMD統計レポート ===
+総違反数: 259件
+
+【カテゴリ別】
+- LongVariable:            92件 (35.5%)
+- CouplingBetweenObjects:  28件 (10.8%)
+- StaticAccess:            24件 (9.3%)
+- ElseExpression:          20件 (7.7%)
+- UnusedFormalParameter:   18件 (7.0%)
+...
+
+【複雑度違反（高優先度）】
+- CyclomaticComplexity:     5件
+- NPathComplexity:          5件
+- ExcessiveMethodLength:    7件
+- ExcessiveClassLength:     1件
+- TooManyFields:            0件
+```
+
+#### 最も問題のあるファイルの特定
+
+```bash
+# 違反数が多いファイル TOP 10
+cat phpmd_output.txt | awk -F: '{print $1}' | sort | uniq -c | sort -rn | head -10
+
+# 例:
+#   5 src/Resource/Page/Content/SpecialContent.php
+#   4 src/Resource/App/GlobalNav.php
+#   3 src/Resource/App/Contents/Ranking.php
+```
+
+#### baselineありなしの比較
+
+baselineによって隠蔽されている問題数を可視化：
+
+```bash
+# baseline なしの違反数
+baseline_off=$(cat phpmd_output.txt | wc -l)
+
+# baseline ありの違反数（通常実行）
+baseline_on=$(./vendor-bin/tools/vendor/bin/phpmd src/Resource text phpmd.xml 2>&1 | wc -l)
+
+echo "=== Baseline比較 ==="
+echo "baselineあり:   ${baseline_on}件"
+echo "baselineなし:   ${baseline_off}件"
+echo "抑制されている: $((baseline_off - baseline_on))件"
+```
+
+#### 深刻度別の分類
+
+複雑度の値に基づいて深刻度を判定：
+
+```bash
+# Critical: CC>20 または NPath>10000
+critical_cc=$(grep 'CyclomaticComplexity' phpmd_output.txt | awk '{print $NF}' | awk -F. '{if($1>20)print}' | wc -l)
+critical_npath=$(grep 'NPathComplexity' phpmd_output.txt | awk '{print $NF}' | awk -F. '{if($1>10000)print}' | wc -l)
+
+echo "=== 深刻度別 ==="
+echo "Critical (CC>20 or NPath>10000): $((critical_cc + critical_npath)) 件"
+```
+
+#### 統計の活用方法
+
+1. **技術的負債の可視化**: baselineで隠蔽された問題の総数を把握
+2. **優先順位付け**: 複雑度違反を優先的に対応
+3. **改善計画**: カテゴリ別の件数から段階的な改善計画を策定
+4. **トレンド分析**: 定期的に実行して改善状況をモニタリング
+
 ### 2. 評価基準
 
 #### Cyclomatic Complexity (CC)
