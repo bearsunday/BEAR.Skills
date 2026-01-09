@@ -2543,6 +2543,70 @@ final class CachedArticleRepository implements ArticleRepositoryInterface { }   
 - フレームワークが継承を要求（`extends ResourceObject`）
 - 本当に「is-a」関係がある場合（稀）
 
+#### 🎭 それFacadeじゃないです
+
+「Facadeパターン使ってます！」→ それService LocatorかStatic Proxy。
+
+```php
+// Laravel の "Facade"
+Cache::get('key');      // これは Facade パターンではない
+Log::info('message');   // Static Proxy（または Service Locator）
+DB::table('users');     // GoFのFacadeとは別物
+
+// 実際の動作
+class Cache extends Facade
+{
+    // 静的呼び出しを実インスタンスに委譲
+    protected static function getFacadeAccessor()
+    {
+        return 'cache';  // コンテナから取得
+    }
+}
+// → Service Locator + Static Proxy
+```
+
+**本当のFacadeパターン（GoF）:**
+
+```php
+// ✅ 本物のFacade: 複雑なサブシステムを単純なインターフェースで隠蔽
+class OrderFacade
+{
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly PaymentService $payment,
+        private readonly ShippingService $shipping,
+        private readonly NotificationService $notification,
+    ) {}
+
+    // 複雑な処理を1つのメソッドに
+    public function placeOrder(Order $order): OrderResult
+    {
+        $this->inventory->reserve($order->items);
+        $payment = $this->payment->charge($order->total);
+        $this->shipping->schedule($order);
+        $this->notification->sendConfirmation($order);
+
+        return new OrderResult($order, $payment);
+    }
+}
+```
+
+**用語の整理:**
+
+| 呼び方 | 実際のパターン |
+|--------|---------------|
+| Laravel Facade | Static Proxy + Service Locator |
+| GoF Facade | サブシステムの単純化 |
+
+**なぜ問題か:**
+- 用語の誤用が広まる
+- 本当のFacadeを知らないまま
+- 「Facade使ってる」で思考停止
+
+**BEAR.Sundayでは:**
+- DIで依存を注入 → テスト可能
+- 静的呼び出し不要 → 明示的な依存
+
 #### 🥤 Static Cola（静的メソッド中毒）
 
 何でも静的メソッドで呼ぶ。テスト不能、差し替え不能。
