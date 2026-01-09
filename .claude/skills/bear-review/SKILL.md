@@ -2254,6 +2254,113 @@ function process(EntityInterface $entity): void { }
 function process(array $event): void { }
 ```
 
+#### 🚩 Boolでメソッド統合マン
+
+「2つのメソッド？boolで1つにまとめよう！」→ 1メソッド2責務。
+
+```php
+// ❌ 問題: boolで動作が変わる
+class ArticleRepository
+{
+    public function find(int $id, bool $withComments = false): Article
+    {
+        $article = $this->query->find($id);
+        if ($withComments) {
+            $article->comments = $this->commentQuery->findByArticle($id);
+        }
+        return $article;
+    }
+
+    public function getList(bool $onlyPublished = true, bool $withAuthor = false): array
+    {
+        // bool が増えていく...
+    }
+}
+
+// 呼び出し側で意味不明
+$article = $repo->find($id, true);   // true って何？
+$list = $repo->getList(true, false); // 何がなんだか...
+
+// ✅ 推奨: メソッドを分ける
+class ArticleRepository
+{
+    public function find(int $id): Article { }
+    public function findWithComments(int $id): Article { }
+}
+```
+
+**boolフラグの問題:**
+- 呼び出し側で `true/false` の意味がわからない
+- 1メソッドが2つの責務を持つ
+- フラグが増殖する（`$withA`, `$withB`, `$withC`...）
+
+**リファクタリング:**
+
+| Before | After |
+|--------|-------|
+| `find($id, true)` | `findWithComments($id)` |
+| `save($data, true)` | `saveAsDraft($data)` |
+| `delete($id, false)` | `softDelete($id)` / `hardDelete($id)` |
+
+#### 🧰 親クラスにユーティリティてんこもり
+
+「便利だから親クラスに入れとこう！」→ 継承で共有しようとしすぎ。
+
+```php
+// ❌ 問題: 親クラスがユーティリティ集になる
+abstract class BaseResource extends ResourceObject
+{
+    // 「みんな使うから」と追加されていく
+    protected function formatDate(\DateTimeInterface $date): string { }
+    protected function sanitizeHtml(string $html): string { }
+    protected function generateSlug(string $title): string { }
+    protected function truncate(string $text, int $length): string { }
+    protected function toJson(array $data): string { }
+    protected function fromJson(string $json): array { }
+    protected function encrypt(string $data): string { }
+    protected function decrypt(string $data): string { }
+    // 50個のprotectedメソッド...
+}
+
+class ArticleResource extends BaseResource
+{
+    public function onGet(int $id): static
+    {
+        $article = $this->query->find($id);
+        $article['slug'] = $this->generateSlug($article['title']);  // 親のメソッド
+        $article['body'] = $this->sanitizeHtml($article['body']);   // 親のメソッド
+    }
+}
+// 問題: ArticleResource は slug も sanitize も「できる」ことになる（責務過多）
+
+// ✅ 推奨: 独立したサービスに分離して注入
+final class ArticleResource extends ResourceObject
+{
+    public function __construct(
+        private readonly SlugGenerator $slugGenerator,
+        private readonly HtmlSanitizer $sanitizer,
+    ) {}
+
+    public function onGet(int $id): static
+    {
+        $article = $this->query->find($id);
+        $article['slug'] = $this->slugGenerator->generate($article['title']);
+        $article['body'] = $this->sanitizer->sanitize($article['body']);
+    }
+}
+```
+
+**なぜ問題か:**
+- 親クラスが肥大化（God Class化）
+- 使わないメソッドも継承される
+- 「どこで使われてるかわからない」protected地獄
+- テストで親クラス全体を考慮する必要
+
+**親クラスに置いていいもの:**
+- フレームワークが要求するもの
+- 本当に全子クラスで使う抽象メソッド
+- それ以外は **注入**
+
 #### 🔓 Final嫌い（継承キング）
 
 「finalつけないで！拡張できなくなるから！」→ 継承で解決しようとしすぎ。
