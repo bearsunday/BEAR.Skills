@@ -3632,6 +3632,127 @@ class ErrorHandler
 // → ここで吸収すれば、ビジネスロジックは環境を知らない
 ```
 
+#### 🪆 具象継承マトリョーシカ
+
+具象クラスを具象クラスで継承。BEAR.Sundayではまず見ない。AOPとDecoratorがあるから。
+
+```php
+// ❌ 問題: 具象クラスの継承チェーン
+class BaseRepository
+{
+    public function find(int $id): ?array
+    {
+        return $this->db->fetch($id);
+    }
+
+    public function save(array $data): void
+    {
+        $this->db->insert($data);
+    }
+}
+
+class CachedRepository extends BaseRepository
+{
+    public function find(int $id): ?array
+    {
+        if ($cached = $this->cache->get($id)) {
+            return $cached;
+        }
+        $result = parent::find($id);  // 親に依存
+        $this->cache->set($id, $result);
+        return $result;
+    }
+}
+
+class LoggingCachedRepository extends CachedRepository
+{
+    public function find(int $id): ?array
+    {
+        $this->logger->info("Finding: $id");
+        return parent::find($id);  // 祖父母まで依存
+    }
+}
+
+// 問題点:
+// - 継承順序が固定（ログ→キャッシュ→本体）
+// - 親を変更すると全部壊れる（脆弱な基底クラス問題）
+// - テストで親をモックできない
+// - 機能の組み合わせが継承階層で固定
+
+// ✅ 推奨: BEAR.SundayならAOP
+#[CacheableRead]
+#[Loggable]
+class UserRepository implements UserRepositoryInterface
+{
+    public function find(int $id): ?User
+    {
+        return $this->query->item($id);
+    }
+}
+
+// インターセプターで横断的関心事を分離
+class CacheInterceptor implements MethodInterceptor
+{
+    public function invoke(MethodInvocation $invocation): mixed
+    {
+        $key = $this->buildKey($invocation);
+        if ($cached = $this->cache->get($key)) {
+            return $cached;
+        }
+        $result = $invocation->proceed();
+        $this->cache->set($key, $result);
+        return $result;
+    }
+}
+
+// ✅ 推奨: または Decorator パターン
+interface RepositoryInterface
+{
+    public function find(int $id): ?array;
+}
+
+class DbRepository implements RepositoryInterface { ... }
+
+class CachedRepository implements RepositoryInterface
+{
+    public function __construct(
+        private RepositoryInterface $inner,  // 具象ではなくインターフェース
+        private CacheInterface $cache,
+    ) {}
+
+    public function find(int $id): ?array
+    {
+        return $this->cache->get($id)
+            ?? $this->cache->set($id, $this->inner->find($id));
+    }
+}
+
+// DIで組み立て
+$this->bind(RepositoryInterface::class)
+     ->toConstructor(
+         CachedRepository::class,
+         ['inner' => DbRepository::class]
+     );
+```
+
+**なぜBEAR.Sundayで具象継承を見ないか:**
+- **AOP**: 横断的関心事（ログ、キャッシュ、認証）はインターセプターで
+- **DI**: 実装の切り替えはModuleで
+- **Decorator**: 機能追加は委譲で
+- **ResourceObject**: 継承するのはResourceObjectだけ（これはフレームワーク規約）
+
+**具象継承が許される稀なケース:**
+```php
+// ✅ OK: フレームワークが要求する継承
+class Index extends ResourceObject { ... }
+
+// ✅ OK: Exceptionの継承
+class OrderNotFoundException extends ResourceNotFoundException { ... }
+
+// ✅ OK: 本当に「is-a」関係で、かつ拡張ポイントが設計されている
+abstract class AbstractValueObject { ... }  // 抽象クラスからの継承
+```
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
