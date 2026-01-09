@@ -4458,6 +4458,99 @@ CREATE TABLE order_items (
 - [ ] 構造が決まってる？ → 正規化
 - [ ] 本当にスキーマレス？ → JSONでOK
 
+#### 🔧 意味なしSQLビルダー（それほぼSQLだよ）
+
+クエリビルダー使ってるけど、ほぼ生SQL。何のためのビルダー？
+
+```php
+// ❌ 問題: ビルダーなのに文字列ベタ書き
+$query = $this->db->createQueryBuilder()
+    ->select('u.id, u.name, u.email')
+    ->from('users', 'u')
+    ->leftJoin('u', 'orders', 'o', 'u.id = o.user_id')
+    ->where('u.status = :status')
+    ->andWhere('u.created_at > :date')
+    ->orderBy('u.created_at', 'DESC')
+    ->setParameter('status', 'active')
+    ->setParameter('date', $date);
+
+// ↑ これ、SQLで書くと:
+SELECT u.id, u.name, u.email
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.status = :status
+  AND u.created_at > :date
+ORDER BY u.created_at DESC
+
+// 何が違う？
+// - 文字数: ビルダーの方が長い
+// - 可読性: SQLの方が読みやすい
+// - テスト: SQLならDBクライアントで直接実行できる
+// - 学習コスト: SQL知ってればビルダー不要
+
+// さらにひどいケース: 文字列結合始める
+$query->where("u.status = '{$status}'");  // SQLインジェクション！
+$query->where('u.name LIKE ' . $this->db->quote("%{$name}%"));
+```
+
+**ビルダーが意味あるケース:**
+```php
+// ✅ OK: 動的にクエリを組み立てる
+$qb = $this->db->createQueryBuilder()
+    ->select('*')
+    ->from('products');
+
+if ($categoryId !== null) {
+    $qb->andWhere('category_id = :category')
+       ->setParameter('category', $categoryId);
+}
+
+if ($minPrice !== null) {
+    $qb->andWhere('price >= :minPrice')
+       ->setParameter('minPrice', $minPrice);
+}
+
+if ($sortBy === 'price') {
+    $qb->orderBy('price', $direction);
+} elseif ($sortBy === 'name') {
+    $qb->orderBy('name', $direction);
+}
+
+// 条件によってクエリが変わる → ビルダーの価値あり
+```
+
+**BEAR.Sunday / Ray.MediaQuery のアプローチ:**
+```php
+// SQLファイルに書く（そのまんまSQL）
+// var/sql/user_list.sql
+SELECT u.id, u.name, u.email
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.status = :status
+  AND u.created_at > :date
+ORDER BY u.created_at DESC
+
+// PHPはインターフェースだけ
+interface UserQueryInterface
+{
+    #[DbQuery('user_list')]
+    public function list(string $status, string $date): array;
+}
+
+// メリット:
+// - SQLはSQLで書く（DBクライアントでテスト可能）
+// - PHPは型付きインターフェース
+// - ビルダーの学習コスト不要
+```
+
+**判断基準:**
+| ケース | 推奨 |
+|--------|------|
+| 固定クエリ | 生SQL / SQLファイル |
+| 動的条件（検索画面等） | クエリビルダー |
+| 複雑なクエリ | 生SQL（可読性重視） |
+| DB移植性が必要 | クエリビルダー（稀） |
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
