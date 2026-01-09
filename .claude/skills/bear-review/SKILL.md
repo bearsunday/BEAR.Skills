@@ -2254,6 +2254,51 @@ function process(EntityInterface $entity): void { }
 function process(array $event): void { }
 ```
 
+#### 🏷️ なんでもManager/Resolver/Data
+
+「名前が思いつかない？Managerで！」→ 全部管理、全部解決、全部データ。
+
+```php
+// ❌ 問題: 意味のない名前
+class ArticleManager { }      // 何を manage するの？
+class DataResolver { }        // 何を resolve するの？
+class UserData { }            // Data って何？Entity？DTO？
+class ContentHandler { }      // 何を handle？
+class InfoProcessor { }       // 何の info を process？
+class ItemHelper { }          // 何を help？
+class ServiceUtils { }        // Utils って何でも入れていい箱？
+
+// 結果: 何でも入る God Class になる
+class ArticleManager
+{
+    public function create() { }
+    public function update() { }
+    public function delete() { }
+    public function validate() { }
+    public function export() { }
+    public function notify() { }
+    // Manager だから何でも manage できる！
+}
+
+// ✅ 推奨: 責務を表す具体的な名前
+class ArticleRepository { }      // DBアクセス
+class ArticleValidator { }       // バリデーション
+class ArticleExporter { }        // エクスポート
+class ArticlePublisher { }       // 公開処理
+```
+
+**避けるべき曖昧な接尾辞:**
+
+| 接尾辞 | 問題 | 代替案 |
+|--------|------|--------|
+| `Manager` | 何でも入る | Publisher, Validator, Repository |
+| `Handler` | 何を handle? | Parser, Processor |
+| `Resolver` | 何を resolve? | PathResolver, DependencyResolver |
+| `Helper` | 何を help? | クラス自体が不要かも |
+| `Utils` | ゴミ箱 | 個別クラスに分離 |
+| `Data` | 何のデータ? | Entity, Dto, Input, Response |
+| `Info` | 曖昧 | Details, Metadata, Summary |
+
 #### 🚩 Boolでメソッド統合マン
 
 「2つのメソッド？boolで1つにまとめよう！」→ 1メソッド2責務。
