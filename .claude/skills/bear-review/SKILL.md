@@ -364,6 +364,63 @@ public function listUsers(): array { }  // または getUsers, fetchUsers
 | `calculate` | 計算 | `calculateTotal()` |
 | `convert` / `transform` | 変換 | `convertToArray()` |
 
+#### 🎲 命名個性
+
+同じ概念に違う名前。各自が「個性」を発揮してチーム内で統一されていない。
+
+```php
+// ❌ 問題: 同じ意味なのに名前がバラバラ
+class Order
+{
+    public DateTime $createdAt;      // At 付き
+}
+
+class User
+{
+    public DateTime $created;         // At なし
+}
+
+class Article
+{
+    public DateTime $createdDatetime; // Datetime 付き
+}
+
+class Comment
+{
+    public DateTime $createDate;      // Date で create（過去形じゃない）
+}
+
+// 他にもバラバラになりがちなもの:
+// - updatedAt / updated / modifiedAt / lastModified
+// - deletedAt / deleted / removedAt
+// - userId / user_id / uid / userID
+// - isActive / active / enabled / isEnabled
+
+// ✅ 推奨: プロジェクト全体で統一
+// 命名規約を決めて徹底する
+class Order
+{
+    public DateTimeImmutable $createdAt;
+    public DateTimeImmutable $updatedAt;
+    public ?DateTimeImmutable $deletedAt;
+}
+
+class User
+{
+    public DateTimeImmutable $createdAt;  // 同じ規約
+    public DateTimeImmutable $updatedAt;
+}
+```
+
+**よくある不統一:**
+| 概念 | バラバラ例 | 統一例 |
+|------|-----------|--------|
+| 作成日時 | created, createdAt, createdDatetime, createDate | `createdAt` |
+| 更新日時 | updated, updatedAt, modifiedAt, lastModified | `updatedAt` |
+| ID | userId, user_id, uid, userID | `userId` |
+| フラグ | isActive, active, enabled | `isActive` |
+| 件数 | count, total, num, cnt | `count` |
+
 ### 4. コード構造
 
 #### 深すぎるネスト
