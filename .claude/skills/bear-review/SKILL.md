@@ -2254,6 +2254,83 @@ function process(EntityInterface $entity): void { }
 function process(array $event): void { }
 ```
 
+#### 🥤 Static Cola（静的メソッド中毒）
+
+何でも静的メソッドで呼ぶ。テスト不能、差し替え不能。
+
+```php
+// ❌ 問題: 静的メソッドだらけ
+class ArticleResource extends ResourceObject
+{
+    public function onGet(int $id): static
+    {
+        $article = ArticleRepository::find($id);        // static
+        $formatted = DateHelper::format($article->createdAt);  // static
+        $html = HtmlPurifier::clean($article->body);    // static
+        Logger::info('Article viewed', ['id' => $id]);  // static
+        Cache::remember("article:{$id}", $article);     // static
+
+        $this->body = ['article' => $article];
+        return $this;
+    }
+}
+
+// 問題点:
+// - テストでモックできない（本物のDBにアクセスする）
+// - 実装を差し替えられない（キャッシュをRedisに変えたい等）
+// - 隠れた依存関係（コンストラクタを見てもわからない）
+// - グローバル状態への依存
+
+// ✅ 推奨: 依存性注入
+class ArticleResource extends ResourceObject
+{
+    public function __construct(
+        private readonly ArticleRepositoryInterface $repository,
+        private readonly DateFormatterInterface $dateFormatter,
+        private readonly HtmlPurifierInterface $purifier,
+        private readonly LoggerInterface $logger,
+        private readonly CacheInterface $cache,
+    ) {}
+
+    public function onGet(int $id): static
+    {
+        $article = $this->repository->find($id);
+        // テストではモックを注入できる
+    }
+}
+```
+
+**静的メソッドが許容されるケース:**
+
+```php
+// ✅ OK: ファクトリメソッド（自分自身を返す）
+$user = User::fromArray($data);
+$date = DateTimeImmutable::createFromFormat('Y-m-d', $str);
+
+// ✅ OK: 純粋関数（副作用なし、外部状態に依存しない）
+$hash = Password::hash($plain);  // 入力だけで出力が決まる
+$slug = Str::slug($title);       // 状態を持たない
+
+// ✅ OK: 定数的な値
+$types = ContentType::all();
+```
+
+**静的が問題になるケース:**
+
+| パターン | 問題 |
+|----------|------|
+| `Repository::find()` | DBアクセスをモックできない |
+| `Logger::info()` | ログ出力先を変えられない |
+| `Cache::get()` | キャッシュ実装を差し替えられない |
+| `Mail::send()` | テストで本当にメール送信される |
+| `DateTime::now()` | 時刻固定のテストができない |
+
+**なぜ問題か:**
+- **テスト不能**: 本物のDB/API/メールに依存
+- **差し替え不能**: 実装を変更できない
+- **隠れた依存**: コンストラクタに現れない
+- **グローバル状態**: 予測不能な動作
+
 #### 🔗 デメテルの法則違反（電車衝突）
 
 「友達の友達と話すな」→ 違反者「友達の友達の友達もみんな友達！」
