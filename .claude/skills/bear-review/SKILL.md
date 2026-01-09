@@ -2607,6 +2607,66 @@ class OrderFacade
 - DIで依存を注入 → テスト可能
 - 静的呼び出し不要 → 明示的な依存
 
+#### 🔮 補完が効かないコード
+
+IDE「...」→ 開発効率ガタ落ち。
+
+```php
+// ❌ 問題: 補完が効かない
+$data = $this->getData();  // mixed が返る
+$data['user']['name'];     // 補完なし、typoしても気づかない
+
+$user = $container->get('user');  // 何が返る？
+$user->getName();  // 補完なし
+
+$article->$dynamicProperty;  // 動的プロパティ
+$service->$methodName();     // 動的メソッド
+
+// マジックメソッド地獄
+class Config
+{
+    public function __get($name) { return $this->data[$name]; }
+    public function __call($name, $args) { /* ... */ }
+}
+$config->database->host;  // 補完なし
+
+// ✅ 推奨: 型を明示
+/** @return array{user: array{id: int, name: string}} */
+public function getData(): array { }
+
+public function getUser(): User { }  // 返り値型
+
+// コンテナも型付きで
+public function __construct(
+    private readonly UserRepositoryInterface $userRepository,  // 補完効く！
+) {}
+```
+
+**補完が効かなくなる原因:**
+
+| 原因 | 対策 |
+|------|------|
+| `mixed` 返り値 | 具体的な型を返す |
+| `array<string, mixed>` | 型付き配列 or オブジェクト |
+| `$container->get('name')` | コンストラクタ注入 |
+| `__get` / `__call` | 通常のプロパティ/メソッド |
+| 動的プロパティ | readonly プロパティ |
+| 文字列でクラス名 | `::class` 定数 |
+
+```php
+// ❌ 文字列でクラス名
+$container->get('App\Service\UserService');
+
+// ✅ ::class で補完 + リファクタリング安全
+$container->get(UserService::class);
+```
+
+**なぜ重要か:**
+- 補完なし = タイポし放題
+- 補完なし = 定義にジャンプできない
+- 補完なし = リファクタリングが手作業
+- 補完なし = コードを読まないと使えない
+
 #### 🥤 Static Cola（静的メソッド中毒）
 
 何でも静的メソッドで呼ぶ。テスト不能、差し替え不能。
