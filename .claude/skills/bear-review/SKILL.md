@@ -4356,6 +4356,108 @@ CREATE TABLE subscriptions (
 - [ ] 「ゴミ箱から復元」機能が要件にある？
 - [ ] 全部Noなら物理削除でOK
 
+#### 📦 とりあえずJSONカラム教
+
+「スキーマ変更めんどい」「柔軟にしたい」→ 全部JSONに突っ込む。
+
+```sql
+-- ❌ 問題: 何でもJSON
+CREATE TABLE users (
+    id INT PRIMARY KEY,
+    email VARCHAR(255),
+    profile JSON,     -- 名前も住所も電話番号も全部ここ
+    settings JSON,    -- 何が入ってるか誰も知らない
+    metadata JSON     -- とりあえず何でも入れる用
+);
+
+CREATE TABLE orders (
+    id INT PRIMARY KEY,
+    user_id INT,
+    data JSON         -- 商品も金額も配送先も全部ここ
+);
+```
+
+```php
+// 何が問題？
+
+// 問題1: 検索できない（できても遅い）
+SELECT * FROM users
+WHERE JSON_EXTRACT(profile, '$.address.city') = '東京';
+// → インデックス効かない、フルスキャン
+
+// 問題2: 型がない
+$user['profile']['age'] = "25";      // 文字列
+$user['profile']['age'] = 25;         // 数値
+$user['profile']['age'] = "twenty";   // これも入る
+
+// 問題3: 何が入ってるかわからない
+$profile = $user['profile'];
+// name ある？ address ある？ 実行するまでわからない
+// IDE補完も効かない
+
+// 問題4: 外部キー使えない
+// profile.company_id → companies.id の整合性は？
+// JSON内のIDが存在するか保証できない
+
+// 問題5: マイグレーションが地獄
+// 「profile.phone を profile.phones（配列）に変更」
+// → 全レコード舐めてJSONを書き換え
+```
+
+**JSONカラムが適切なケース:**
+```sql
+-- ✅ OK: 本当にスキーマレスなデータ
+CREATE TABLE audit_logs (
+    id INT PRIMARY KEY,
+    action VARCHAR(50),
+    payload JSON,           -- 監査ログは何が来るかわからない
+    created_at TIMESTAMP
+);
+
+-- ✅ OK: 外部APIのレスポンス保存
+CREATE TABLE webhook_payloads (
+    id INT PRIMARY KEY,
+    provider VARCHAR(50),
+    raw_payload JSON,       -- 外部の形式をそのまま保存
+    processed_at TIMESTAMP
+);
+
+-- ✅ OK: ユーザー定義のカスタムフィールド
+CREATE TABLE products (
+    id INT PRIMARY KEY,
+    name VARCHAR(255),
+    price INT,
+    custom_attributes JSON  -- ユーザーが自由に追加する属性
+);
+```
+
+**正規化すべきデータ:**
+```sql
+-- ❌ JSONに入れがち
+data JSON  -- {"items": [{"product_id": 1, "qty": 2}], "shipping": {...}}
+
+-- ✅ 正規化
+CREATE TABLE orders (
+    id INT PRIMARY KEY,
+    user_id INT REFERENCES users(id),
+    shipping_address_id INT REFERENCES addresses(id)
+);
+
+CREATE TABLE order_items (
+    order_id INT REFERENCES orders(id),
+    product_id INT REFERENCES products(id),
+    quantity INT,
+    price INT
+);
+-- 検索できる、型がある、整合性保証される
+```
+
+**JSONカラムを作る前に確認:**
+- [ ] このデータで検索・集計する？ → 正規化
+- [ ] 外部キーで参照される？ → 正規化
+- [ ] 構造が決まってる？ → 正規化
+- [ ] 本当にスキーマレス？ → JSONでOK
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
