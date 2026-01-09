@@ -2254,6 +2254,54 @@ function process(EntityInterface $entity): void { }
 function process(array $event): void { }
 ```
 
+#### 📜 名前が文章になってるマン
+
+変数名やメソッド名が文章。テストじゃないんだから！
+
+```php
+// ❌ 問題: 文章になってる変数名
+$userWhoHasAdminRoleAndIsCurrentlyActive = $this->findUser($id);
+$articlesPublishedInLastWeekWithMoreThanTenComments = $this->query->find();
+$shouldSendNotificationEmailToUserAfterRegistration = true;
+
+// ❌ 問題: 文章になってるメソッド名
+public function getUserByIdAndStatusAndRoleAndCreatedAtBetween(
+    int $id,
+    string $status,
+    string $role,
+    DateTimeImmutable $from,
+    DateTimeImmutable $to
+) { }
+
+public function findAllArticlesThatArePublishedAndHaveCommentsEnabled() { }
+public function checkIfUserCanAccessResourceAndHasPermission() { }
+
+// ✅ 推奨: シンプルに
+$adminUser = $this->findUser($id);
+$recentPopularArticles = $this->query->find();
+$shouldNotify = true;
+
+public function find(int $id): ?User { }
+public function findBy(UserCriteria $criteria): array { }
+public function canAccess(User $user, Resource $resource): bool { }
+```
+
+**テストなら許容:**
+
+```php
+// ✅ OK: テストメソッド名は説明的で良い
+public function testUserCannotAccessAdminPageWithoutAdminRole(): void { }
+public function testArticleIsPublishedWhenStatusChangesToPublished(): void { }
+
+// ❌ NG: 本番コードで文章
+public function getUserCannotAccessAdminPageWithoutAdminRole(): bool { }
+```
+
+**なぜ問題か:**
+- 読むのに時間がかかる
+- 変更するたびに名前を変える必要がある
+- 名前が長すぎて1行に収まらない
+
 #### 🏷️ なんでもManager/Resolver/Data
 
 「名前が思いつかない？Managerで！」→ 全部管理、全部解決、全部データ。
