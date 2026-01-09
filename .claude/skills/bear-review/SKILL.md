@@ -2667,6 +2667,94 @@ $container->get(UserService::class);
 - 補完なし = リファクタリングが手作業
 - 補完なし = コードを読まないと使えない
 
+#### 📊 静的解析の看板倒れ（Static Analysis Theater）
+
+PHPStan/Psalmを導入しているのに、`mixed`だらけで何も検出できない状態。「静的解析使ってます！」という形だけのセキュリティブランケット。
+
+```php
+// ❌ 問題: mixedだらけで静的解析が無意味
+// phpstan.neon: level: 5 なのに...
+
+class DataProcessor
+{
+    /** @var mixed */
+    private $data;
+
+    /** @param mixed $input */
+    public function process($input): mixed
+    {
+        /** @var mixed $result */
+        $result = $this->transform($input);
+        return $result;
+    }
+
+    /** @phpstan-ignore-next-line */
+    private function transform($data)
+    {
+        return $data['items'] ?? [];  // 何が来るかわからない
+    }
+}
+
+// さらにひどいケース:
+/**
+ * @psalm-suppress all
+ * @phpstan-ignore-next-line
+ */
+function doSomething($x) {
+    return $x->foo()->bar()->baz();  // 型? 知らんがな
+}
+
+// ✅ 推奨: 型を活用する静的解析
+class DataProcessor
+{
+    /** @param list<Article> $articles */
+    public function process(array $articles): ProcessResult
+    {
+        $transformed = array_map(
+            fn(Article $article) => $this->transform($article),
+            $articles
+        );
+        return new ProcessResult($transformed);
+    }
+
+    private function transform(Article $article): TransformedArticle
+    {
+        return new TransformedArticle(
+            title: $article->title,
+            excerpt: mb_substr($article->body, 0, 100)
+        );
+    }
+}
+```
+
+**看板倒れのサイン:**
+- `@phpstan-ignore-next-line` が10個以上ある
+- `@psalm-suppress` を「おまじない」として貼っている
+- PHPStan level 0〜3 で「エラー0件」を誇る
+- `mixed` の使用率が20%を超えている
+- baseline.neon が1000行ある（見なかったことにしたエラー）
+
+**なぜ問題か:**
+- 静的解析を入れたコスト（CI時間、学習コスト）だけ払って恩恵ゼロ
+- 「静的解析でチェックしてます」という偽りの安心感
+- 新規コードも「まあmixedでいいか」になる負のスパイラル
+- 本当のバグは本番で発覚する
+
+**解決策:**
+```bash
+# 現状把握: mixed使用箇所をカウント
+grep -r "@var mixed\|: mixed\|@param mixed\|@return mixed" src/ | wc -l
+
+# PHPStanレベルを1つ上げてエラーを確認
+# 一気に上げず、1レベルずつ対応する
+```
+
+**本気の静的解析:**
+- PHPStan/Psalm level 6以上を目標に
+- `mixed` を使う場合は必ずコメントで理由を書く
+- 新規コードは `mixed` 禁止をレビューで徹底
+- CIでbaselineの行数増加を検知してブロック
+
 #### 🥤 Static Cola（静的メソッド中毒）
 
 何でも静的メソッドで呼ぶ。テスト不能、差し替え不能。
