@@ -4245,6 +4245,130 @@ class Email
 | Value Object はあるけど空っぽ | Value Object に振る舞いと不変条件 |
 | DDD用語を使う | ユビキタス言語でコードを書く |
 
+#### 🩸 完全貧血（ドメイン用語ゼロ）
+
+コードを読んでも何のシステムかわからない。まるでアセンブラ。
+
+```php
+// ❌ 問題: ドメイン用語が全く出てこない
+class DataProcessor
+{
+    public function process(array $data): array
+    {
+        $result = [];
+        foreach ($data as $item) {
+            if ($this->validate($item)) {
+                $value = $this->transform($item);
+                $result[] = $this->save($value);
+            }
+        }
+        return $result;
+    }
+
+    private function validate(array $item): bool
+    {
+        return isset($item['id']) && isset($item['value']);
+    }
+
+    private function transform(array $item): array
+    {
+        $item['value'] = $item['value'] * 1.1;
+        $item['flag'] = true;
+        return $item;
+    }
+
+    private function save(array $value): int
+    {
+        return $this->repository->insert($value);
+    }
+}
+
+// このコードは何をしている？
+// - ECサイトの注文処理？
+// - 在庫管理？
+// - 給与計算？
+// - 全くわからない
+
+// ✅ 推奨: ドメイン用語で語る
+class OrderTaxCalculator
+{
+    public function applyTax(Order $order): TaxedOrder
+    {
+        $taxRate = $this->taxRateResolver->forOrder($order);
+        $taxAmount = $order->subtotal()->multiply($taxRate);
+
+        return new TaxedOrder(
+            order: $order,
+            taxAmount: $taxAmount,
+            taxRate: $taxRate,
+        );
+    }
+}
+
+// 一目で「注文の税金計算」とわかる
+```
+
+**完全貧血の症状:**
+```php
+// 症状1: 汎用的すぎるクラス名
+class Handler { ... }
+class Processor { ... }
+class Manager { ... }
+class Service { ... }
+class Helper { ... }
+class Util { ... }
+
+// 何を Handle/Process/Manage するの？
+
+// 症状2: 汎用的すぎるメソッド名
+public function execute(array $params): mixed { ... }
+public function run(mixed $input): mixed { ... }
+public function handle(Request $request): Response { ... }
+public function process(array $data): array { ... }
+
+// 症状3: 汎用的すぎる変数名
+$data = $this->fetch();
+$result = $this->process($data);
+$items = $this->transform($result);
+$value = $items[0]['value'];
+
+// 症状4: 業務を知らないと読めない
+// コードだけ見ても仕様がわからない
+// 「なぜ 1.1 を掛けてる？」→ 消費税10%
+// 「なぜ flag = true？」→ 課税対象フラグ
+// コメントか仕様書を見ないと理解不能
+```
+
+**ドメイン用語の効果:**
+```php
+// ❌ アセンブラ風
+$value = $item['price'] * $item['qty'];
+$value = $value * 1.1;
+$value = $value - $item['discount'];
+
+// ✅ ドメイン言語
+$subtotal = $lineItem->calculateSubtotal();
+$taxed = $subtotal->withTax($taxRate);
+$final = $taxed->applyDiscount($coupon);
+
+// 読むだけで業務がわかる
+```
+
+**完全貧血チェックリスト:**
+- [ ] クラス名を見て何のドメインかわかる？
+- [ ] メソッド名を見て業務上何をするかわかる？
+- [ ] 変数名がビジネス用語を使っている？
+- [ ] マジックナンバーに業務上の意味がある？
+- [ ] コメントなしでコードの意図がわかる？
+
+**貧血度レベル:**
+| レベル | 状態 | 例 |
+|--------|------|-----|
+| Lv.0 | 完全貧血 | `DataProcessor::process()` |
+| Lv.1 | やや貧血 | `OrderService::process()` |
+| Lv.2 | 軽度貧血 | `OrderService::calculateTotal()` |
+| Lv.3 | 健康 | `Order::calculateTotalWithTax()` |
+
 #### 🧟 とりあえず消さない教・全部論理削除派
 
 「データは消したくない」→ 全テーブルに `deleted_at`。でも本当に必要？
