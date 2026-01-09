@@ -3037,6 +3037,117 @@ $period = new DatePeriod($start, new DateInterval('P1D'), $end);
 foreach ($period as $date) { ... }
 ```
 
+#### 🐘 全部載せてからフィルター（PHP脳フィルタリング）
+
+DBから全件取得 → PHPの配列関数でフィルタリング。SQLのWHEREを知らないかのような実装。
+
+```php
+// ❌ 問題: 全部取ってきてPHPでフィルター
+class UserRepository
+{
+    public function findActiveUsers(): array
+    {
+        // 10万ユーザー全部取得
+        $allUsers = $this->query->list();  // SELECT * FROM users
+
+        // PHPでフィルタリング
+        $activeUsers = array_filter(
+            $allUsers,
+            fn($user) => $user['status'] === 'active'
+        );
+
+        return array_values($activeUsers);
+    }
+
+    public function getUserEmails(): array
+    {
+        $allUsers = $this->query->list();  // 全カラム取得
+        return array_column($allUsers, 'email');  // emailだけ使う
+    }
+
+    public function findUsersByAge(int $minAge): array
+    {
+        $allUsers = $this->query->list();
+        return array_filter(
+            $allUsers,
+            fn($u) => $u['age'] >= $minAge
+        );
+    }
+}
+
+// ✅ 推奨: SQLでフィルタリング
+class UserRepository
+{
+    public function findActiveUsers(): array
+    {
+        // SQLでフィルタリング（インデックス活用）
+        return $this->query->listActive();
+        // SELECT * FROM users WHERE status = 'active'
+    }
+
+    public function getUserEmails(): array
+    {
+        return $this->query->listEmails();
+        // SELECT email FROM users
+    }
+
+    public function findUsersByAge(int $minAge): array
+    {
+        return $this->query->listByMinAge($minAge);
+        // SELECT * FROM users WHERE age >= :minAge
+    }
+}
+```
+
+**PHP脳フィルタリングの症状:**
+```php
+// 症状1: array_filter でWHERE句を再実装
+$users = $query->list();
+$filtered = array_filter($users, fn($u) => $u['role'] === 'admin');
+// → SELECT * FROM users WHERE role = 'admin'
+
+// 症状2: array_column で特定カラムだけ抽出
+$users = $query->list();  // SELECT * で全カラム
+$ids = array_column($users, 'id');
+// → SELECT id FROM users
+
+// 症状3: array_slice でLIMIT
+$users = $query->list();  // 全件取得
+$first10 = array_slice($users, 0, 10);
+// → SELECT * FROM users LIMIT 10
+
+// 症状4: array_unique で重複排除
+$items = $query->list();
+$unique = array_unique(array_column($items, 'category'));
+// → SELECT DISTINCT category FROM items
+
+// 症状5: usort でソート
+$users = $query->list();
+usort($users, fn($a, $b) => $b['created_at'] <=> $a['created_at']);
+// → SELECT * FROM users ORDER BY created_at DESC
+```
+
+**なぜ問題か:**
+- **メモリ爆発**: 10万件を配列に載せるとメモリ枯渇
+- **インデックス無視**: DBのインデックスが活用されない
+- **ネットワーク負荷**: 不要なデータまで転送
+- **スケールしない**: データ増加で破綻
+
+**例外（PHPでのフィルタリングが適切な場合）:**
+```php
+// ✅ OK: 既に取得済みの小さなデータセット内での操作
+$orderItems = $order->getItems();  // 1注文の商品（数十件）
+$expensiveItems = array_filter($items, fn($i) => $i->price > 10000);
+
+// ✅ OK: 複雑なビジネスロジックでのフィルタリング
+$users = $query->listActive();  // まずSQLで絞り込み
+$eligible = array_filter($users, fn($u) => $this->eligibilityChecker->isEligible($u));
+
+// ✅ OK: 複数ソースからの集約後の処理
+$merged = array_merge($localUsers, $externalUsers);
+$filtered = array_filter($merged, ...);
+```
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
