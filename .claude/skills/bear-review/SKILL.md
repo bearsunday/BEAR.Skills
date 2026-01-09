@@ -2254,6 +2254,86 @@ function process(EntityInterface $entity): void { }
 function process(array $event): void { }
 ```
 
+#### 🔗 デメテルの法則違反（電車衝突）
+
+「友達の友達と話すな」→ 違反者「友達の友達の友達もみんな友達！」
+
+長いメソッドチェーンで内部構造に依存。
+
+```php
+// ❌ 問題: 電車衝突（Train Wreck）
+$city = $order->getCustomer()->getAddress()->getCity();
+$managerName = $employee->getDepartment()->getManager()->getName();
+$price = $article->getCategory()->getPricing()->getBasePrice()->getValue();
+
+// 問題点:
+// - Order が Customer の内部構造を知っている
+// - Customer が Address を持つことを知っている
+// - Address が city を持つことを知っている
+// → 途中のどれかが変わると全部壊れる
+
+// ✅ 推奨: 必要な情報を直接提供
+$city = $order->getShippingCity();
+$managerName = $employee->getManagerName();
+$price = $article->getBasePrice();
+
+// Order 内部で委譲
+class Order
+{
+    public function getShippingCity(): string
+    {
+        return $this->customer->getAddress()->getCity();
+        // 内部構造の知識はここに閉じ込める
+    }
+}
+```
+
+**デメテルの法則:**
+- メソッドは以下のオブジェクトのメソッドのみ呼べる
+  - 自分自身 (`$this`)
+  - 引数で渡されたオブジェクト
+  - 自分が生成したオブジェクト
+  - 自分のフィールド
+
+```php
+// ❌ 違反: 引数の中身の中身にアクセス
+public function process(Order $order): void
+{
+    $city = $order->getCustomer()->getAddress()->getCity();
+}
+
+// ✅ 遵守: 引数に直接聞く
+public function process(Order $order): void
+{
+    $city = $order->getShippingCity();
+}
+```
+
+**例外（許容されるケース）:**
+- Fluent Interface / Builder パターン
+- 値オブジェクトのチェーン
+- コレクション操作
+
+```php
+// ✅ OK: Fluent Interface（同じオブジェクトを返す）
+$query->where('status', 'active')
+      ->orderBy('created_at')
+      ->limit(10);
+
+// ✅ OK: 値オブジェクトのチェーン（イミュータブル）
+$price->multiply(1.1)->round()->format();
+
+// ✅ OK: コレクション操作
+$users->filter(fn($u) => $u->isActive())
+      ->map(fn($u) => $u->getName())
+      ->toArray();
+```
+
+**なぜ問題か:**
+- 内部構造の変更が波及する
+- テストが困難（モックの連鎖）
+- 結合度が高くなる
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
