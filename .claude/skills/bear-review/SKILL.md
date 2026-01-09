@@ -5020,6 +5020,242 @@ $values = array_map(
 - 複数の処理を1行に
 - 略語だらけの変数名
 
+#### 🚫 goto絶対の絶対の絶対禁止（思考停止禁止令）
+
+「gotoは絶対ダメ！」→ でも3重ループの中でフラグ管理しながらbreak...それgotoより読みにくいよ？
+
+```php
+// ❌ 問題: goto禁止を守るために地獄のフラグ管理
+function findFirstMatch(array $matrix3d, string $target): ?array
+{
+    $found = false;
+    $result = null;
+
+    foreach ($matrix3d as $i => $plane) {
+        if ($found) {
+            break;
+        }
+        foreach ($plane as $j => $row) {
+            if ($found) {
+                break;
+            }
+            foreach ($row as $k => $cell) {
+                if ($cell === $target) {
+                    $found = true;
+                    $result = [$i, $j, $k];
+                    break;
+                }
+            }
+        }
+    }
+
+    return $result;
+}
+
+// ✅ gotoを使った方がシンプル
+function findFirstMatch(array $matrix3d, string $target): ?array
+{
+    foreach ($matrix3d as $i => $plane) {
+        foreach ($plane as $j => $row) {
+            foreach ($row as $k => $cell) {
+                if ($cell === $target) {
+                    goto found;
+                }
+            }
+        }
+    }
+    return null;
+
+    found:
+    return [$i, $j, $k];
+}
+
+// ✅ または早期リターン（推奨）
+function findFirstMatch(array $matrix3d, string $target): ?array
+{
+    foreach ($matrix3d as $i => $plane) {
+        foreach ($plane as $j => $row) {
+            foreach ($row as $k => $cell) {
+                if ($cell === $target) {
+                    return [$i, $j, $k];  // 見つけたら即return
+                }
+            }
+        }
+    }
+    return null;
+}
+```
+
+**思考停止禁止令の問題:**
+```php
+// 「禁止されてるから」で思考停止すると...
+
+// ❌ else禁止 → 三項演算子の地獄
+$result = $a ? ($b ? ($c ? 'x' : 'y') : 'z') : ($d ? 'w' : 'v');
+
+// ❌ static禁止 → なんでもインスタンス化
+$formatter = new DateFormatter();
+$formatted = $formatter->format($date);
+// DateFormatter、状態持ってないのに...
+
+// ❌ 継承禁止 → 委譲の嵐
+class Dog
+{
+    private Animal $animal;
+    public function eat() { return $this->animal->eat(); }
+    public function sleep() { return $this->animal->sleep(); }
+    public function move() { return $this->animal->move(); }
+    // Animal のメソッド全部委譲...継承した方がマシ
+}
+```
+
+**禁止の前に考えること:**
+| 禁止令 | 本当の問題 | 正しい理解 |
+|--------|-----------|-----------|
+| goto禁止 | スパゲッティコード | 複雑なジャンプは悪、単純な脱出は許容 |
+| else禁止 | 深いネスト | 早期リターンで解決、else自体は悪くない |
+| static禁止 | グローバル状態 | 状態を持たないutilityは問題ない |
+| 継承禁止 | 脆い基底クラス | 適切な継承は有用、compositionが常に優れているわけではない |
+
+#### 🌲 森の中のelseif（深いブランチの迷宮）
+
+条件分岐の中に条件分岐、その中にまた条件分岐...もはやコードの森。
+
+```php
+// ❌ 問題: 森の中で迷子
+function calculatePrice(User $user, Product $product, ?Coupon $coupon): int
+{
+    $price = $product->getPrice();
+
+    if ($user->isPremium()) {
+        if ($product->getCategory() === 'electronics') {
+            if ($coupon !== null) {
+                if ($coupon->isValid()) {
+                    if ($coupon->getType() === 'percentage') {
+                        $discount = $price * $coupon->getValue() / 100;
+                        $price = $price - $discount;
+                        if ($price < $product->getMinPrice()) {
+                            $price = $product->getMinPrice();
+                        }
+                    } else {
+                        $price = $price - $coupon->getValue();
+                        if ($price < 0) {
+                            $price = 0;
+                        }
+                    }
+                } else {
+                    // クーポン無効
+                }
+            }
+            $price = $price * 0.9; // プレミアム割引
+        } elseif ($product->getCategory() === 'books') {
+            $price = $price * 0.95;
+        } else {
+            // その他のカテゴリ
+            if ($user->getPurchaseCount() > 10) {
+                $price = $price * 0.97;
+            }
+        }
+    } else {
+        if ($coupon !== null && $coupon->isValid()) {
+            // 非プレミアムユーザーのクーポン処理
+            // また同じようなロジック...
+        }
+    }
+
+    return (int) $price;
+}
+
+// ✅ 推奨: フラットに、責務を分離
+function calculatePrice(User $user, Product $product, ?Coupon $coupon): Money
+{
+    $basePrice = $product->price();
+
+    // 各割引を独立して計算
+    $memberDiscount = $this->memberDiscountCalculator->calculate($user, $product);
+    $couponDiscount = $this->couponDiscountCalculator->calculate($coupon, $basePrice);
+
+    $finalPrice = $basePrice
+        ->subtract($memberDiscount)
+        ->subtract($couponDiscount);
+
+    return $finalPrice->ensureMinimum($product->minimumPrice());
+}
+```
+
+**森ができる原因と対策:**
+```php
+// 原因1: 条件の組み合わせ爆発
+// if (A) { if (B) { if (C) { ... }}}
+// → 早期リターンでフラット化
+
+// ✅ ガード節で脱出
+function process(Request $request): Response
+{
+    if (!$request->isValid()) {
+        return Response::badRequest();
+    }
+
+    if (!$this->auth->check($request)) {
+        return Response::unauthorized();
+    }
+
+    if (!$this->rateLimit->allow($request)) {
+        return Response::tooManyRequests();
+    }
+
+    // ここに到達 = 全条件クリア
+    return $this->handle($request);
+}
+
+// 原因2: 状態による分岐
+// → Strategy/State パターン
+
+// ❌ 森
+if ($order->status === 'pending') {
+    if ($action === 'cancel') { ... }
+    elseif ($action === 'confirm') { ... }
+} elseif ($order->status === 'confirmed') {
+    if ($action === 'ship') { ... }
+    elseif ($action === 'cancel') { ... }
+}
+
+// ✅ State パターン
+interface OrderState {
+    public function cancel(Order $order): Order;
+    public function confirm(Order $order): Order;
+    public function ship(Order $order): Order;
+}
+
+class PendingState implements OrderState { ... }
+class ConfirmedState implements OrderState { ... }
+
+// 原因3: 型による分岐
+// → ポリモーフィズム
+
+// ❌ 森
+if ($payment instanceof CreditCard) {
+    if ($payment->is3dSecure()) { ... }
+} elseif ($payment instanceof BankTransfer) {
+    if ($payment->isVerified()) { ... }
+}
+
+// ✅ ポリモーフィズム
+interface Payment {
+    public function process(): PaymentResult;
+}
+```
+
+**森レベル判定:**
+| レベル | ネスト | 状態 |
+|--------|--------|------|
+| 🌱 | 1-2段 | 健全な若木 |
+| 🌲 | 3段 | 注意が必要 |
+| 🌲🌲 | 4段 | 要リファクタ |
+| 🌲🌲🌲 | 5段以上 | 樹海（迷ったら帰れない） |
+
+**goto禁止派へ:** 森を作るくらいなら、gotoで脱出した方がマシなこともある。「絶対禁止」より「なぜ禁止か」を理解しよう。
+
 ## 出力フォーマット
 
 ```
