@@ -3400,6 +3400,117 @@ class Order
 // Command: ビジネスアクション（振る舞い）
 ```
 
+#### 💉 それDIじゃなくてSLだよ（Service Locator）
+
+「DIコンテナ使ってるからDIできてる」と思い込んでいる。コンテナから取り出してるならそれはService Locator。
+
+```php
+// ❌ 問題: これはDIじゃない、Service Locator
+class OrderResource extends ResourceObject
+{
+    public function __construct(
+        private ContainerInterface $container  // コンテナを注入
+    ) {}
+
+    public function onPost(array $data): static
+    {
+        // メソッド内でコンテナから取得 = Service Locator
+        $validator = $this->container->get(ValidatorInterface::class);
+        $repository = $this->container->get(OrderRepositoryInterface::class);
+        $mailer = $this->container->get(MailerInterface::class);
+
+        $validator->validate($data);
+        $order = $repository->save($data);
+        $mailer->sendConfirmation($order);
+
+        return $this;
+    }
+}
+
+// 何が問題？
+// - 依存関係がコンストラクタから見えない
+// - テストでモックしにくい（コンテナごとモック？）
+// - 実際に何に依存してるか実行するまでわからない
+
+// ✅ 推奨: 本物のDI（依存性の注入）
+class OrderResource extends ResourceObject
+{
+    public function __construct(
+        private ValidatorInterface $validator,      // 依存が明示的
+        private OrderRepositoryInterface $repository,
+        private MailerInterface $mailer,
+    ) {}
+
+    public function onPost(array $data): static
+    {
+        $this->validator->validate($data);
+        $order = $this->repository->save($data);
+        $this->mailer->sendConfirmation($order);
+
+        return $this;
+    }
+}
+// コンストラクタを見れば依存関係が全部わかる
+```
+
+**Service Locatorの症状:**
+```php
+// 症状1: コンテナを注入
+public function __construct(ContainerInterface $container)
+
+// 症状2: メソッド内で get()
+$service = $this->container->get(SomeService::class);
+
+// 症状3: グローバルなコンテナアクセス
+$service = Container::getInstance()->get(SomeService::class);
+
+// 症状4: ファサード経由（実質SL）
+$result = DB::query(...);      // Laravelファサード
+$user = Auth::user();
+
+// 症状5: make() や resolve() の乱用
+$handler = app()->make(Handler::class);
+$service = resolve(ServiceInterface::class);
+```
+
+**DI vs Service Locator:**
+| | DI（依存性注入） | SL（Service Locator） |
+|---|---|---|
+| 依存の宣言 | コンストラクタで明示 | 実行時に取得 |
+| 可視性 | 見ればわかる | 実行するまでわからない |
+| テスト | モック注入が容易 | コンテナごとモック |
+| 結合度 | 低い | コンテナに依存 |
+
+**なぜService Locatorが問題か:**
+- **隠れた依存**: コンストラクタを見ても依存がわからない
+- **テスト困難**: コンテナをモックする必要がある
+- **実行時エラー**: 存在しないサービスは実行時まで発覚しない
+- **IDE支援なし**: コンテナから取得する型が不明
+
+**BEAR.Sundayでの正しいDI:**
+```php
+// Module で束縛
+class AppModule extends AbstractAppModule
+{
+    protected function configure(): void
+    {
+        $this->bind(MailerInterface::class)
+             ->to(SmtpMailer::class);
+    }
+}
+
+// Resource はコンストラクタインジェクションのみ
+class OrderResource extends ResourceObject
+{
+    public function __construct(
+        private MailerInterface $mailer,  // 自動注入される
+    ) {}
+}
+
+// テストではモック注入
+$resource = new OrderResource(new FakeMailer());
+```
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
