@@ -2930,6 +2930,113 @@ $users->filter(fn($u) => $u->isActive())
 - テストが困難（モックの連鎖）
 - 結合度が高くなる
 
+#### 🔄 for一筋（イテレーター/ジェネレーター知らず）
+
+何でもforループで書く。イテレーターもジェネレーターも知らない。メモリ？ 知らん。
+
+```php
+// ❌ 問題: 全部メモリに載せる
+class ReportGenerator
+{
+    public function generateLargeReport(): array
+    {
+        $results = [];
+        for ($i = 0; $i < 1000000; $i++) {
+            $row = $this->fetchRow($i);
+            $results[] = $this->processRow($row);  // 100万件メモリに
+        }
+        return $results;  // メモリ爆発💥
+    }
+
+    public function processUsers(array $users): array
+    {
+        $processed = [];
+        for ($i = 0; $i < count($users); $i++) {  // count()を毎回呼ぶ
+            $user = $users[$i];
+            $processed[] = [
+                'name' => $user['name'],
+                'email' => $user['email'],
+            ];
+        }
+        return $processed;
+    }
+}
+
+// ✅ 推奨: ジェネレーターで遅延評価
+class ReportGenerator
+{
+    public function generateLargeReport(): Generator
+    {
+        for ($i = 0; $i < 1000000; $i++) {
+            yield $this->processRow($this->fetchRow($i));
+            // 1件ずつ処理、メモリは最小限
+        }
+    }
+
+    /** @param iterable<User> $users */
+    public function processUsers(iterable $users): Generator
+    {
+        foreach ($users as $user) {
+            yield new ProcessedUser(
+                name: $user->name,
+                email: $user->email,
+            );
+        }
+    }
+}
+
+// 使用側
+foreach ($generator->generateLargeReport() as $row) {
+    $this->output($row);  // 1件ずつ処理
+}
+```
+
+**for一筋の症状:**
+```php
+// 症状1: インデックスへの執着
+for ($i = 0; $i < count($arr); $i++) { ... }
+// → foreach ($arr as $item) { ... }
+
+// 症状2: 手動イテレーション
+$keys = array_keys($map);
+for ($i = 0; $i < count($keys); $i++) {
+    $value = $map[$keys[$i]];
+}
+// → foreach ($map as $key => $value) { ... }
+
+// 症状3: 配列構築の繰り返し
+$result = [];
+for (...) { $result[] = transform($item); }
+// → array_map(fn($item) => transform($item), $items)
+
+// 症状4: フィルタリング
+$filtered = [];
+for (...) { if ($cond) $filtered[] = $item; }
+// → array_filter($items, fn($item) => $cond)
+```
+
+**なぜジェネレーターを使うべきか:**
+- メモリ効率: 100万件でも1件分のメモリ
+- 遅延評価: 必要になるまで処理しない
+- 無限シーケンス: `while(true)` でも問題なし
+- パイプライン: 複数のジェネレーターを連結可能
+
+**イテレーターの活用:**
+```php
+// ファイルを1行ずつ（メモリ効率良い）
+$lines = new SplFileObject('huge.csv');
+foreach ($lines as $line) { ... }
+
+// ディレクトリ走査
+$files = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator($path)
+);
+
+// 日付範囲
+$period = new DatePeriod($start, new DateInterval('P1D'), $end);
+foreach ($period as $date) { ... }
+```
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
