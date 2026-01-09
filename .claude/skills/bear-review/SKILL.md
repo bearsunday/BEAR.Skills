@@ -3511,6 +3511,127 @@ class OrderResource extends ResourceObject
 $resource = new OrderResource(new FakeMailer());
 ```
 
+#### 🌍 グローバルランチ（環境分岐症候群）
+
+`if (APP_DEBUG)` や `$_ENV['APP_ENV']` でビジネスロジックの振る舞いを変える。テスト不能、予測不能。
+
+```php
+// ❌ 問題: グローバル定数で振る舞い変更
+class PaymentService
+{
+    public function charge(Money $amount): PaymentResult
+    {
+        if (APP_DEBUG) {
+            // 開発環境ではダミー決済
+            return new PaymentResult(success: true, transactionId: 'dummy-123');
+        }
+
+        if ($_ENV['APP_ENV'] === 'staging') {
+            // ステージングではサンドボックス
+            return $this->sandboxGateway->charge($amount);
+        }
+
+        return $this->gateway->charge($amount);
+    }
+}
+
+// 何が問題？
+// - 本番で動くコードがテストで動かない
+// - 環境によって全く違うパスを通る
+// - 「本番だけバグ」が起きる
+
+// ✅ 推奨: 環境差異はDIで解決
+interface PaymentGatewayInterface
+{
+    public function charge(Money $amount): PaymentResult;
+}
+
+// 本番用
+class StripeGateway implements PaymentGatewayInterface { ... }
+
+// 開発/テスト用
+class FakeGateway implements PaymentGatewayInterface { ... }
+
+// Moduleで環境別に束縛
+class PaymentModule extends AbstractAppModule
+{
+    protected function configure(): void
+    {
+        $gateway = $this->appMeta->appDir === 'prod'
+            ? StripeGateway::class
+            : FakeGateway::class;
+
+        $this->bind(PaymentGatewayInterface::class)->to($gateway);
+    }
+}
+
+// サービスは環境を知らない
+class PaymentService
+{
+    public function __construct(
+        private PaymentGatewayInterface $gateway,  // 何が来るかは知らない
+    ) {}
+
+    public function charge(Money $amount): PaymentResult
+    {
+        return $this->gateway->charge($amount);  // 常に同じコード
+    }
+}
+```
+
+**グローバルランチの症状:**
+```php
+// 症状1: APP_DEBUG でログ出力切り替え
+if (APP_DEBUG) {
+    error_log($sensitiveData);  // 本番では出ない（はず）
+}
+
+// 症状2: 環境変数で機能ON/OFF
+if ($_ENV['FEATURE_X_ENABLED'] === 'true') {
+    $this->doNewFeature();
+}
+
+// 症状3: 本番だけ特別扱い
+if ($_ENV['APP_ENV'] === 'production') {
+    $this->sendRealEmail();
+} else {
+    $this->logEmail();
+}
+
+// 症状4: 定数でバリデーション緩和
+if (!STRICT_MODE) {
+    return true;  // 開発中は通す
+}
+```
+
+**なぜ問題か:**
+- **テスト不能**: 本番パスをテストできない
+- **予測不能**: 環境によって違う動作
+- **本番バグ**: 開発で通っても本番で落ちる
+- **隠れた分岐**: コードを追わないと動作がわからない
+
+**どこならOKか:**
+```php
+// ✅ OK: ブートストラップ/エントリーポイント
+// public/index.php
+if (getenv('APP_ENV') === 'development') {
+    $module = new DevModule();
+} else {
+    $module = new ProdModule();
+}
+
+// ✅ OK: エラーハンドラーの詳細表示
+class ErrorHandler
+{
+    public function __construct(
+        private bool $showDetails,  // 注入される
+    ) {}
+}
+
+// ✅ OK: Moduleでの束縛切り替え（上記例）
+// → ここで吸収すれば、ビジネスロジックは環境を知らない
+```
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
