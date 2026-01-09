@@ -4551,9 +4551,9 @@ interface UserQueryInterface
 | 複雑なクエリ | 生SQL（可読性重視） |
 | DB移植性が必要 | クエリビルダー（稀） |
 
-#### 🎪 メソッド間テレパシー（暗黙の呼び出し順序）
+#### 🎪 ミニグローバル変数（privateプロパティ乱用）
 
-メソッドAでプロパティをセット、メソッドBでそれを読む。呼ぶ順番間違えると動かない。
+privateプロパティを「クラス内グローバル変数」として使う。メソッド間でデータ共有するためにプロパティにセット。引数で渡せばいいのに。
 
 ```php
 // ❌ 問題: メソッド間の暗黙の依存
@@ -4637,30 +4637,34 @@ class OrderProcessor
 $result = $processor->process(123);
 ```
 
-**テレパシーの症状:**
+**ミニグローバルの症状:**
 ```php
-// 症状1: 初期化メソッドが必要
-$obj->init();      // これ呼ばないと動かない
-$obj->execute();
-
-// 症状2: セッターの呼び出し順序
-$builder->setUser($user);
-$builder->setProduct($product);
-$builder->setQuantity(5);    // User と Product の後じゃないと計算できない
-$result = $builder->build();
-
-// 症状3: プロパティの状態チェックだらけ
-public function doSomething(): void
+// 症状1: 戻り値を返さずプロパティにセット
+private function calculate(): void
 {
-    if ($this->order === null) {
-        throw new \RuntimeException('loadOrder() を先に呼んでください');
-    }
-    // ...
+    $this->result = $this->a + $this->b;  // なぜ return しない？
 }
 
-// 症状4: フラグで状態管理
-private bool $initialized = false;
-private bool $validated = false;
+// 症状2: 引数で渡さずプロパティ経由
+private function formatOutput(): string
+{
+    return "Total: {$this->result}";  // $result はどこから？
+}
+
+// 症状3: 一時データをプロパティに保存
+private array $tempItems = [];
+
+public function process(): void
+{
+    $this->tempItems = $this->fetchItems();  // なぜプロパティに？
+    $this->filterItems();   // $this->tempItems を暗黙的に使う
+    $this->sortItems();     // $this->tempItems を暗黙的に使う
+    $this->saveItems();     // $this->tempItems を暗黙的に使う
+}
+
+// 症状4: プロパティが「今だけ」の値を持つ
+private ?User $currentUser = null;  // "current" = グローバル変数の匂い
+private ?Request $currentRequest = null;
 ```
 
 **なぜ問題か:**
