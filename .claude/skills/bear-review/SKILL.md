@@ -3148,6 +3148,142 @@ $merged = array_merge($localUsers, $externalUsers);
 $filtered = array_filter($merged, ...);
 ```
 
+#### 🎰 Setter/Getterマン（カプセル化の誤解）
+
+全プロパティにsetter/getterを生やす。カプセル化してるつもりが、ただのpublicプロパティと同じ。
+
+```php
+// ❌ 問題: 全部にsetter/getter
+class User
+{
+    private string $name;
+    private string $email;
+    private int $age;
+    private string $status;
+    private ?DateTime $lastLogin;
+
+    public function getName(): string { return $this->name; }
+    public function setName(string $name): void { $this->name = $name; }
+
+    public function getEmail(): string { return $this->email; }
+    public function setEmail(string $email): void { $this->email = $email; }
+
+    public function getAge(): int { return $this->age; }
+    public function setAge(int $age): void { $this->age = $age; }
+
+    public function getStatus(): string { return $this->status; }
+    public function setStatus(string $status): void { $this->status = $status; }
+
+    public function getLastLogin(): ?DateTime { return $this->lastLogin; }
+    public function setLastLogin(?DateTime $lastLogin): void { $this->lastLogin = $lastLogin; }
+}
+
+// 使う側: ロジックが外に漏れる
+$user->setStatus('suspended');
+$user->setLastLogin(null);
+// ↑ 「停止」の意味が呼び出し側にある
+
+// ✅ 推奨: 意味のあるメソッドと不変オブジェクト
+readonly class User
+{
+    public function __construct(
+        public string $name,
+        public string $email,
+        public int $age,
+        public UserStatus $status,
+        public ?DateTime $lastLogin,
+    ) {}
+
+    public function suspend(): self
+    {
+        return new self(
+            $this->name,
+            $this->email,
+            $this->age,
+            UserStatus::Suspended,
+            null,  // 停止時はログイン日時クリア
+        );
+    }
+
+    public function activate(): self
+    {
+        return new self(
+            $this->name,
+            $this->email,
+            $this->age,
+            UserStatus::Active,
+            new DateTime(),
+        );
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === UserStatus::Active;
+    }
+}
+
+// 使う側: 意図が明確
+$user = $user->suspend();  // 「停止する」という意味
+```
+
+**Setter/Getterマンの症状:**
+```php
+// 症状1: IDEの自動生成を全プロパティに適用
+// "Generate Getters and Setters" → 全選択 → OK
+
+// 症状2: setterで不整合な状態を作れる
+$order->setStatus('shipped');
+$order->setShippedAt(null);  // 出荷済みなのに日時なし？
+
+// 症状3: getterで内部構造を晒す
+$items = $order->getItems();
+$items[] = $newItem;  // 外部から変更できてしまう
+
+// 症状4: ビジネスロジックが呼び出し側に散らばる
+if ($user->getAge() >= 20) {
+    $user->setCanDrink(true);
+}
+// ↑ これはUserクラスの責務
+```
+
+**なぜ問題か:**
+- **カプセル化の破壊**: private意味なし（実質public）
+- **不変条件の崩壊**: 不整合な状態を作れる
+- **ロジックの分散**: ビジネスルールが呼び出し側に漏れる
+- **変更に弱い**: 内部構造の変更が全箇所に波及
+
+**どうすべきか:**
+```php
+// 1. readonly + コンストラクタ（PHP 8.1+）
+readonly class Money
+{
+    public function __construct(
+        public int $amount,
+        public string $currency,
+    ) {}
+
+    public function add(Money $other): self
+    {
+        assert($this->currency === $other->currency);
+        return new self($this->amount + $other->amount, $this->currency);
+    }
+}
+
+// 2. 意味のあるメソッド名
+class Account
+{
+    public function deposit(Money $amount): void { ... }   // ✅ setBalanceではない
+    public function withdraw(Money $amount): void { ... }  // ✅ 意図が明確
+    public function freeze(): void { ... }                 // ✅ setStatusではない
+}
+
+// 3. getterが必要な場合は防御的コピー
+public function getItems(): array
+{
+    return [...$this->items];  // コピーを返す
+}
+```
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
