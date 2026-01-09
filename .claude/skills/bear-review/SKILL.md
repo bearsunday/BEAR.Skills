@@ -4551,6 +4551,145 @@ interface UserQueryInterface
 | 複雑なクエリ | 生SQL（可読性重視） |
 | DB移植性が必要 | クエリビルダー（稀） |
 
+#### 🎪 メソッド間テレパシー（暗黙の呼び出し順序）
+
+メソッドAでプロパティをセット、メソッドBでそれを読む。呼ぶ順番間違えると動かない。
+
+```php
+// ❌ 問題: メソッド間の暗黙の依存
+class OrderProcessor
+{
+    private ?Order $order = null;
+    private ?User $user = null;
+    private array $validationErrors = [];
+
+    public function loadOrder(int $orderId): void
+    {
+        $this->order = $this->orderRepository->find($orderId);
+    }
+
+    public function loadUser(): void
+    {
+        // $this->order がセットされてる前提
+        $this->user = $this->userRepository->find($this->order->userId);
+    }
+
+    public function validate(): void
+    {
+        // $this->order と $this->user がセットされてる前提
+        if ($this->order->total > $this->user->creditLimit) {
+            $this->validationErrors[] = 'Credit limit exceeded';
+        }
+    }
+
+    public function process(): Result
+    {
+        // $this->validationErrors がセットされてる前提
+        if (!empty($this->validationErrors)) {
+            return Result::failure($this->validationErrors);
+        }
+        // 処理...
+    }
+}
+
+// 使う側: 順番間違えると死ぬ
+$processor = new OrderProcessor();
+$processor->loadOrder(123);
+$processor->loadUser();      // loadOrder の後じゃないとダメ
+$processor->validate();      // loadUser の後じゃないとダメ
+$processor->process();       // validate の後じゃないとダメ
+
+// うっかり順番間違えると...
+$processor->loadUser();      // order が null → 例外！
+$processor->validate();      // user が null → 例外！
+
+// ✅ 推奨: 依存を引数で明示
+class OrderProcessor
+{
+    public function process(int $orderId): Result
+    {
+        $order = $this->orderRepository->find($orderId);
+        if ($order === null) {
+            return Result::failure(['Order not found']);
+        }
+
+        $user = $this->userRepository->find($order->userId);
+
+        $errors = $this->validate($order, $user);
+        if (!empty($errors)) {
+            return Result::failure($errors);
+        }
+
+        return $this->executeOrder($order, $user);
+    }
+
+    private function validate(Order $order, User $user): array
+    {
+        $errors = [];
+        if ($order->total > $user->creditLimit) {
+            $errors[] = 'Credit limit exceeded';
+        }
+        return $errors;
+    }
+}
+
+// 使う側: シンプル、順序関係なし
+$result = $processor->process(123);
+```
+
+**テレパシーの症状:**
+```php
+// 症状1: 初期化メソッドが必要
+$obj->init();      // これ呼ばないと動かない
+$obj->execute();
+
+// 症状2: セッターの呼び出し順序
+$builder->setUser($user);
+$builder->setProduct($product);
+$builder->setQuantity(5);    // User と Product の後じゃないと計算できない
+$result = $builder->build();
+
+// 症状3: プロパティの状態チェックだらけ
+public function doSomething(): void
+{
+    if ($this->order === null) {
+        throw new \RuntimeException('loadOrder() を先に呼んでください');
+    }
+    // ...
+}
+
+// 症状4: フラグで状態管理
+private bool $initialized = false;
+private bool $validated = false;
+```
+
+**なぜ問題か:**
+- **暗黙知**: コードを読んでも順序がわからない
+- **脆弱**: 順序間違いで実行時エラー
+- **テスト困難**: 状態を正しくセットアップする必要
+- **並行処理不可**: 共有状態が変わる
+
+**解決策:**
+```php
+// 1. 引数で渡す（最もシンプル）
+public function process(Order $order, User $user): Result
+
+// 2. コンストラクタで必須の依存を受け取る
+class OrderProcessor
+{
+    public function __construct(
+        private Order $order,
+        private User $user,
+    ) {}
+}
+
+// 3. ビルダーパターン（本当に段階的構築が必要な場合）
+$order = OrderBuilder::create()
+    ->withUser($user)
+    ->withItems($items)
+    ->build();  // ここで検証、不足があればエラー
+```
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
