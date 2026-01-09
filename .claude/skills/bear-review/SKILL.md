@@ -4002,6 +4002,165 @@ class OrderResource extends ResourceObject
 
 全部Noなら、そのレイヤーは儀式。
 
+#### 🏜️ NOドメインDDD
+
+「うちはDDDやってます」→ ドメイン層どこ？ Entity は getter/setter だけ、ロジックは全部 Service。
+
+```php
+// ❌ 問題: DDDと言いながらドメインがない
+// Entity（という名のデータ入れ物）
+class Order
+{
+    private int $id;
+    private string $status;
+    private int $total;
+    private DateTime $createdAt;
+
+    // getter/setter だけ
+    public function getId(): int { return $this->id; }
+    public function getStatus(): string { return $this->status; }
+    public function setStatus(string $status): void { $this->status = $status; }
+    public function getTotal(): int { return $this->total; }
+    public function setTotal(int $total): void { $this->total = $total; }
+}
+
+// Service（ドメインロジックが全部ここ）
+class OrderService
+{
+    public function cancel(Order $order): void
+    {
+        // キャンセル可能かのルールがServiceに
+        if ($order->getStatus() === 'shipped') {
+            throw new Exception('出荷済みはキャンセル不可');
+        }
+        if ($order->getStatus() === 'cancelled') {
+            throw new Exception('既にキャンセル済み');
+        }
+
+        $order->setStatus('cancelled');
+        $this->repository->save($order);
+    }
+
+    public function ship(Order $order, string $trackingNumber): void
+    {
+        // 出荷可能かのルールもServiceに
+        if ($order->getStatus() !== 'paid') {
+            throw new Exception('支払い済みでないと出荷不可');
+        }
+
+        $order->setStatus('shipped');
+        $order->setTrackingNumber($trackingNumber);
+        $this->repository->save($order);
+    }
+}
+
+// これのどこが「ドメイン駆動」？
+// - Order は何も知らない（貧血ドメインモデル）
+// - ビジネスルールが Service に散らばる
+// - Order を使う全員がルールを知る必要がある
+
+// ✅ 推奨: ドメインにロジックを持たせる
+class Order
+{
+    private function __construct(
+        private OrderId $id,
+        private OrderStatus $status,
+        private Money $total,
+        private DateTimeImmutable $createdAt,
+        private ?TrackingNumber $trackingNumber = null,
+    ) {}
+
+    public static function create(Cart $cart): self
+    {
+        return new self(
+            OrderId::generate(),
+            OrderStatus::Pending,
+            $cart->total(),
+            new DateTimeImmutable(),
+        );
+    }
+
+    public function cancel(): void
+    {
+        // ルールがOrder自身にある
+        if ($this->status === OrderStatus::Shipped) {
+            throw new OrderAlreadyShippedException($this->id);
+        }
+        if ($this->status === OrderStatus::Cancelled) {
+            throw new OrderAlreadyCancelledException($this->id);
+        }
+
+        $this->status = OrderStatus::Cancelled;
+    }
+
+    public function ship(TrackingNumber $tracking): void
+    {
+        if ($this->status !== OrderStatus::Paid) {
+            throw new OrderNotPaidException($this->id);
+        }
+
+        $this->status = OrderStatus::Shipped;
+        $this->trackingNumber = $tracking;
+    }
+
+    public function canCancel(): bool
+    {
+        return !in_array($this->status, [
+            OrderStatus::Shipped,
+            OrderStatus::Cancelled,
+        ], true);
+    }
+}
+
+// Service は薄くなる
+class OrderService
+{
+    public function cancel(OrderId $id): void
+    {
+        $order = $this->repository->find($id);
+        $order->cancel();  // ルールはOrder が知ってる
+        $this->repository->save($order);
+    }
+}
+```
+
+**ノードメインDDDの症状:**
+```php
+// 症状1: Entityがgetter/setterだけ（貧血ドメインモデル）
+class User
+{
+    public function getName(): string { ... }
+    public function setName(string $name): void { ... }
+    // ビジネスメソッドなし
+}
+
+// 症状2: Serviceにビジネスルールが集中
+class UserService
+{
+    public function canPurchase(User $user, Product $product): bool
+    {
+        // User も Product も判断できない
+        if ($user->getAge() < 20 && $product->isAlcohol()) { ... }
+    }
+}
+
+// 症状3: Value Object がない
+$email = 'test@example.com';  // ただの string
+$money = 1000;                 // ただの int
+
+// 症状4: DDD用語だけ使う
+// 「これはAggregateRootで、こっちはRepository で...」
+// → 中身は CRUD + Transaction Script
+```
+
+**DDDの形だけ vs 本質:**
+| 形だけDDD | 本質的DDD |
+|-----------|-----------|
+| Entity = データ + getter/setter | Entity = データ + 振る舞い + 不変条件 |
+| Service にロジック集中 | Service は調整役、薄い |
+| 文字列/int をそのまま使う | Value Object で意味を表現 |
+| DDD用語を使う | ユビキタス言語でコードを書く |
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
