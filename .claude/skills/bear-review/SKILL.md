@@ -3846,6 +3846,162 @@ abstract class AbstractImporter
 - 振る舞いの追加はAOPインターセプターで
 - 機能の合成はDIで
 
+#### 🎂 レイヤーマン（層だけアーキテクチャ）
+
+Controller → Service → Repository → Entity... レイヤーいっぱい！でも中身はトランザクションスクリプト＋CRUD。
+
+```php
+// ❌ 問題: レイヤーは立派、中身はただの転送
+// Controller
+class UserController
+{
+    public function store(Request $request): Response
+    {
+        $data = $request->all();
+        $this->userService->create($data);  // 右から左へ
+        return response()->json(['ok' => true]);
+    }
+}
+
+// Service（という名の転送係）
+class UserService
+{
+    public function create(array $data): User
+    {
+        // 「ビジネスロジック」がない、ただの転送
+        return $this->userRepository->create($data);
+    }
+
+    public function update(int $id, array $data): User
+    {
+        return $this->userRepository->update($id, $data);
+    }
+
+    public function delete(int $id): void
+    {
+        $this->userRepository->delete($id);
+    }
+}
+
+// Repository（という名のCRUD）
+class UserRepository
+{
+    public function create(array $data): User
+    {
+        return User::create($data);
+    }
+
+    public function update(int $id, array $data): User
+    {
+        $user = User::findOrFail($id);
+        $user->update($data);
+        return $user;
+    }
+}
+
+// 結果:
+// - 5ファイル経由してやってることはINSERT/UPDATE
+// - どのレイヤーにもドメインロジックがない
+// - 変更するとき全レイヤーを修正
+// - 「アーキテクチャ」という名の儀式
+```
+
+**レイヤーマンの症状:**
+```php
+// 症状1: Serviceがただの転送
+public function getUser(int $id): User
+{
+    return $this->repository->find($id);  // それだけ？
+}
+
+// 症状2: 全メソッドがCRUDの鏡写し
+class OrderService
+{
+    public function create($data) { return $this->repo->create($data); }
+    public function read($id) { return $this->repo->find($id); }
+    public function update($id, $data) { return $this->repo->update($id, $data); }
+    public function delete($id) { return $this->repo->delete($id); }
+    // ↑ Serviceの存在意義は？
+}
+
+// 症状3: 「将来のため」という言い訳
+// 「今はシンプルだけど、将来ビジネスロジックが増えたら...」
+// → 3年経っても転送のまま
+
+// 症状4: DTO地獄
+Request → RequestDTO → ServiceDTO → RepositoryDTO → Entity → ResponseDTO → Response
+// 変換だけで100行
+```
+
+**本当にレイヤーが必要なとき:**
+```php
+// ✅ Serviceにドメインロジックがある
+class OrderService
+{
+    public function place(Cart $cart, PaymentMethod $payment): Order
+    {
+        // 在庫確認
+        foreach ($cart->items() as $item) {
+            if (!$this->inventory->hasStock($item)) {
+                throw new OutOfStockException($item);
+            }
+        }
+
+        // 注文作成
+        $order = Order::fromCart($cart);
+
+        // 決済
+        $result = $this->paymentGateway->charge($payment, $order->total());
+        if (!$result->success()) {
+            throw new PaymentFailedException($result);
+        }
+
+        // 在庫引当
+        $this->inventory->reserve($order);
+
+        // 永続化
+        $this->orderRepository->save($order);
+
+        // イベント発行
+        $this->eventDispatcher->dispatch(new OrderPlaced($order));
+
+        return $order;
+    }
+}
+// ↑ これならServiceの存在意義がある
+```
+
+**BEAR.Sundayのアプローチ:**
+```php
+// レイヤーを減らす: Resource が直接 Query/Command を使う
+class OrderResource extends ResourceObject
+{
+    public function __construct(
+        private OrderQueryInterface $query,
+        private OrderCommandInterface $command,
+    ) {}
+
+    public function onGet(string $id): static
+    {
+        $this->body = $this->query->item($id);
+        return $this;
+    }
+
+    public function onPost(/* ... */): static
+    {
+        // ビジネスロジックはここ、または専用のドメインサービスへ
+    }
+}
+// 不要な転送レイヤーがない
+```
+
+**レイヤーの価値基準:**
+- そのレイヤーで何かを**判断**しているか？
+- そのレイヤーを消したら**ロジックが失われる**か？
+- 「転送」以外の**責務**があるか？
+
+全部Noなら、そのレイヤーは儀式。
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
