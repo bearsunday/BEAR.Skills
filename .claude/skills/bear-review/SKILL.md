@@ -3753,6 +3753,80 @@ class OrderNotFoundException extends ResourceNotFoundException { ... }
 abstract class AbstractValueObject { ... }  // 抽象クラスからの継承
 ```
 
+#### 📞 parent::コール（親呼び出し依存）
+
+`parent::method()` が出てきたら設計を疑う。BEAR.Sundayではまず見ない。
+
+```php
+// ❌ 問題: parent:: の連鎖
+class SpecialOrder extends Order
+{
+    public function calculate(): Money
+    {
+        $base = parent::calculate();  // 親に依存
+        return $base->multiply(0.9);  // 10%引き
+    }
+}
+
+class SuperSpecialOrder extends SpecialOrder
+{
+    public function calculate(): Money
+    {
+        $discounted = parent::calculate();  // 祖父母にも間接依存
+        return $discounted->subtract(new Money(500));
+    }
+}
+
+// 親が変わると子が全部壊れる
+// テストで親をモックできない
+// 処理の流れが追いにくい
+
+// ✅ 推奨: 合成で解決
+class OrderCalculator
+{
+    public function __construct(
+        private array $discountStrategies,  // 戦略を注入
+    ) {}
+
+    public function calculate(Order $order): Money
+    {
+        $total = $order->subtotal();
+        foreach ($this->discountStrategies as $strategy) {
+            $total = $strategy->apply($total, $order);
+        }
+        return $total;
+    }
+}
+```
+
+**parent:: が許されるケース:**
+```php
+// ✅ OK: コンストラクタでの初期化
+public function __construct(Foo $foo)
+{
+    parent::__construct();  // フレームワーク要求
+    $this->foo = $foo;
+}
+
+// ✅ OK: テンプレートメソッドパターン（設計意図が明確）
+abstract class AbstractImporter
+{
+    final public function import(): void  // final で固定
+    {
+        $this->validate();
+        $this->doImport();  // サブクラスが実装
+        $this->notify();
+    }
+
+    abstract protected function doImport(): void;
+}
+```
+
+**BEAR.Sundayで parent:: を見ない理由:**
+- ResourceObjectを継承するが、`parent::onGet()` は呼ばない
+- 振る舞いの追加はAOPインターセプターで
+- 機能の合成はDIで
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
