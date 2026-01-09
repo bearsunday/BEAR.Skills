@@ -2117,6 +2117,87 @@ class InvoiceGenerator
 }
 ```
 
+#### 📦 Array脳（配列で全部やる）
+
+何でも連想配列で表現。クラスを作らない。
+
+```php
+// ❌ 問題: 全部配列
+$user = [
+    'id' => 1,
+    'name' => '田中',
+    'email' => 'tanaka@example.com',
+    'address' => [
+        'postal' => '100-0001',
+        'city' => '東京都',
+        'street' => '千代田区1-1',
+    ],
+    'created_at' => '2024-01-01',
+];
+
+// どこかで typo
+$user['emial'] = 'new@example.com';  // 気づかない！
+
+// 何が入ってるかわからない
+function processUser(array $user): array {
+    // $user に何があるの？何を返すの？
+}
+
+// ✅ 推奨: クラスで型安全に
+final readonly class User
+{
+    public function __construct(
+        public UserId $id,
+        public string $name,
+        public Email $email,
+        public Address $address,
+        public DateTimeImmutable $createdAt,
+    ) {}
+}
+
+final readonly class Address
+{
+    public function __construct(
+        public PostalCode $postal,
+        public string $city,
+        public string $street,
+    ) {}
+}
+
+// typo はコンパイルエラー
+$user->emial;  // エラー！
+
+// 型で何が入ってるか明確
+function processUser(User $user): ProcessedUser {
+    // 明確！
+}
+```
+
+**Array脳の問題:**
+- typo に気づけない（`$user['emial']`）
+- 何が入っているかわからない
+- IDE の補完が効かない
+- テストで何を渡せばいいかわからない
+- ドキュメントがないと読めない
+
+**配列が許容されるケース:**
+- 一時的なデータ変換の中間状態
+- 外部 API / DB からの生データ（すぐにオブジェクト化する）
+- 設定ファイルの読み込み
+
+```php
+// ✅ OK: 外部データは配列で受けて、すぐにオブジェクト化
+$row = $this->pdo->fetch();  // array
+$user = User::fromArray($row);  // すぐにオブジェクトに
+
+// ❌ NG: 配列のまま引き回す
+$row = $this->pdo->fetch();
+$this->processUser($row);
+$this->validateUser($row);
+$this->saveUser($row);
+// 全部 array のまま...
+```
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
