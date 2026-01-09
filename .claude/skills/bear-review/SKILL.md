@@ -3284,6 +3284,122 @@ public function getItems(): array
 }
 ```
 
+#### 📝 CRUD Boy（データモデル脳）
+
+全てがCRUD。ドメインの振る舞いが見えず、データの出し入れしか頭にない。
+
+```php
+// ❌ 問題: 全部CRUDで考える
+// 「注文をキャンセルする」→ status を 'cancelled' に UPDATE
+class OrderResource extends ResourceObject
+{
+    public function onPut(string $id, string $status): static
+    {
+        $this->command->update($id, $status);  // UPDATE orders SET status = :status
+        return $this;
+    }
+}
+// 呼び出し側
+$this->resource->put('app://self/order', ['id' => $id, 'status' => 'cancelled']);
+
+// 何が起きる？
+// - 在庫戻す？ 決済キャンセル？ メール送信？
+// - 'canclled' とタイポしても通る
+// - 'shipped' から 'cancelled' への遷移は許可される？
+
+// ✅ 推奨: ドメインの振る舞いを表現
+class OrderResource extends ResourceObject
+{
+    public function onPost(string $id): static  // cancel アクション
+    {
+        // ビジネスロジックをドメインに委譲
+        $order = $this->query->item($id);
+
+        if ($order === null) {
+            throw new ResourceNotFoundException('order');
+        }
+
+        if (!$order->canCancel()) {
+            throw new BadRequestException('This order cannot be cancelled');
+        }
+
+        // キャンセル処理（在庫戻し、決済取消等はドメインイベントで）
+        $this->command->cancel($id);
+
+        $this->code = 200;
+        return $this;
+    }
+}
+// URI: POST /order/{id}/cancel
+// 意図が明確、ルールはドメインが持つ
+```
+
+**CRUD Boyの症状:**
+```php
+// 症状1: 全てがステータス更新
+$resource->put('app://self/user', ['id' => $id, 'status' => 'premium']);
+// → User::upgradeToPremium() という振る舞いがない
+
+// 症状2: フラグの直接操作
+$resource->put('app://self/article', ['id' => $id, 'is_published' => true]);
+// → Article::publish() という振る舞いがない
+
+// 症状3: 日付の直接設定
+$resource->put('app://self/subscription', ['id' => $id, 'expires_at' => $newDate]);
+// → Subscription::extend(Period $period) という振る舞いがない
+
+// 症状4: 複数フィールドの同時更新で状態遷移を表現
+$resource->put('app://self/order', [
+    'id' => $id,
+    'status' => 'shipped',
+    'shipped_at' => date('Y-m-d H:i:s'),
+    'tracking_number' => $tracking,
+]);
+// → Order::ship(TrackingNumber $tracking) という振る舞いがない
+```
+
+**CRUD vs ドメイン思考:**
+| CRUD Boy | ドメイン思考 |
+|----------|-------------|
+| `UPDATE status = 'cancelled'` | `Order::cancel()` |
+| `UPDATE is_published = true` | `Article::publish()` |
+| `UPDATE balance = balance + 100` | `Account::deposit(Money)` |
+| `INSERT INTO followers` | `User::follow(User)` |
+| `DELETE FROM cart_items` | `Cart::clear()` |
+| `UPDATE expires_at = ...` | `Subscription::renew()` |
+
+**なぜ問題か:**
+- **ルールの散在**: 「キャンセルできる条件」が呼び出し側にバラバラ
+- **不整合リスク**: 状態遷移のルールを毎回正しく実装する必要
+- **意図の喪失**: なぜその更新をするのかコードから読めない
+- **テスト困難**: ビジネスルールのテストが書きにくい
+
+**処方箋:**
+```php
+// 1. リソースURIで意図を表現
+POST /order/{id}/cancel      // キャンセル
+POST /order/{id}/ship        // 出荷
+POST /article/{id}/publish   // 公開
+POST /user/{id}/upgrade      // アップグレード
+
+// 2. ドメインオブジェクトに振る舞いを持たせる
+class Order
+{
+    public function cancel(): void
+    {
+        if ($this->status === OrderStatus::Shipped) {
+            throw new DomainException('出荷済みはキャンセル不可');
+        }
+        $this->status = OrderStatus::Cancelled;
+        $this->cancelledAt = new DateTimeImmutable();
+    }
+}
+
+// 3. CQRSで読み書きを分離
+// Query: データの取得（CRUD的でOK）
+// Command: ビジネスアクション（振る舞い）
+```
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
