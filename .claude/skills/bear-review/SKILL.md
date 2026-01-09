@@ -4784,6 +4784,57 @@ if (!$this->isInitialized) { throw ... }
 - 使える状態でオブジェクトを生成
 - 段階的な構築が必要ならビルダーパターン
 
+#### ⚙️ ランタイムConfig参照
+
+実行時に `Config::get()` で設定を取得。BEAR.Sundayではできない。コンストラクタに入ってる。
+
+```php
+// ❌ 問題: 実行時にConfigを参照
+class PaymentService
+{
+    public function charge(Money $amount): Result
+    {
+        $apiKey = Config::get('payment.api_key');      // どこから来た？
+        $timeout = Config::get('payment.timeout', 30); // デフォルト値散らばる
+
+        return $this->client->charge($apiKey, $amount, $timeout);
+    }
+}
+
+// 問題点:
+// - 依存がコンストラクタに現れない
+// - Config がグローバルアクセス
+// - テストで差し替えにくい
+// - どのConfigキーを使うかコードを読まないとわからない
+
+// ✅ BEAR.Sunday: コンストラクタで注入
+class PaymentService
+{
+    public function __construct(
+        #[Named('payment_api_key')] private string $apiKey,
+        #[Named('payment_timeout')] private int $timeout,
+    ) {}
+
+    public function charge(Money $amount): Result
+    {
+        // $this->apiKey, $this->timeout は注入済み
+    }
+}
+```
+
+**症状:**
+```php
+Config::get('app.name');           // Configクラス
+config('app.name');                // ヘルパー関数
+env('APP_DEBUG');                  // 環境変数直接
+Settings::get('timeout', 30);      // 別の場所でデフォルト60...どっち？
+```
+
+**BEAR.Sundayでできない理由:**
+- 設定はコンパイル時に解決
+- コンストラクタを見れば依存が全部わかる
+- `Config::get()` というAPIが存在しない
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
