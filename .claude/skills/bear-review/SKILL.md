@@ -5287,6 +5287,136 @@ interface Payment {
 
 **goto禁止派へ:** 森を作るくらいなら、gotoで脱出した方がマシなこともある。「絶対禁止」より「なぜ禁止か」を理解しよう。
 
+#### 🛐 protected教（いつか来る救済の日のために）
+
+「いつか継承されるかもしれないから...」→ 来ない救世主を待ち続ける。
+
+```php
+// ❌ 問題: いつか来る継承のために全部protected
+class UserService
+{
+    protected UserRepository $repository;      // いつか継承されるかも
+    protected Logger $logger;                  // いつか継承されるかも
+    protected EventDispatcher $dispatcher;     // いつか継承されるかも
+
+    protected function validateUser(User $user): bool  // いつか上書きされるかも
+    {
+        // ...
+    }
+
+    protected function notifyUser(User $user): void    // いつか上書きされるかも
+    {
+        // ...
+    }
+
+    protected function logAction(string $action): void // いつか上書きされるかも
+    {
+        // ...
+    }
+}
+
+// 3年後...
+// - 継承されたことは一度もない
+// - でも「将来のため」にprotectedのまま
+// - テストでモック化しにくい
+// - 何が公開APIかわからない
+
+// ✅ 推奨: privateがデフォルト、必要になったら開く
+class UserService
+{
+    public function __construct(
+        private readonly UserRepository $repository,
+        private readonly Logger $logger,
+        private readonly EventDispatcher $dispatcher,
+    ) {}
+
+    public function register(UserData $data): User  // これが公開API
+    {
+        $user = $this->createUser($data);
+        $this->notify($user);
+        return $user;
+    }
+
+    private function createUser(UserData $data): User
+    {
+        // 内部実装、公開する必要なし
+    }
+
+    private function notify(User $user): void
+    {
+        // 内部実装、公開する必要なし
+    }
+}
+
+// 本当に継承が必要になったら、その時にprotectedにする
+```
+
+**protected教の問題:**
+```php
+// 問題1: カプセル化の崩壊
+class Parent
+{
+    protected int $count = 0;  // 子から見放題・触り放題
+}
+
+class Child extends Parent
+{
+    public function hack(): void
+    {
+        $this->count = -999;  // 親の内部状態を破壊
+    }
+}
+
+// 問題2: 公開APIが不明瞭
+class Service
+{
+    public function doA() { ... }
+    protected function doB() { ... }  // 使っていい？ダメ？
+    protected function doC() { ... }  // 継承者向け？内部用？
+    private function doD() { ... }
+}
+
+// 問題3: YAGNI違反
+// 「いつか必要になるかも」で作った拡張ポイント
+// → 99%使われない
+// → 使われないコードはメンテナンスコストだけ発生
+```
+
+**アクセス修飾子の正しい考え方:**
+| 修飾子 | 意味 | 使うタイミング |
+|--------|------|---------------|
+| private | 実装の詳細 | **デフォルト**。まずこれ |
+| protected | 継承者への契約 | 継承を設計した時だけ |
+| public | 全世界への契約 | 本当に公開が必要な時 |
+
+**「いつか」が来た時の対処:**
+```php
+// ❌ 最初からprotected（YAGNI違反）
+class PaymentProcessor
+{
+    protected function calculateFee(): Money { ... }  // いつか上書きされるかも
+}
+
+// ✅ 必要になってから対応
+// 1. 継承が必要になった
+// 2. private → protected に変更（後方互換性あり）
+// 3. または Strategy パターンで注入可能に
+
+class PaymentProcessor
+{
+    public function __construct(
+        private readonly FeeCalculator $feeCalculator,  // 差し替え可能
+    ) {}
+}
+```
+
+**protected を使っていい時:**
+- Template Method パターンで「ここを上書きしてね」という設計
+- フレームワークの拡張ポイント（意図的な継承設計）
+- abstract クラスで子クラスに提供するユーティリティ
+
+**救済は来ない。YAGNIを信じよ。**
+
 ## 出力フォーマット
 
 ```
