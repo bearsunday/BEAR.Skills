@@ -2183,85 +2183,75 @@ class OgImageGenerator { public function generate($article): string { } }
 - 「〇〇のための処理」とコメントがある → そこで分離
 - 別の場所でも使いたい → 即分離
 
-#### 📦 Array脳（配列で全部やる）
+#### 📦 Mixed脳（`array<string, mixed>` 依存症）
 
-何でも連想配列で表現。クラスを作らない。
+`mixed` で型を放棄。何が入っているかわからない配列を引き回す。
+
+**注意:** 問題は `array` ではなく `mixed`。BEAR.Sundayは配列を多用するが、型付き配列なら問題ない。
 
 ```php
-// ❌ 問題: 全部配列
-$user = [
-    'id' => 1,
-    'name' => '田中',
-    'email' => 'tanaka@example.com',
-    'address' => [
-        'postal' => '100-0001',
-        'city' => '東京都',
-        'street' => '千代田区1-1',
-    ],
-    'created_at' => '2024-01-01',
-];
-
-// どこかで typo
-$user['emial'] = 'new@example.com';  // 気づかない！
-
-// 何が入ってるかわからない
+// ❌ 問題: mixed だらけ（何が入っているかわからない）
+/** @param array<string, mixed> $user */
 function processUser(array $user): array {
-    // $user に何があるの？何を返すの？
+    // $user['name'] は string? int? null? array?
+    // $user['address'] は何？
+    // 誰にもわからない...
 }
 
-// ✅ 推奨: クラスで型安全に
-final readonly class User
-{
-    public function __construct(
-        public UserId $id,
-        public string $name,
-        public Email $email,
-        public Address $address,
-        public DateTimeImmutable $createdAt,
-    ) {}
+/** @return array<string, mixed> */
+function getArticle(int $id): array {
+    // 何が返ってくるの？
 }
 
-final readonly class Address
-{
-    public function __construct(
-        public PostalCode $postal,
-        public string $city,
-        public string $street,
-    ) {}
-}
+// ✅ OK: 型付き配列（構造が明確）
+/** @return array{id: int, title: string, body: string} */
+function getArticle(int $id): array { }
 
-// typo はコンパイルエラー
-$user->emial;  // エラー！
+/** @return array<Article> */
+function getArticles(): array { }
 
-// 型で何が入ってるか明確
-function processUser(User $user): ProcessedUser {
-    // 明確！
-}
+/** @param array{name: string, email: string} $input */
+function createUser(array $input): void { }
+
+// ✅ OK: 配列は大きくても深くてもよい（型があれば）
+/**
+ * @return array{
+ *     article: array{id: int, title: string, body: string},
+ *     author: array{id: int, name: string},
+ *     comments: array<array{id: int, body: string, user: string}>,
+ *     metadata: array{views: int, likes: int}
+ * }
+ */
+function getArticleDetail(int $id): array { }
 ```
 
-**Array脳の問題:**
-- typo に気づけない（`$user['emial']`）
-- 何が入っているかわからない
-- IDE の補完が効かない
-- テストで何を渡せばいいかわからない
-- ドキュメントがないと読めない
+**問題は `mixed` であって `array` ではない:**
 
-**配列が許容されるケース:**
-- 一時的なデータ変換の中間状態
-- 外部 API / DB からの生データ（すぐにオブジェクト化する）
-- 設定ファイルの読み込み
+| 書き方 | 評価 |
+|--------|------|
+| `array<string, mixed>` | ❌ 何が入ってるかわからない |
+| `array<int, mixed>` | ❌ 同上 |
+| `mixed` | ❌ 型の放棄 |
+| `array{id: int, name: string}` | ✅ 構造が明確 |
+| `array<Article>` | ✅ 要素の型が明確 |
+| `array<string, int>` | ✅ キーと値の型が明確 |
+
+**`mixed` を使いたくなったら:**
 
 ```php
-// ✅ OK: 外部データは配列で受けて、すぐにオブジェクト化
-$row = $this->pdo->fetch();  // array
-$user = User::fromArray($row);  // すぐにオブジェクトに
+// ❌ mixed に逃げる
+/** @param mixed $data */
+function process($data): void { }
 
-// ❌ NG: 配列のまま引き回す
-$row = $this->pdo->fetch();
-$this->processUser($row);
-$this->validateUser($row);
-$this->saveUser($row);
-// 全部 array のまま...
+// ✅ Union型で明示
+function process(Article|Comment|User $entity): void { }
+
+// ✅ インターフェースで抽象化
+function process(EntityInterface $entity): void { }
+
+// ✅ PHPDocで構造を明示
+/** @param array{type: string, payload: array{id: int}} $event */
+function process(array $event): void { }
 ```
 
 ### 12. 可読性の総合チェック
