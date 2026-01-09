@@ -2117,6 +2117,72 @@ class InvoiceGenerator
 }
 ```
 
+#### 🐙 メソッド追加マン（クラス作れない症候群）
+
+新しいクラスを作れず、既存クラスにメソッドを追加し続ける。
+
+```php
+// ❌ 問題: 1つのクラスにメソッドを追加し続ける
+class ArticleResource extends ResourceObject
+{
+    // 最初は普通だった
+    public function onGet(int $id): static { }
+    public function onPost(string $title): static { }
+
+    // 「関連機能だから」と追加
+    private function formatDate($date) { }
+    private function sanitizeHtml($html) { }
+    private function generateSlug($title) { }
+
+    // 「ここにあると便利だから」と追加
+    private function sendNotification($userId) { }
+    private function updateSearchIndex($article) { }
+    private function invalidateCache($id) { }
+
+    // 「一箇所にまとまってた方が」と追加
+    private function calculateReadingTime($content) { }
+    private function extractKeywords($content) { }
+    private function generateOgImage($article) { }
+
+    // 気づいたら30メソッド...
+}
+
+// ✅ 推奨: 責務ごとにクラスを分離
+class ArticleResource extends ResourceObject
+{
+    public function __construct(
+        private readonly ArticleQuery $query,
+        private readonly ArticleCommand $command,
+    ) {}
+
+    public function onGet(int $id): static { }
+    public function onPost(string $title): static { }
+}
+
+// 別クラスに分離
+class DateFormatter { public function format($date): string { } }
+class HtmlSanitizer { public function sanitize($html): string { } }
+class SlugGenerator { public function generate($title): string { } }
+class ArticleNotifier { public function notify($userId): void { } }
+class SearchIndexer { public function update($article): void { } }
+class CacheInvalidator { public function invalidate($id): void { } }
+class ReadingTimeCalculator { public function calculate($content): int { } }
+class KeywordExtractor { public function extract($content): array { } }
+class OgImageGenerator { public function generate($article): string { } }
+```
+
+**なぜクラスを作れないか:**
+- 「ファイルが増えるのが嫌」→ 1ファイル1000行より10ファイル100行の方が良い
+- 「どこに置けばいいかわからない」→ 責務に合ったディレクトリを作る
+- 「クラス名が思いつかない」→ 動詞+名詞（`SlugGenerator`, `CacheInvalidator`）
+- 「小さすぎる気がする」→ 小さいクラスは良いクラス
+- 「依存が増える」→ DIで解決、テストしやすくなる
+
+**クラス分離の目安:**
+- privateメソッドが5つ以上 → 分離を検討
+- 「〇〇のための処理」とコメントがある → そこで分離
+- 別の場所でも使いたい → 即分離
+
 #### 📦 Array脳（配列で全部やる）
 
 何でも連想配列で表現。クラスを作らない。
