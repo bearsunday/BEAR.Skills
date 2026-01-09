@@ -4245,6 +4245,117 @@ class Email
 | Value Object はあるけど空っぽ | Value Object に振る舞いと不変条件 |
 | DDD用語を使う | ユビキタス言語でコードを書く |
 
+#### 🧟 論理削除（とりあえず消さない教）
+
+「データは消したくない」→ 全テーブルに `deleted_at`。でも本当に必要？
+
+```php
+// ❌ 問題: 思考停止の論理削除
+// 全テーブルに deleted_at
+CREATE TABLE users (
+    id INT PRIMARY KEY,
+    email VARCHAR(255) UNIQUE,  -- ← 問題発生ポイント
+    deleted_at TIMESTAMP NULL
+);
+
+CREATE TABLE orders (
+    id INT PRIMARY KEY,
+    user_id INT,
+    deleted_at TIMESTAMP NULL
+);
+
+CREATE TABLE comments (
+    id INT PRIMARY KEY,
+    deleted_at TIMESTAMP NULL  -- コメントを論理削除する意味ある？
+);
+
+// 全クエリに WHERE deleted_at IS NULL が必要
+class UserQuery
+{
+    public function find(int $id): ?User
+    {
+        // 毎回忘れずに書く必要がある
+        return $this->db->query(
+            'SELECT * FROM users WHERE id = ? AND deleted_at IS NULL',
+            [$id]
+        );
+    }
+
+    public function list(): array
+    {
+        // うっかり忘れると削除済みも取得
+        return $this->db->query(
+            'SELECT * FROM users WHERE deleted_at IS NULL'
+        );
+    }
+}
+```
+
+**論理削除の問題点:**
+
+```php
+// 問題1: UNIQUE制約が壊れる
+// ユーザーA: email='test@example.com' を論理削除
+// ユーザーB: 同じメールで登録しようとする → UNIQUE違反！
+
+// 問題2: 全クエリに条件が必要
+// JOINも複雑に
+SELECT o.* FROM orders o
+JOIN users u ON o.user_id = u.id
+WHERE o.deleted_at IS NULL
+  AND u.deleted_at IS NULL  -- 忘れがち
+
+// 問題3: データが増え続ける
+// 1000万件のうち900万件が削除済み
+// インデックスも肥大化
+
+// 問題4: 復活の複雑さ
+// 削除したユーザーを復活 → 関連データも全部復活？
+// 削除中に作られた別データとの整合性は？
+```
+
+**本当に論理削除が必要なケース:**
+```php
+// ✅ 監査要件: 法的に保持義務がある
+// → 論理削除ではなく、監査テーブルに移動
+
+// ✅ 復元要件: ゴミ箱機能
+// → 削除テーブルに移動、一定期間後に物理削除
+
+// ✅ 参照整合性: 削除しても履歴で参照される
+// → 別の解決策を検討（履歴テーブル、スナップショット）
+```
+
+**代替案:**
+```sql
+-- 代替案1: 履歴テーブルに移動
+CREATE TABLE users_deleted (
+    id INT PRIMARY KEY,
+    email VARCHAR(255),
+    deleted_at TIMESTAMP,
+    deleted_by INT,
+    original_data JSON  -- 削除時点のデータ
+);
+
+-- 代替案2: ステータスで管理（本当に必要な場合）
+CREATE TABLE subscriptions (
+    id INT PRIMARY KEY,
+    status ENUM('active', 'cancelled', 'expired'),
+    cancelled_at TIMESTAMP NULL
+);
+-- 「削除」ではなく「キャンセル」という業務概念
+
+-- 代替案3: イベントソーシング
+-- 状態ではなくイベントを保存
+-- UserRegistered, UserDeleted, UserRestored...
+```
+
+**論理削除を入れる前に確認:**
+- [ ] 本当に「削除後も参照」が必要？
+- [ ] 法的な保持義務がある？
+- [ ] 「ゴミ箱から復元」機能が要件にある？
+- [ ] 全部Noなら物理削除でOK
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
