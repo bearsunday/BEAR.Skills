@@ -2734,6 +2734,24 @@ class DataProcessor
 - `mixed` の使用率が20%を超えている
 - baseline.neon が1000行ある（見なかったことにしたエラー）
 
+**🙈 ignore多すぎをignoreする人:**
+```php
+// PHPStan: "Too many @phpstan-ignore annotations in this file"
+// ↓ 解決策（？）
+
+/** @phpstan-ignore-next-line */
+// @phpstan-ignore-next-line が多すぎるという警告をignore
+
+// さらに進化形:
+// phpstan.neon
+parameters:
+    ignoreErrors:
+        - '#Too many @phpstan-ignore#'  // ignoreが多い警告をignore
+        - '#Ignored error pattern#'      // ignoreしたことをignore
+```
+
+エラーを直すのではなく、エラーを隠すことに全力を注ぐ。まるでゴキブリを見なかったことにする人。
+
 **なぜ問題か:**
 - 静的解析を入れたコスト（CI時間、学習コスト）だけ払って恩恵ゼロ
 - 「静的解析でチェックしてます」という偽りの安心感
