@@ -5052,14 +5052,14 @@ function findFirstMatch(array $matrix3d, string $target): ?array
     return $result;
 }
 
-// ✅ gotoを使った方がシンプル
+// ✅ gotoを使った方がシンプル（実質ラベル付きbreak）
 function findFirstMatch(array $matrix3d, string $target): ?array
 {
     foreach ($matrix3d as $i => $plane) {
         foreach ($plane as $j => $row) {
             foreach ($row as $k => $cell) {
                 if ($cell === $target) {
-                    goto found;
+                    goto found;  // Java/JSの break LABEL; と同じ
                 }
             }
         }
@@ -5069,6 +5069,9 @@ function findFirstMatch(array $matrix3d, string $target): ?array
     found:
     return [$i, $j, $k];
 }
+
+// 参考: PHPの break N; は読みにくい
+// break 3; // 3段階上のループを抜ける...何段目？？
 
 // ✅ または早期リターン（推奨）
 function findFirstMatch(array $matrix3d, string $target): ?array
@@ -5116,6 +5119,32 @@ class Dog
 | else禁止 | 深いネスト | 早期リターンで解決、else自体は悪くない |
 | static禁止 | グローバル状態 | 状態を持たないutilityは問題ない |
 | 継承禁止 | 脆い基底クラス | 適切な継承は有用、compositionが常に優れているわけではない |
+
+**実は全部goto:**
+```
+// アセンブリレベルでは...
+if (cond) { A } else { B }
+↓
+  TEST cond
+  JZ else_label    ; gotoの一種
+  A
+  JMP end_label    ; これもgoto
+else_label:
+  B
+end_label:
+
+// while も for も同じ
+while (cond) { body }
+↓
+loop_start:
+  TEST cond
+  JZ loop_end      ; 条件付きgoto
+  body
+  JMP loop_start   ; 無条件goto
+loop_end:
+```
+構造化プログラミングは「gotoを禁止」ではなく「gotoを整理された形（if/while/for）でだけ使う」こと。
+生のgotoが悪いのではなく、**追跡困難なジャンプ**が悪い。ラベル付きbreakは追跡容易。
 
 #### 🌲 森の中のelseif（深いブランチの迷宮）
 
