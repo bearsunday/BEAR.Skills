@@ -4665,6 +4665,19 @@ public function process(): void
 // 症状4: プロパティが「今だけ」の値を持つ
 private ?User $currentUser = null;  // "current" = グローバル変数の匂い
 private ?Request $currentRequest = null;
+
+// 症状5: 使い終わったら自分でリセット
+$processor->process($data1);
+$processor->reset();  // 忘れると前のデータが残る！
+$processor->process($data2);  // $data1 の結果が混ざる
+
+// reset() があるクラス = 状態を持ちすぎ
+public function reset(): void
+{
+    $this->results = [];
+    $this->errors = [];
+    $this->currentItem = null;
+}
 ```
 
 **なぜ問題か:**
