@@ -171,7 +171,442 @@ echo "Critical (CC>20 or NPath>10000): $((critical_cc + critical_npath)) 件"
 | **C** | 23-30 | 警告 |
 | **D** | 31+ | 失格 |
 
-### 3. BEAR.Sunday固有の評価
+### 3. 命名規則
+
+#### 長すぎる変数名（LongVariable）
+
+20文字を超える変数名は冗長。意図は伝わるが、コードが読みにくくなる。
+
+```php
+// ❌ 問題: 長すぎる（情報過多）
+$articlePublishedDateTimeString = $article->getPublishedAt();
+$userAuthenticationTokenValue = $auth->getToken();
+$categoryIdListForFilteringArticles = [1, 2, 3];
+
+// ✅ 推奨: 簡潔で意図が伝わる
+$publishedAt = $article->getPublishedAt();
+$authToken = $auth->getToken();
+$filterCategoryIds = [1, 2, 3];
+```
+
+**なぜ問題か:**
+- 1行が長くなり、横スクロールが必要になる
+- 変数名を読むだけで疲れる
+- タイプミスが増える
+- 短くても文脈から意味は伝わる
+
+| 長さ | 評価 |
+|------|------|
+| 1-20文字 | ✅ OK |
+| 21-25文字 | ⚠️ 長い（短縮を検討） |
+| 26文字以上 | ❌ 問題 |
+
+#### 短すぎる変数名（ShortVariable）
+
+3文字未満の変数名は意図が不明。ループカウンタ以外では避ける。
+
+```php
+// ❌ 問題: 意味不明
+$a = $this->articleQuery->item($id);
+$u = $this->userQuery->item($userId);
+$d = new DateTimeImmutable();
+
+// ✅ 許容: ループカウンタ
+for ($i = 0; $i < $count; $i++) { }
+foreach ($items as $k => $v) { }  // ただし $key => $value が望ましい
+
+// ✅ 推奨: 意図が明確
+$article = $this->articleQuery->item($id);
+$user = $this->userQuery->item($userId);
+$now = new DateTimeImmutable();
+```
+
+**なぜ問題か:**
+- コードを読む人が意味を推測しなければならない
+- 数ヶ月後の自分でも理解できない
+- バグの原因になりやすい（$a と $u を取り違える等）
+
+| 変数名 | 評価 |
+|--------|------|
+| `$i`, `$j`, `$k`（ループ内） | ✅ 許容 |
+| `$e`（catch内のException） | ✅ 許容 |
+| `$id`（引数） | ✅ OK |
+| `$a`, `$b`, `$x`（一般変数） | ❌ 問題 |
+
+#### 曖昧な命名
+
+`$data`, `$result`, `$info`, `$tmp` などは何を表すか不明。
+
+```php
+// ❌ 問題: 曖昧
+$data = $this->articleQuery->item($id);
+$result = $this->validator->validate($input);
+$info = $user->getProfile();
+$tmp = $this->transform($article);
+
+// ✅ 推奨: 具体的
+$article = $this->articleQuery->item($id);
+$validationResult = $this->validator->validate($input);
+$userProfile = $user->getProfile();
+$transformedArticle = $this->transform($article);
+```
+
+**避けるべき曖昧な名前:**
+- `$data` → 何のデータ？
+- `$result` → 何の結果？
+- `$info` → 何の情報？
+- `$tmp`, `$temp` → 一時的とは？
+- `$value` → 何の値？
+- `$item` → 何のアイテム？
+- `$obj` → 何のオブジェクト？
+- `$arr` → 何の配列？
+- `$str` → 何の文字列？
+- `$flag` → 何のフラグ？
+
+**例外（許容されるケース）:**
+- ジェネリックな処理（配列操作ユーティリティ等）
+- 短いスコープでの一時変数
+
+#### ブール変数の命名
+
+ブール変数は `is`, `has`, `can`, `should`, `was`, `will` などで始める。
+
+```php
+// ❌ 問題: ブールかどうかわからない
+$published = $article->isPublished();
+$admin = $user->isAdmin();
+$permission = $user->canEdit($article);
+$deleted = $this->softDelete($id);
+
+// ✅ 推奨: ブールと明確
+$isPublished = $article->isPublished();
+$isAdmin = $user->isAdmin();
+$canEdit = $user->canEdit($article);
+$wasDeleted = $this->softDelete($id);
+```
+
+| 接頭辞 | 用途 | 例 |
+|--------|------|-----|
+| `is` | 状態 | `$isActive`, `$isValid` |
+| `has` | 所有 | `$hasChildren`, `$hasPermission` |
+| `can` | 能力 | `$canEdit`, `$canDelete` |
+| `should` | 推奨 | `$shouldNotify`, `$shouldCache` |
+| `was` | 過去 | `$wasDeleted`, `$wasSuccessful` |
+| `will` | 未来 | `$willExpire` |
+
+#### 否定形の命名を避ける
+
+否定形の変数名は二重否定を生みやすい。
+
+```php
+// ❌ 問題: 否定形（二重否定が発生しやすい）
+$isNotValid = !$validator->validate($input);
+if (!$isNotValid) { }  // 二重否定で混乱
+
+$isDisabled = $feature->isDisabled();
+if (!$isDisabled) { }  // 結局有効かどうかわかりにくい
+
+// ✅ 推奨: 肯定形
+$isValid = $validator->validate($input);
+if ($isValid) { }
+
+$isEnabled = $feature->isEnabled();
+if ($isEnabled) { }
+```
+
+**なぜ問題か:**
+- `!$isNotValid` は「無効でない」→「有効」と脳内変換が必要
+- 条件分岐が直感的でなくなる
+- バグの温床になる
+
+#### 定数の命名
+
+定数は SCREAMING_SNAKE_CASE で、意図が明確に。
+
+```php
+// ❌ 問題: 何を表すかわからない
+private const VALUE = 100;
+private const NUM = 5;
+private const STR = 'article';
+
+// ✅ 推奨: 意図が明確
+private const MAX_RETRY_COUNT = 5;
+private const DEFAULT_PAGE_SIZE = 100;
+private const RESOURCE_TYPE_ARTICLE = 'article';
+```
+
+#### メソッド名は動詞で始める
+
+メソッドは「何をするか」を表す。動詞で始める。
+
+```php
+// ❌ 問題: 動詞でない
+public function article(int $id): Article { }
+public function validation(array $data): bool { }
+public function userList(): array { }
+
+// ✅ 推奨: 動詞で始まる
+public function getArticle(int $id): Article { }  // または findArticle
+public function validate(array $data): bool { }
+public function listUsers(): array { }  // または getUsers, fetchUsers
+```
+
+| 接頭辞 | 用途 | 例 |
+|--------|------|-----|
+| `get` | 取得（単一） | `getUser()`, `getArticle()` |
+| `list` / `getAll` | 取得（複数） | `listUsers()`, `getAllArticles()` |
+| `find` | 検索（見つからない可能性） | `findByEmail()` |
+| `create` / `add` | 作成 | `createUser()`, `addComment()` |
+| `update` | 更新 | `updateProfile()` |
+| `delete` / `remove` | 削除 | `deleteArticle()`, `removeTag()` |
+| `is` / `has` / `can` | 判定 | `isValid()`, `hasPermission()` |
+| `validate` | 検証 | `validateInput()` |
+| `calculate` | 計算 | `calculateTotal()` |
+| `convert` / `transform` | 変換 | `convertToArray()` |
+
+### 4. コード構造
+
+#### 深すぎるネスト
+
+ネストが3段階以上は読みにくい。早期リターンやメソッド抽出で解消。
+
+```php
+// ❌ 問題: 深いネスト（矢印型コード）
+public function onGet(int $id): static
+{
+    $article = $this->articleQuery->item($id);
+    if ($article !== null) {
+        if ($article->isPublished()) {
+            $author = $this->userQuery->item($article->authorId);
+            if ($author !== null) {
+                if ($author->isActive()) {
+                    $this->body = [
+                        'article' => $article,
+                        'author' => $author,
+                    ];
+                    return $this;
+                }
+            }
+        }
+    }
+    throw new NotFoundException();
+}
+
+// ✅ 推奨: 早期リターン（ガード節）
+public function onGet(int $id): static
+{
+    $article = $this->articleQuery->item($id);
+    if ($article === null) {
+        throw new ArticleNotFoundException($id);
+    }
+
+    if (! $article->isPublished()) {
+        throw new ArticleNotPublishedException($id);
+    }
+
+    $author = $this->userQuery->item($article->authorId);
+    if ($author === null || ! $author->isActive()) {
+        throw new AuthorNotFoundException($article->authorId);
+    }
+
+    $this->body = [
+        'article' => $article,
+        'author' => $author,
+    ];
+
+    return $this;
+}
+```
+
+**なぜ問題か:**
+- インデントが深くなると視認性が下がる
+- 条件の組み合わせが把握しにくい
+- 「この時点で何が保証されているか」がわからない
+
+| ネスト深度 | 評価 |
+|-----------|------|
+| 1-2 | ✅ 良好 |
+| 3 | ⚠️ 許容（簡潔なら） |
+| 4以上 | ❌ リファクタリング必須 |
+
+#### 早期リターン（ガード節）
+
+異常系を先に処理して、正常系のネストを浅くする。
+
+```php
+// ❌ 問題: 正常系がネストの中
+public function process(array $input): Result
+{
+    if (isset($input['id'])) {
+        if ($input['id'] > 0) {
+            $item = $this->find($input['id']);
+            if ($item !== null) {
+                // 正常処理（深いネスト）
+                return new Result($item);
+            } else {
+                throw new NotFoundException();
+            }
+        } else {
+            throw new InvalidIdException();
+        }
+    } else {
+        throw new MissingIdException();
+    }
+}
+
+// ✅ 推奨: ガード節で異常系を先に排除
+public function process(array $input): Result
+{
+    if (! isset($input['id'])) {
+        throw new MissingIdException();
+    }
+
+    if ($input['id'] <= 0) {
+        throw new InvalidIdException();
+    }
+
+    $item = $this->find($input['id']);
+    if ($item === null) {
+        throw new NotFoundException();
+    }
+
+    // 正常処理（ネストなし）
+    return new Result($item);
+}
+```
+
+**ガード節のメリット:**
+- 正常系が目立つ
+- 「この行に到達した時点で何が保証されているか」が明確
+- テストケースが書きやすい
+
+#### 長すぎるメソッド
+
+1メソッド50行を超えたら分割を検討。1つのメソッドは1つのことをする。
+
+```php
+// ❌ 問題: 長いメソッド（複数の責務）
+public function onPost(ArticleInput $input): static
+{
+    // バリデーション（10行）
+    // ...
+
+    // 記事作成（15行）
+    // ...
+
+    // 著者通知（10行）
+    // ...
+
+    // 関連記事更新（10行）
+    // ...
+
+    // レスポンス生成（10行）
+    // ...
+}
+
+// ✅ 推奨: 責務ごとにメソッド分割、またはサービスに委譲
+public function onPost(ArticleInput $input): static
+{
+    $article = $this->articleService->create($input);
+
+    $this->code = 201;
+    $this->headers['Location'] = "/article?id={$article->id}";
+    $this->body = ['id' => $article->id];
+
+    return $this;
+}
+```
+
+| 行数 | 評価 |
+|------|------|
+| 1-20行 | ✅ 良好 |
+| 21-50行 | ⚠️ 許容（複雑なロジックなら） |
+| 51行以上 | ❌ 分割を検討 |
+
+#### 1行に複数の処理を書かない
+
+```php
+// ❌ 問題: 1行に詰め込みすぎ
+$result = $this->validate($input) ? $this->process($input) : throw new ValidationException();
+$user = $this->userQuery->item($id) ?? throw new UserNotFoundException($id);
+
+// ✅ 推奨: 明確に分ける
+$isValid = $this->validate($input);
+if (! $isValid) {
+    throw new ValidationException();
+}
+$result = $this->process($input);
+
+$user = $this->userQuery->item($id);
+if ($user === null) {
+    throw new UserNotFoundException($id);
+}
+```
+
+**例外（許容されるケース）:**
+- null合体演算子でのデフォルト値: `$name = $input['name'] ?? 'default';`
+- 短い三項演算子: `$status = $isActive ? 'active' : 'inactive';`
+
+#### elseの削減
+
+`else` は早期リターンで減らせることが多い。
+
+```php
+// ❌ 問題: 不要なelse
+public function getStatus(Article $article): string
+{
+    if ($article->isPublished()) {
+        return 'published';
+    } else {
+        if ($article->isDraft()) {
+            return 'draft';
+        } else {
+            return 'archived';
+        }
+    }
+}
+
+// ✅ 推奨: elseなし
+public function getStatus(Article $article): string
+{
+    if ($article->isPublished()) {
+        return 'published';
+    }
+
+    if ($article->isDraft()) {
+        return 'draft';
+    }
+
+    return 'archived';
+}
+```
+
+#### 複雑な条件式の分解
+
+複雑な条件は変数に抽出するか、メソッドに分離。
+
+```php
+// ❌ 問題: 複雑な条件式
+if ($user->isActive() && $user->hasPermission('edit') && $article->authorId === $user->id && !$article->isLocked() && $article->status !== 'archived') {
+    // ...
+}
+
+// ✅ 推奨: 意図を変数名で説明
+$isAuthor = $article->authorId === $user->id;
+$canEdit = $user->isActive() && $user->hasPermission('edit');
+$isEditable = ! $article->isLocked() && $article->status !== 'archived';
+
+if ($isAuthor && $canEdit && $isEditable) {
+    // ...
+}
+
+// ✅ または: メソッドに抽出
+if ($this->canUserEditArticle($user, $article)) {
+    // ...
+}
+```
+
+### 5. BEAR.Sunday固有の評価
 
 #### リソース設計 (Resourceクラスのみ)
 
@@ -905,6 +1340,514 @@ public function onDelete(int $id): static
 | ミドルウェア | ✅ 推奨 |
 | リソース内で直接チェック | ❌ 問題 |
 
+### 6. エラーハンドリング（追加観点）
+
+#### 空のcatchブロック
+
+例外を捕捉して何もしないのは問題。エラーが握りつぶされる。
+
+```php
+// ❌ 問題: 空のcatch（エラー握りつぶし）
+try {
+    $this->externalApi->call();
+} catch (ApiException $e) {
+    // 何もしない
+}
+
+// ❌ 問題: ログだけして処理続行（意図が不明）
+try {
+    $result = $this->riskyOperation();
+} catch (Exception $e) {
+    $this->logger->error($e->getMessage());
+}
+// $result は未定義のまま続行...
+
+// ✅ 推奨: 意図を明確に
+try {
+    $this->externalApi->call();
+} catch (ApiException $e) {
+    // 外部API失敗時はフォールバック値を使用（意図をコメント）
+    return $this->getFallbackData();
+}
+
+// ✅ 推奨: 再throw
+try {
+    $result = $this->riskyOperation();
+} catch (OperationException $e) {
+    $this->logger->error('Operation failed', ['exception' => $e]);
+    throw new ServiceUnavailableException('Service temporarily unavailable', 0, $e);
+}
+```
+
+**なぜ問題か:**
+- エラーが発生しても気づけない
+- デバッグが非常に困難になる
+- システムが不正な状態で動き続ける
+
+#### 例外の情報損失
+
+例外を再throwする際に、元の例外情報を失わない。
+
+```php
+// ❌ 問題: 元の例外情報が失われる
+try {
+    $this->repository->save($entity);
+} catch (DatabaseException $e) {
+    throw new SaveFailedException('保存に失敗しました');  // 元の情報なし
+}
+
+// ❌ 問題: メッセージだけ引き継ぐ
+catch (DatabaseException $e) {
+    throw new SaveFailedException($e->getMessage());  // スタックトレースなし
+}
+
+// ✅ 推奨: 元の例外をチェーン
+try {
+    $this->repository->save($entity);
+} catch (DatabaseException $e) {
+    throw new SaveFailedException('保存に失敗しました', 0, $e);  // 第3引数で元例外を保持
+}
+```
+
+**なぜ問題か:**
+- 本当の原因がわからなくなる
+- スタックトレースが切れてデバッグ困難
+- 本番障害時に原因特定ができない
+
+#### エラーメッセージに文脈情報を含める
+
+```php
+// ❌ 問題: 情報が少なすぎる
+throw new NotFoundException('見つかりません');
+throw new ValidationException('無効な値です');
+
+// ✅ 推奨: 文脈情報を含める
+throw new ArticleNotFoundException("Article not found: id={$id}");
+throw new ValidationException("Invalid email format: {$email}");
+```
+
+### 7. コメントとドキュメント
+
+#### 不要なコメント
+
+コードを読めばわかることをコメントしない。
+
+```php
+// ❌ 問題: コードを読めばわかる
+// 記事を取得する
+$article = $this->articleQuery->item($id);
+
+// IDをチェックする
+if ($id <= 0) {
+    throw new InvalidIdException();
+}
+
+// 1を足す
+$count++;
+
+// ✅ 推奨: 「なぜ」を説明する（必要な場合のみ）
+// 下位互換性のため、削除フラグではなく物理削除
+$this->repository->hardDelete($id);
+
+// レガシーAPIの仕様により、日付フォーマットはY/m/d固定
+$formattedDate = $date->format('Y/m/d');
+```
+
+**不要なコメントの例:**
+- 変数宣言の説明
+- 自明なメソッド呼び出しの説明
+- インクリメント/デクリメントの説明
+- ループの説明（「配列をループ」等）
+
+**必要なコメントの例:**
+- なぜそうしているかの理由
+- ビジネスルールの説明
+- 外部システムとの制約
+- 一時的な対処（TODO付き）
+
+#### 古いコメント（コードと不一致）
+
+コードを変更したらコメントも更新する。古いコメントは嘘になる。
+
+```php
+// ❌ 問題: コメントとコードが不一致
+// ユーザーIDでフィルタリング
+$articles = $this->query->findByCategoryId($categoryId);  // 実際はカテゴリID
+
+// 最大10件取得
+$results = $this->query->list(50);  // 実際は50件
+
+// ✅ 推奨: コメントを更新するか、削除する
+$articles = $this->query->findByCategoryId($categoryId);
+$results = $this->query->list(50);
+```
+
+**なぜ問題か:**
+- 読む人が混乱する
+- 古いコメントを信じてバグを作り込む
+- 「コメントは信用できない」という文化ができる
+
+#### コメントアウトされたコード
+
+コメントアウトしたコードは削除する。Gitに履歴がある。
+
+```php
+// ❌ 問題: コメントアウトされたコード
+public function onGet(int $id): static
+{
+    $article = $this->articleQuery->item($id);
+    // $oldData = $this->legacyQuery->getData($id);
+    // if ($oldData !== null) {
+    //     $article = $this->merge($article, $oldData);
+    // }
+    $this->body = ['article' => $article];
+    return $this;
+}
+
+// ✅ 推奨: 削除する（必要ならGitから復元）
+public function onGet(int $id): static
+{
+    $article = $this->articleQuery->item($id);
+    $this->body = ['article' => $article];
+    return $this;
+}
+```
+
+**なぜ問題か:**
+- 読む人が「いつか使うのか？」と混乱
+- コードが汚れて可読性低下
+- 「このコードは何のため？」と考える時間の無駄
+- Gitに履歴があるので削除しても問題ない
+
+#### TODO/FIXMEの放置
+
+TODO/FIXMEは期限と担当を明記。放置しない。
+
+```php
+// ❌ 問題: 放置されたTODO
+// TODO: あとで直す
+// FIXME: なんかおかしい
+// HACK: 一時的な対応
+
+// ✅ 推奨: 具体的に書く、またはIssue化して削除
+// TODO(2024-03): Phase2でキャッシュ実装予定 (Issue #123)
+// FIXME: 外部APIのバグ回避。API v2移行時に削除 (Issue #456)
+```
+
+| パターン | 評価 |
+|----------|------|
+| TODO + Issue番号 + 期限 | ✅ OK |
+| TODO のみ（放置） | ⚠️ Issue化推奨 |
+| 1年以上前のTODO | ❌ 対応するか削除 |
+
+### 8. マジック値
+
+#### マジックナンバー
+
+意味のある数値は定数化する。
+
+```php
+// ❌ 問題: マジックナンバー
+if ($retryCount > 3) { }
+$timeout = 30;
+$pageSize = 20;
+if ($status === 1) { }
+
+// ✅ 推奨: 定数化
+private const MAX_RETRY_COUNT = 3;
+private const DEFAULT_TIMEOUT_SECONDS = 30;
+private const DEFAULT_PAGE_SIZE = 20;
+
+if ($retryCount > self::MAX_RETRY_COUNT) { }
+
+// ✅ または: Enum
+enum ArticleStatus: int {
+    case Draft = 0;
+    case Published = 1;
+    case Archived = 2;
+}
+
+if ($status === ArticleStatus::Published->value) { }
+```
+
+**例外（定数化不要）:**
+- `0`, `1`, `-1`（境界値チェック）
+- 配列の最初/最後の要素取得
+- 数学的に意味がある値（`* 2`, `/ 100`）
+
+**なぜ問題か:**
+- 「3って何？」が分からない
+- 同じ数値が複数箇所にあると変更漏れ
+- 意図が伝わらない
+
+#### マジックストリング
+
+文字列リテラルも定数化を検討。特にキー名やステータス。
+
+```php
+// ❌ 問題: マジックストリング
+if ($article['status'] === 'published') { }
+$this->cache->get('article_' . $id);
+$type = 'premium';
+
+// ✅ 推奨: 定数またはEnum
+enum ArticleStatus: string {
+    case Draft = 'draft';
+    case Published = 'published';
+}
+
+if ($article['status'] === ArticleStatus::Published->value) { }
+
+// キャッシュキーはメソッド化
+private function getArticleCacheKey(int $id): string
+{
+    return "article_{$id}";
+}
+```
+
+### 9. 死んだコード
+
+#### 到達不能コード
+
+returnやthrowの後のコードは実行されない。
+
+```php
+// ❌ 問題: 到達不能
+public function process(): void
+{
+    return;
+    $this->cleanup();  // 絶対に実行されない
+}
+
+public function onGet(int $id): static
+{
+    throw new NotFoundException();
+    $this->body = [];  // 絶対に実行されない
+    return $this;
+}
+
+// ❌ 問題: 常にtrueの条件
+if ($value > 0 || $value <= 0) {  // 常にtrue
+    // ...
+}
+```
+
+#### 使われていないコード
+
+- 呼び出されないprivateメソッド
+- 使われていない変数
+- 読み込まれないuse文
+
+```php
+// ❌ 問題: 使われていない
+use App\Service\UnusedService;  // 未使用
+
+class ArticleResource extends ResourceObject
+{
+    private function unusedMethod(): void  // 呼ばれない
+    {
+        // ...
+    }
+
+    public function onGet(int $id): static
+    {
+        $unusedVariable = 'test';  // 使われない
+        $article = $this->query->item($id);
+        $this->body = ['article' => $article];
+        return $this;
+    }
+}
+```
+
+**対策:**
+- IDEやPHPStanの警告を有効に
+- `composer sa` で定期チェック
+- 使わないコードは削除
+
+### 10. スパゲッティレベル 🍝
+
+コードの「絡まり具合」を測定。数百行のメソッドは教育の不在を示す。
+
+#### スパゲッティ度の判定
+
+| レベル | 状態 | 特徴 |
+|--------|------|------|
+| 🍝 | カルボナーラ（理想） | シンプル、短い、責務明確 |
+| 🍝🍝 | ペペロンチーノ | 少し長いが追える |
+| 🍝🍝🍝 | ボロネーゼ | 複雑だが分離可能 |
+| 🍝🍝🍝🍝 | ナポリタン | 絡まり始め、要リファクタ |
+| 🍝🍝🍝🍝🍝 | 闇鍋スパゲッティ | 誰も触れない、負債 |
+
+#### メソッド行数とスパゲッティ度
+
+| 行数 | レベル | アクション |
+|------|--------|-----------|
+| 1-20行 | 🍝 | 理想的 |
+| 21-50行 | 🍝🍝 | 許容範囲 |
+| 51-100行 | 🍝🍝🍝 | 分割を検討 |
+| 101-200行 | 🍝🍝🍝🍝 | 要リファクタリング |
+| 201行以上 | 🍝🍝🍝🍝🍝 | 緊急対応必須 |
+
+#### スパゲッティの兆候
+
+```php
+// 🍝🍝🍝🍝🍝 闇鍋スパゲッティの特徴
+
+public function onGet(int $id): static
+{
+    // 300行のメソッド...
+
+    // 兆候1: 複数の責務が混在
+    // データ取得、加工、バリデーション、整形が1メソッドに
+
+    // 兆候2: 深いネスト
+    if (...) {
+        foreach (...) {
+            if (...) {
+                while (...) {
+                    // 何をしているか追えない
+                }
+            }
+        }
+    }
+
+    // 兆候3: 大量のローカル変数
+    $a = ...; $b = ...; $c = ...; $d = ...;
+    // 20個以上の変数が飛び交う
+
+    // 兆候4: 同じ引数を何度も渡す
+    $this->processA($user, $article, $settings, $options);
+    $this->processB($user, $article, $settings, $options);
+    $this->processC($user, $article, $settings, $options);
+
+    // 兆候5: コメントで区切りを入れないと読めない
+    // ====== ここからデータ取得 ======
+    // ...
+    // ====== ここから加工処理 ======
+    // ...
+}
+```
+
+#### スパゲッティの解消法
+
+```php
+// 🍝 カルボナーラへのリファクタリング
+
+// Before: 300行の巨大メソッド
+public function onGet(int $id): static { /* 300行 */ }
+
+// After: 責務を分離
+public function onGet(int $id): static
+{
+    $article = $this->articleQuery->item($id);
+    if ($article === null) {
+        throw new ArticleNotFoundException($id);
+    }
+
+    $this->body = $this->articleViewBuilder->build($article);
+
+    return $this;
+}
+
+// 詳細はサービスに委譲
+class ArticleViewBuilder
+{
+    public function build(Article $article): array
+    {
+        return [
+            'article' => $article,
+            'author' => $this->getAuthor($article),
+            'relatedArticles' => $this->getRelatedArticles($article),
+            'metadata' => $this->buildMetadata($article),
+        ];
+    }
+
+    // 各メソッドは20行以内
+    private function getAuthor(Article $article): Author { /* 10行 */ }
+    private function getRelatedArticles(Article $article): array { /* 15行 */ }
+    private function buildMetadata(Article $article): array { /* 10行 */ }
+}
+```
+
+#### なぜ長いメソッドが生まれるか
+
+| 原因 | 対策 |
+|------|------|
+| 教育の不在 | このレビュー基準を共有 |
+| 時間的プレッシャー | 技術的負債として記録、後でリファクタ |
+| 「動いてるから」 | 保守コストを説明 |
+| 全体設計の欠如 | 事前の設計レビュー |
+| 責務の曖昧さ | 単一責任の原則を徹底 |
+
+#### 長いメソッドの問題
+
+- **テストが書けない**: 300行のメソッドに何パターンのテストが必要？
+- **バグが隠れる**: どこで何が起きているかわからない
+- **変更が怖い**: 影響範囲が読めない
+- **レビューできない**: 誰も全体を把握できない
+- **引き継げない**: 新人が理解するのに何日かかる？
+
+### 11. 可読性の総合チェック
+
+#### 「6ヶ月後の自分」テスト
+
+このコードを6ヶ月後の自分（または他の開発者）が読んで理解できるか？
+
+**チェックポイント:**
+- [ ] 変数名から内容がわかるか
+- [ ] メソッド名から処理がわかるか
+- [ ] なぜそうしているか理解できるか
+- [ ] 処理の流れを追えるか
+- [ ] 副作用が予測できるか
+
+#### 「説明が必要なコード」は悪いコード
+
+コメントで説明しないと分からないコードは、コード自体を改善すべき。
+
+```php
+// ❌ 問題: 説明がないと理解できない
+// $aが5より大きく、$bがnullでなく、$cが'active'の場合に処理
+if ($a > 5 && $b !== null && $c === 'active') {
+    $x = $d * 1.08;  // 消費税を加算
+}
+
+// ✅ 推奨: コード自体で説明
+$isEligible = $age > self::MINIMUM_AGE
+    && $subscription !== null
+    && $accountStatus === AccountStatus::Active;
+
+if ($isEligible) {
+    $priceWithTax = $basePrice * self::TAX_RATE;
+}
+```
+
+#### 認知負荷の軽減
+
+一度に把握しなければならない情報を減らす。
+
+```php
+// ❌ 問題: 認知負荷が高い（一度に多くの情報）
+$result = array_map(fn($x) => $x['items'][0]['data']['value'] * 1.1, array_filter($items, fn($i) => $i['type'] === 'premium' && $i['active']));
+
+// ✅ 推奨: ステップに分解
+$premiumItems = array_filter(
+    $items,
+    fn($item) => $item['type'] === 'premium' && $item['active']
+);
+
+$values = array_map(
+    fn($item) => $item['items'][0]['data']['value'] * self::MARKUP_RATE,
+    $premiumItems
+);
+```
+
+**認知負荷が高いパターン:**
+- 長いメソッドチェーン
+- 深いネスト
+- 複雑な条件式
+- 複数の処理を1行に
+- 略語だらけの変数名
+
 ## 出力フォーマット
 
 ```
@@ -919,6 +1862,25 @@ public function onDelete(int $id): static
 | Parameters | X | A/B/C/D |
 | Fields | X | A/B/C/D |
 
+### 命名規則
+
+| 項目 | 評価 | コメント |
+|------|------|----------|
+| 変数名の長さ | OK/問題あり | 長すぎ/短すぎはないか |
+| 曖昧な命名 | OK/問題あり | $data, $result 等を使っていないか |
+| ブール変数命名 | OK/問題あり | is/has/can で始まっているか |
+| 否定形の命名 | OK/問題あり | isNotXxx を避けているか |
+| メソッド名 | OK/問題あり | 動詞で始まっているか |
+
+### コード構造
+
+| 項目 | 評価 | コメント |
+|------|------|----------|
+| ネスト深度 | OK/問題あり | 3段階以上のネストはないか |
+| 早期リターン | OK/問題あり | ガード節を使っているか |
+| メソッド長 | OK/問題あり | 50行以内か |
+| 条件式の複雑さ | OK/問題あり | 複雑な条件は変数に抽出しているか |
+
 ### BEAR.Sunday固有評価
 
 | 項目 | 評価 | コメント |
@@ -928,16 +1890,76 @@ public function onDelete(int $id): static
 | Embed使用 | OK/問題あり | resource->get()でbodyにセットしていないか |
 | 戻り値型 | OK/推奨 | static を使用しているか |
 | 依存性注入 | A/B/C/D | ... |
-| 例外設計 | OK/問題あり | @throws Exception は問題、ドメイン例外を使用 |
-| try-catch | OK/問題あり | 巨大try-catch、Throwable/Exceptionキャッチは問題 |
 | 型安全性 | A/B/C/D | ... |
+
+### エラーハンドリング
+
+| 項目 | 評価 | コメント |
+|------|------|----------|
+| 例外設計 | OK/問題あり | ドメイン例外を使用しているか |
+| ポケモンキャッチ | OK/問題あり | Throwable/Exception の広範キャッチはないか |
+| 空のcatch | OK/問題あり | 握りつぶしていないか |
+| 例外チェーン | OK/問題あり | 元例外を保持しているか |
+
+### コメントとドキュメント
+
+| 項目 | 評価 | コメント |
+|------|------|----------|
+| 不要なコメント | OK/問題あり | 自明なコメントはないか |
+| 古いコメント | OK/問題あり | コードと不一致のコメントはないか |
+| コメントアウト | OK/問題あり | コメントアウトされたコードはないか |
+| TODO/FIXME | OK/問題あり | 放置されていないか |
+
+### マジック値・死んだコード
+
+| 項目 | 評価 | コメント |
+|------|------|----------|
+| マジックナンバー | OK/問題あり | 定数化されているか |
+| マジックストリング | OK/問題あり | Enum/定数を使っているか |
+| 到達不能コード | OK/問題あり | return/throw後のコードはないか |
+| 未使用コード | OK/問題あり | 使われていないコードはないか |
+
+### スパゲッティレベル 🍝
+
+| 項目 | レベル | コメント |
+|------|--------|----------|
+| メソッド行数 | 🍝〜🍝🍝🍝🍝🍝 | 最長メソッドの行数 |
+| ネスト深度 | 🍝〜🍝🍝🍝🍝🍝 | 最深のネスト段数 |
+| ローカル変数数 | 🍝〜🍝🍝🍝🍝🍝 | 1メソッド内の変数数 |
+| 責務の混在 | 🍝〜🍝🍝🍝🍝🍝 | 複数責務が混在していないか |
+
+**レベル凡例:**
+- 🍝 カルボナーラ（理想）
+- 🍝🍝 ペペロンチーノ
+- 🍝🍝🍝 ボロネーゼ
+- 🍝🍝🍝🍝 ナポリタン（要リファクタ）
+- 🍝🍝🍝🍝🍝 闇鍋スパゲッティ（緊急）
+
+### 可読性
+
+| 項目 | 評価 | コメント |
+|------|------|----------|
+| 6ヶ月後テスト | OK/問題あり | 他者が読んで理解できるか |
+| 認知負荷 | OK/問題あり | 一度に把握する情報量は適切か |
 
 ### 総合評価: [A/B/C/D]
 
-### 改善提案
+**評価基準:**
+- A: 問題なし、模範的なコード
+- B: 軽微な問題あり、許容範囲
+- C: 改善が必要、リファクタリング推奨
+- D: 重大な問題あり、即時対応必須
 
+### 改善提案（優先度順）
+
+#### 高優先度（すぐに対応すべき）
 1. ...
-2. ...
+
+#### 中優先度（次のリファクタリングで対応）
+1. ...
+
+#### 低優先度（余裕があれば対応）
+1. ...
 ```
 
 ## 参考資料
