@@ -4694,6 +4694,83 @@ $order = OrderBuilder::create()
     ->build();  // ここで検証、不足があればエラー
 ```
 
+#### 📞 メソッド間テレパシー（暗黙の呼び出し順序）
+
+メソッドを特定の順番で呼ばないと動かない。順序はドキュメントにも書いてない。
+
+```php
+// ❌ 問題: 呼び出し順序が必須
+$processor = new DataProcessor();
+$processor->init();           // 1. まず初期化
+$processor->loadConfig();     // 2. 設定を読む（initの後）
+$processor->validate();       // 3. 検証（loadConfigの後）
+$processor->execute();        // 4. 実行（validateの後）
+
+// 順番間違えると...
+$processor->execute();        // init してない → 例外
+$processor->validate();       // loadConfig してない → 例外
+
+// init() を呼び忘れると動かないクラス
+class BadService
+{
+    private bool $initialized = false;
+
+    public function init(): void
+    {
+        $this->initialized = true;
+        // セットアップ処理...
+    }
+
+    public function doWork(): void
+    {
+        if (!$this->initialized) {
+            throw new \RuntimeException('init()を先に呼んでください');
+        }
+        // 処理...
+    }
+}
+
+// ✅ 推奨: コンストラクタで初期化を完了
+class GoodService
+{
+    public function __construct(
+        private Config $config,
+        private Validator $validator,
+    ) {
+        // 構築時点で使える状態
+    }
+
+    public function doWork(Data $data): Result
+    {
+        $this->validator->validate($data);
+        // 処理...
+    }
+}
+```
+
+**テレパシーの症状:**
+```php
+// 症状1: init() / setup() / configure() が必要
+$obj->init();
+$obj->setup();
+$obj->configure($options);
+$obj->run();  // やっと使える
+
+// 症状2: 「〇〇を先に呼んでください」例外
+throw new \RuntimeException('connect()を先に呼んでください');
+throw new \RuntimeException('login()を先に呼んでください');
+
+// 症状3: isXxx フラグで状態チェック
+if (!$this->isConnected) { throw ... }
+if (!$this->isAuthenticated) { throw ... }
+if (!$this->isInitialized) { throw ... }
+```
+
+**解決策:**
+- コンストラクタで初期化を完了させる
+- 使える状態でオブジェクトを生成
+- 段階的な構築が必要ならビルダーパターン
+
 ### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
