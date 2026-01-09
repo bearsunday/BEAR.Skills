@@ -3735,11 +3735,30 @@ $this->bind(RepositoryInterface::class)
      );
 ```
 
+**「5000行の親クラス、でも俺はクリーン」問題:**
+```php
+// 某ORM
+class User extends Model  // ← 5000行のクラスを継承
+{
+    protected $table = 'users';  // 俺のコードは3行！クリーン！
+    protected $fillable = ['name', 'email'];
+}
+
+// 実態:
+// - 5000行の責務を暗黙的に背負っている
+// - $this->save() で何が起きるか把握してる？
+// - Model の protected メソッド全部が使える（使っていい？）
+// - 親の変更で子が壊れる可能性
+// - 「クリーン」なのは見た目だけ
+```
+
+継承は「親のコード行数も自分の責任」という意識が必要。
+
 **なぜBEAR.Sundayで具象継承を見ないか:**
 - **AOP**: 横断的関心事（ログ、キャッシュ、認証）はインターセプターで
 - **DI**: 実装の切り替えはModuleで
 - **Decorator**: 機能追加は委譲で
-- **ResourceObject**: 継承するのはResourceObjectだけ（これはフレームワーク規約）
+- **ResourceObject**: 継承するのはResourceObjectだけ（しかも薄い）
 
 **具象継承が許される稀なケース:**
 ```php
