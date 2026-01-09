@@ -3148,9 +3148,9 @@ $merged = array_merge($localUsers, $externalUsers);
 $filtered = array_filter($merged, ...);
 ```
 
-#### 🎰 Setter/Getterマン（カプセル化の誤解）
+#### 🎰 Setter/Getterマン（カプセル化してるつもり）
 
-全プロパティにsetter/getterを生やす。カプセル化してるつもりが、ただのpublicプロパティと同じ。
+全プロパティにsetter/getterを生やす。「privateだからカプセル化できてる」と思い込んでいるのが罪。実態はpublicと同じ。
 
 ```php
 // ❌ 問題: 全部にsetter/getter
