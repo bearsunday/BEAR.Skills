@@ -3846,7 +3846,7 @@ abstract class AbstractImporter
 - 振る舞いの追加はAOPインターセプターで
 - 機能の合成はDIで
 
-#### 🎂 レイヤーマン（層だけアーキテクチャ）
+#### 🎂 層だけアーキテクチャ
 
 Controller → Service → Repository → Entity... レイヤーいっぱい！でも中身はトランザクションスクリプト＋CRUD。
 
