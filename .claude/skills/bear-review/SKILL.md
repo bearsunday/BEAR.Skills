@@ -2724,7 +2724,7 @@ $container->get(UserService::class);
 - 補完なし = リファクタリングが手作業
 - 補完なし = コードを読まないと使えない
 
-#### 📊 静的解析の看板倒れ（Static Analysis Theater）
+#### 📊 静的mixed解析
 
 PHPStan/Psalmを導入しているのに、`mixed`だらけで何も検出できない状態。「静的解析使ってます！」という形だけのセキュリティブランケット。
 
