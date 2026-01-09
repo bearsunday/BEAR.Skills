@@ -4144,9 +4144,36 @@ class UserService
     }
 }
 
-// 症状3: Value Object がない
-$email = 'test@example.com';  // ただの string
-$money = 1000;                 // ただの int
+// 症状3: Value Object はあるけど、あるだけ
+class Email
+{
+    public function __construct(
+        public readonly string $value,  // ラップしただけ
+    ) {}
+    // バリデーションなし、振る舞いなし
+}
+
+// 本当の Value Object
+class Email
+{
+    public function __construct(
+        public readonly string $value,
+    ) {
+        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidEmailException($value);
+        }
+    }
+
+    public function domain(): string
+    {
+        return explode('@', $this->value)[1];
+    }
+
+    public function equals(Email $other): bool
+    {
+        return $this->value === $other->value;
+    }
+}
 
 // 症状4: DDD用語だけ使う
 // 「これはAggregateRootで、こっちはRepository で...」
@@ -4158,7 +4185,7 @@ $money = 1000;                 // ただの int
 |-----------|-----------|
 | Entity = データ + getter/setter | Entity = データ + 振る舞い + 不変条件 |
 | Service にロジック集中 | Service は調整役、薄い |
-| 文字列/int をそのまま使う | Value Object で意味を表現 |
+| Value Object はあるけど空っぽ | Value Object に振る舞いと不変条件 |
 | DDD用語を使う | ユビキタス言語でコードを書く |
 
 ### 12. 可読性の総合チェック
