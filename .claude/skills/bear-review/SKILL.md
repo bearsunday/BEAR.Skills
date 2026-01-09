@@ -1802,7 +1802,322 @@ class ArticleViewBuilder
 - **レビューできない**: 誰も全体を把握できない
 - **引き継げない**: 新人が理解するのに何日かかる？
 
-### 11. 可読性の総合チェック
+### 11. 困った人のコード図鑑 🚨
+
+よく見かける問題パターンとその対処法。
+
+#### 🦸 God Class（神クラス）
+
+何でもやる巨大クラス。1000行超え、20以上のメソッド。
+
+```php
+// ❌ 問題: 何でもやるクラス
+class ArticleManager
+{
+    public function create() { }
+    public function update() { }
+    public function delete() { }
+    public function validate() { }
+    public function sendNotification() { }
+    public function generatePdf() { }
+    public function exportCsv() { }
+    public function calculateStats() { }
+    public function syncToExternalApi() { }
+    public function sendEmail() { }
+    public function processPayment() { }  // なぜ記事に支払い処理が...
+    // さらに30メソッド続く...
+}
+
+// ✅ 推奨: 責務ごとに分離
+class ArticleRepository { }      // CRUD
+class ArticleValidator { }       // バリデーション
+class ArticleNotifier { }        // 通知
+class ArticleExporter { }        // エクスポート
+class ArticleStatsCalculator { } // 統計
+```
+
+**兆候:**
+- 「〇〇Manager」「〇〇Service」「〇〇Helper」という名前
+- コンストラクタの依存が10個以上
+- 「このクラスに追加しておけばいいか」という思考
+
+#### 📋 コピペ戦士
+
+同じコードをあちこちにコピペ。修正時に全箇所直す必要あり。
+
+```php
+// ❌ 問題: 3箇所に同じコード
+// ArticleResource.php
+$date = new DateTimeImmutable($article['createdAt']);
+$formatted = $date->format('Y年m月d日');
+
+// BlogResource.php
+$date = new DateTimeImmutable($blog['createdAt']);
+$formatted = $date->format('Y年m月d日');
+
+// NewsResource.php
+$date = new DateTimeImmutable($news['createdAt']);
+$formatted = $date->format('Y年m月d日');
+
+// ✅ 推奨: 共通化
+class DateFormatter
+{
+    public function toJapanese(string $datetime): string
+    {
+        return (new DateTimeImmutable($datetime))->format('Y年m月d日');
+    }
+}
+```
+
+**目安:** 同じコードが3箇所以上 → 共通化を検討
+
+#### 🔨 Primitive Obsession（プリミティブ依存症）
+
+何でも `string` / `int` / `array` で表現。型を作らない。
+
+```php
+// ❌ 問題: 全部string
+public function createUser(
+    string $email,           // メールアドレス
+    string $phone,           // 電話番号
+    string $postalCode,      // 郵便番号
+    string $status,          // 'active' | 'inactive' | 'pending'
+    int $age,                // 0-150の範囲
+    string $gender,          // 'male' | 'female' | 'other'
+): void {
+    // $email に 'hello' が来ても通る
+    // $status に 'banana' が来ても通る
+    // $age に -5 が来ても通る
+}
+
+// ✅ 推奨: 値オブジェクトで表現
+public function createUser(
+    Email $email,
+    PhoneNumber $phone,
+    PostalCode $postalCode,
+    UserStatus $status,      // Enum
+    Age $age,
+    Gender $gender,          // Enum
+): void {
+    // 不正な値はオブジェクト生成時に弾かれる
+}
+
+// 値オブジェクト例
+final readonly class Email
+{
+    public function __construct(
+        public string $value
+    ) {
+        if (! filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidEmailException($value);
+        }
+    }
+}
+```
+
+**作るべき値オブジェクト:**
+- メールアドレス、電話番号、郵便番号
+- 金額（Money）
+- 日付範囲（DateRange）
+- ID類（UserId, ArticleId）
+
+#### 🎭 Boolean Blindness
+
+boolを返すが、trueが何を意味するかわからない。
+
+```php
+// ❌ 問題: true/falseの意味が不明
+if ($this->check($user, $article)) { }  // 何をチェック？
+if ($this->process($data)) { }          // 成功？存在？
+if ($user->validate()) { }              // 有効？バリデーション成功？
+
+// ✅ 推奨: メソッド名で意味を明確に
+if ($this->canUserEditArticle($user, $article)) { }
+if ($this->wasProcessedSuccessfully($data)) { }
+if ($user->isValid()) { }
+
+// ✅ または: 結果オブジェクトを返す
+$result = $this->validateUser($user);
+if ($result->isValid()) { }
+foreach ($result->getErrors() as $error) { }
+```
+
+#### 🧵 Stringly Typed（文字列型付け）
+
+型の代わりに文字列で何でも表現。
+
+```php
+// ❌ 問題: 文字列で型を表現
+$user['type'] = 'admin';           // typo で 'adimn' になっても動く
+$article['status'] = 'published';  // 'pubilshed' でも通る
+$config['mode'] = 'production';    // 何が有効な値かわからない
+
+// ✅ 推奨: Enumで型安全に
+enum UserType: string {
+    case Admin = 'admin';
+    case Member = 'member';
+    case Guest = 'guest';
+}
+
+enum ArticleStatus: string {
+    case Draft = 'draft';
+    case Published = 'published';
+    case Archived = 'archived';
+}
+
+$user->type = UserType::Admin;  // typoはコンパイルエラー
+```
+
+#### 🦥 横着コード
+
+「動けばいい」精神。エラー処理なし、型なし、テストなし。
+
+```php
+// ❌ 問題: 横着コード
+function getData($id) {
+    $data = file_get_contents("https://api.example.com/data/$id");
+    return json_decode($data);
+    // APIが落ちたら？JSONが壊れてたら？$idが空だったら？
+}
+
+// ✅ 推奨: 防御的に書く
+function getData(int $id): Data
+{
+    if ($id <= 0) {
+        throw new InvalidArgumentException("Invalid ID: {$id}");
+    }
+
+    $response = $this->httpClient->get("/data/{$id}");
+
+    if (! $response->isSuccess()) {
+        throw new ApiException("API error: {$response->getStatusCode()}");
+    }
+
+    return Data::fromJson($response->getBody());
+}
+```
+
+#### 🚗 車輪の再発明
+
+標準機能があるのに自作。
+
+```php
+// ❌ 問題: 自作
+function myArrayMap($array, $callback) {
+    $result = [];
+    foreach ($array as $item) {
+        $result[] = $callback($item);
+    }
+    return $result;
+}
+
+function myJsonEncode($data) {
+    // 500行の自作JSONエンコーダー...
+}
+
+// ✅ 推奨: 標準関数を使う
+array_map($callback, $array);
+json_encode($data);
+```
+
+**よくある再発明:**
+- 日付操作 → Carbon / DateTimeImmutable
+- バリデーション → JsonSchema / Symfony Validator
+- HTTP クライアント → Guzzle
+- コレクション操作 → array_* 関数
+
+#### 🙈 俺にしかわからないコード
+
+暗黙知依存。書いた本人以外理解不能。
+
+```php
+// ❌ 問題: 暗黙知だらけ
+$x = $this->proc($d, 7, true, null, 'X');
+// proc って何？d って何？7 って何？true って何？'X' って何？
+
+// 別ファイルの定数を知らないと読めない
+if ($status === 3) { }  // 3 = 公開済み（どこにも書いてない）
+
+// ✅ 推奨: 明示的に
+$article = $this->articlePublisher->publish(
+    article: $draft,
+    publishAt: new DateTimeImmutable('+7 days'),
+    notifySubscribers: true,
+    embargo: null,
+    visibility: Visibility::Public,
+);
+
+if ($status === ArticleStatus::Published) { }
+```
+
+#### 🔧 略語マニア
+
+過度な省略で意味不明。
+
+```php
+// ❌ 問題: 略しすぎ
+$usrAccMgr->procTxn($txnDt, $amt, $curr);
+$artCtgSvc->getActCatLst();
+$cfgHndlr->ldSysCfg();
+
+// ✅ 推奨: 読めるように
+$userAccountManager->processTransaction($transactionDate, $amount, $currency);
+$articleCategoryService->getActiveCategoryList();
+$configHandler->loadSystemConfig();
+```
+
+**許容される略語:**
+- `id`, `url`, `html`, `json`, `api`
+- 業界標準の略語
+
+**避けるべき略語:**
+- `mgr`, `svc`, `hndlr`, `proc`, `cfg`, `usr`, `amt`
+
+#### 🦠 Feature Envy（他クラス依存症）
+
+他のクラスのデータばかり使う。
+
+```php
+// ❌ 問題: Order のデータを使いまくる
+class InvoiceGenerator
+{
+    public function generate(Order $order): Invoice
+    {
+        $subtotal = 0;
+        foreach ($order->getItems() as $item) {
+            $subtotal += $item->getPrice() * $item->getQuantity();
+        }
+        $tax = $subtotal * $order->getTaxRate();
+        $shipping = $order->getShippingAddress()->getShippingCost();
+        $total = $subtotal + $tax + $shipping;
+        // ...
+    }
+}
+
+// ✅ 推奨: Order に計算を任せる
+class Order
+{
+    public function getSubtotal(): Money { }
+    public function getTax(): Money { }
+    public function getShippingCost(): Money { }
+    public function getTotal(): Money { }
+}
+
+class InvoiceGenerator
+{
+    public function generate(Order $order): Invoice
+    {
+        return new Invoice(
+            subtotal: $order->getSubtotal(),
+            tax: $order->getTax(),
+            shipping: $order->getShippingCost(),
+            total: $order->getTotal(),
+        );
+    }
+}
+```
+
+### 12. 可読性の総合チェック
 
 #### 「6ヶ月後の自分」テスト
 
