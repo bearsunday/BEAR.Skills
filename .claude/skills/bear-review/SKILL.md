@@ -2254,6 +2254,95 @@ function process(EntityInterface $entity): void { }
 function process(array $event): void { }
 ```
 
+#### 🔓 Final嫌い（継承キング）
+
+「finalつけないで！拡張できなくなるから！」→ 継承で解決しようとしすぎ。
+
+```php
+// ❌ 問題: 「拡張できるように」と final を避ける
+class ArticleRepository  // final つけたくない...
+{
+    public function find(int $id): ?Article { }
+    public function save(Article $article): void { }
+}
+
+// そして継承で「拡張」
+class CachedArticleRepository extends ArticleRepository
+{
+    public function find(int $id): ?Article
+    {
+        // キャッシュ処理を追加
+        return parent::find($id);
+    }
+}
+
+class LoggingArticleRepository extends CachedArticleRepository
+{
+    public function find(int $id): ?Article
+    {
+        // ログ処理を追加
+        return parent::find($id);
+    }
+}
+// 継承の連鎖... 親を変更すると全部壊れる
+
+// ✅ 推奨: final + 合成（Composition）
+final class ArticleRepository implements ArticleRepositoryInterface
+{
+    public function find(int $id): ?Article { }
+    public function save(Article $article): void { }
+}
+
+// デコレータパターンで機能追加
+final class CachedArticleRepository implements ArticleRepositoryInterface
+{
+    public function __construct(
+        private readonly ArticleRepositoryInterface $inner,
+        private readonly CacheInterface $cache,
+    ) {}
+
+    public function find(int $id): ?Article
+    {
+        return $this->cache->remember(
+            "article:{$id}",
+            fn() => $this->inner->find($id)
+        );
+    }
+}
+
+// Module で組み合わせ
+$this->bind(ArticleRepositoryInterface::class)
+    ->toConstructor(CachedArticleRepository::class);
+```
+
+**なぜ final を使うべきか:**
+- **継承は最も強い結合**: 親の変更が子に波及
+- **Liskov置換原則違反しやすい**: 子が親の契約を破る
+- **テストが複雑に**: 継承階層全体をテスト
+- **合成の方が柔軟**: 組み合わせを自由に変更可能
+
+**「拡張できない」への回答:**
+
+| 反論 | 回答 |
+|------|------|
+| 「継承できないと拡張できない」 | インターフェース + デコレータで拡張 |
+| 「オーバーライドしたい」 | 元のクラスを修正するか、別実装を作る |
+| 「ちょっとだけ変えたい」 | それは元のクラスの責務が大きすぎる兆候 |
+| 「テストでモックしたい」 | インターフェースに依存すればモック可能 |
+
+```php
+// ✅ final でも拡張可能
+interface ArticleRepositoryInterface { }
+
+final class ArticleRepository implements ArticleRepositoryInterface { }
+final class InMemoryArticleRepository implements ArticleRepositoryInterface { }  // テスト用
+final class CachedArticleRepository implements ArticleRepositoryInterface { }    // 機能追加
+```
+
+**継承が許容されるケース:**
+- フレームワークが継承を要求（`extends ResourceObject`）
+- 本当に「is-a」関係がある場合（稀）
+
 #### 🥤 Static Cola（静的メソッド中毒）
 
 何でも静的メソッドで呼ぶ。テスト不能、差し替え不能。
