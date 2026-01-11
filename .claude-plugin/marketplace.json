@@ -1,0 +1,15 @@
+{
+  "name": "bear-skills",
+  "owner": {
+    "name": "BEAR.Sunday",
+    "email": "akihito.koriyama@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "bear-skills",
+      "source": "./",
+      "description": "Claude Skills for BEAR.Sunday resource-oriented framework",
+      "version": "1.0.0-alpha"
+    }
+  ]
+}

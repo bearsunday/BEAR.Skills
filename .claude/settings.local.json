@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh api:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
     ]
   }
 }
