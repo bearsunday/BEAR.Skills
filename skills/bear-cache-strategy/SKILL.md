@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: bear-cache-strategy
 description: リソースクラスを走査し、キャッシュ属性を追加する。キャッシュ宣言がないリソースを検出して適切な属性を適用。
 ---

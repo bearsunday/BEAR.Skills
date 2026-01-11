@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: bear-preflight
 description: デプロイ前総合チェック。Compile、セキュリティ、パフォーマンス、品質の各レポートを生成し、デプロイ可否を判定する。
 ---

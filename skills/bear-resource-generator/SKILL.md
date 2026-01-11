@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: bear-resource-generator
 description: Generate complete BEAR.Sunday resource sets (Phinx migrations, Query/Command interfaces, SQL files, Entity classes, Resource classes, JsonSchema, tests) from simple specifications or ALPS profiles. Supports Ray.MediaQuery pattern and clean architecture principles.
 ---

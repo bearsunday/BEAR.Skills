@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: bear-hypermedia
 description: リソースクラスに#[Link]を追加し、HyperMediaテストでユースケースを表現する。API設計改善時に使用。
 ---

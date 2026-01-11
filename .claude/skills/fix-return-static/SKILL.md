@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: fix-return-static
 description: ResourceクラスのResourceObject戻り値型をstaticに一括変換する。BEAR.Sundayのモダンな記法への移行時に使用。
 ---

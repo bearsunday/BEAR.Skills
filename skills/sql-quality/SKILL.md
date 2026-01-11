@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: sql-quality
 description: Koriym.SqlQualityを使用してSQLクエリの性能問題を検出・改善する。フルテーブルスキャン、非効率なJOIN、インデックス無効化を検出。
 ---

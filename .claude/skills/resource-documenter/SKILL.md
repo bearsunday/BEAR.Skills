@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: resource-documenter
 description: リソースクラスにPHPDocコメントを自動生成する。クラス名・メソッド・パラメータからREST意味論を推測し、確信度付きのコメントを付与。
 ---

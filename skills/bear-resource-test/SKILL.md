@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: bear-resource-test
 description: リソースクラスを読んでスモークテストのdataProviderを生成する。全リソースを1つのテストクラスでテスト。
 ---

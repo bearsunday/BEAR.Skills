@@ -56,6 +56,18 @@ git clone https://github.com/bearsunday/BEAR.Skills.git
 cp -r BEAR.Skills/skills/ /path/to/your/project/.claude/skills/
 ```
 
+## Usage
+
+Use skills via slash commands:
+
+```
+/bear-review
+/bear-resource-generator
+/bear-preflight
+```
+
+Or describe your task naturally - Claude will automatically select the appropriate skill.
+
 ## Skills
 
 ### Code Quality

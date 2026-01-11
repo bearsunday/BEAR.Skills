@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: named-to-qualifier
 description: Named文字列をQualifier属性に変換する。#[Named('string')]を型安全な#[QualifierClass]に置き換え、NamedModuleの設定も更新する。
 ---

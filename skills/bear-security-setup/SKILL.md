@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: bear-security-setup
 description: Set up bear/security for BEAR.Sunday projects. Configures installation, psalm.xml taint plugin, composer scripts, and GitHub Actions workflow.
 ---

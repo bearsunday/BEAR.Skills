@@ -1,4 +1,5 @@
 ---
+user-invocable: true
 name: const-documenter
 description: 定数クラスにPHPDocコメントを自動生成する。定数名と値から意図を推測し、確信度付きのコメントを付与。
 ---
