@@ -1,6 +1,8 @@
-# BEAR.Skills
+# BEAR.Skills (alpha)
 
 Claude Code skills for BEAR.Sunday framework development.
+
+> **Note:** This project is in alpha stage. Skills are experimental and not fully tested.
 
 ## Overview
 
