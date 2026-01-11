@@ -25,6 +25,37 @@ A collection of AI-powered skills that understand BEAR.Sunday's resource-oriente
 | named-to-qualifier | `/named-to-qualifier` | Convert Named to Qualifier attributes |
 | fix-return-static | `/fix-return-static` | Convert return types to static |
 
+## Installation
+
+### Claude Code Plugin (Recommended)
+
+```bash
+# 1. Add marketplace
+/plugin marketplace add bearsunday/BEAR.Skills
+
+# 2. Install (all 12 skills included)
+/plugin install bear-skills
+```
+
+### Update
+
+```bash
+/plugin update bear-skills
+```
+
+### Remove
+
+```bash
+/plugin uninstall bear-skills
+```
+
+### Manual Installation (Alternative)
+
+```bash
+git clone https://github.com/bearsunday/BEAR.Skills.git
+cp -r BEAR.Skills/skills/ /path/to/your/project/.claude/skills/
+```
+
 ## Skills
 
 ### Code Quality
@@ -120,37 +151,6 @@ Pre-deployment comprehensive check covering compile, security, performance, qual
 ✅ Quality    - Static analysis, tests, coverage
 ✅ Dependencies - composer audit, lock file
 ✅ Configuration - Context, environment variables
-```
-
-## Installation
-
-### Claude Code Plugin (Recommended)
-
-```bash
-# 1. Add marketplace
-/plugin marketplace add bearsunday/BEAR.Skills
-
-# 2. Install (all 12 skills included)
-/plugin install bear-skills
-```
-
-### Update
-
-```bash
-/plugin update bear-skills
-```
-
-### Remove
-
-```bash
-/plugin uninstall bear-skills
-```
-
-### Manual Installation (Alternative)
-
-```bash
-git clone https://github.com/bearsunday/BEAR.Skills.git
-cp -r BEAR.Skills/skills/ /path/to/your/project/.claude/skills/
 ```
 
 ## Requirements
