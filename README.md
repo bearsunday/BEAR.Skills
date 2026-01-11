@@ -6,6 +6,23 @@ Claude Code skills for BEAR.Sunday framework development.
 
 A collection of AI-powered skills that understand BEAR.Sunday's resource-oriented architecture. These skills help maintain code quality, generate boilerplate, and enforce framework conventions.
 
+## Available Skills
+
+| Skill | Command | Description |
+|-------|---------|-------------|
+| bear-resource-generator | `/bear-resource-generator` | Generate complete resource sets from specifications |
+| bear-review | `/bear-review` | Code quality evaluation with PHPMD metrics |
+| bear-preflight | `/bear-preflight` | Pre-deployment comprehensive check |
+| bear-security-setup | `/bear-security-setup` | Set up BEAR.Security with SAST |
+| bear-cache-strategy | `/bear-cache-strategy` | Apply cache attributes to resources |
+| bear-hypermedia | `/bear-hypermedia` | Add #[Link] and generate HyperMedia tests |
+| bear-resource-test | `/bear-resource-test` | Generate smoke test dataProvider |
+| sql-quality | `/sql-quality` | SQL performance analysis |
+| const-documenter | `/const-documenter` | Auto-generate PHPDoc for constants |
+| resource-documenter | `/resource-documenter` | Auto-generate PHPDoc for resources |
+| named-to-qualifier | `/named-to-qualifier` | Convert Named to Qualifier attributes |
+| fix-return-static | `/fix-return-static` | Convert return types to static |
+
 ## Skills
 
 ### Code Quality
