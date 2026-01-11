@@ -105,9 +105,33 @@ Pre-deployment comprehensive check covering compile, security, performance, qual
 
 ## Installation
 
+### Claude Code Plugin (Recommended)
+
+Install from GitHub marketplace:
+
 ```bash
-# Copy skills to your project
-cp -r .claude/skills/ /path/to/your/project/.claude/skills/
+# Add marketplace
+/plugin marketplace add bearsunday/BEAR.Skills
+
+# Install all skills
+/plugin install bear-skills
+```
+
+Or install individual skills:
+
+```bash
+/plugin install bear-resource-generator@bear-skills
+/plugin install bear-review@bear-skills
+```
+
+### Project Skills (Alternative)
+
+Copy skills directly to your project:
+
+```bash
+# Clone and copy
+git clone https://github.com/bearsunday/BEAR.Skills.git
+cp -r BEAR.Skills/skills/ /path/to/your/project/.claude/skills/
 ```
 
 ## Requirements
