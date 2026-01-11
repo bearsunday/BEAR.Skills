@@ -65,7 +65,7 @@ echo "TooManyFields:          $(grep -c 'TooManyFields' phpmd_output.txt) 件"
 
 実行結果の例：
 
-```
+```text
 === PHPMD統計レポート ===
 総違反数: 259件
 
@@ -908,7 +908,7 @@ public function onDelete(int $id): static
 
 ## 出力フォーマット
 
-```
+```text
 ## ファイル評価: [ファイルパス]
 
 ### PHPMDメトリクス

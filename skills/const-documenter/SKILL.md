@@ -44,7 +44,7 @@ description: 定数クラスにPHPDocコメントを自動生成する。定数�
 
 ---
 
-**サンプル: src/Constants/MetaTag.php**
+### サンプル: src/Constants/MetaTag.php
 
 ```php
 /**
@@ -189,7 +189,7 @@ grep -r "@todo 要確認" src/Constants/
 grep -r "確信度低" src/Constants/
 ```
 
-レビュー完了後、`@todo 要確認(確信度X): ` 部分を削除してコメントのみ残す。
+レビュー完了後、`@todo 要確認(確信度X):` 部分を削除してコメントのみ残す。
 
 ## 生成しないケース
 

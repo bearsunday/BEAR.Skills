@@ -129,7 +129,7 @@ final class {ClassName}
 
 関連するQualifierは同じディレクトリにまとめる：
 
-```
+```text
 src/Annotation/
 ├── Api/
 │   ├── ApiEndpoint.php

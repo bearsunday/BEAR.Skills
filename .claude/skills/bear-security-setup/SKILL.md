@@ -38,7 +38,8 @@ composer require --dev bear/security
 
 Add taint plugin and stubs to existing `psalm.xml`.
 
-**Target configuration (based on user selection):**
+#### Target configuration (based on user selection)
+
 - `Page`: For `html` context serving web pages
 - `App`: For `api` context serving APIs
 

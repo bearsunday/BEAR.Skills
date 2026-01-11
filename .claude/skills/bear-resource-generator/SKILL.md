@@ -148,11 +148,11 @@ interface {Entity}CommandInterface
 }
 ```
 
-**CRITICAL: Parameter Rules**
+### Critical: Parameter Rules
 
-Reference: https://bearsunday.github.io/manuals/1.0/ja/database_media.html
+Reference: [Database Media documentation](https://bearsunday.github.io/manuals/1.0/ja/database_media.html)
 
-**1. DateTimeInterface Auto-Injection**
+#### 1. DateTimeInterface Auto-Injection
 
 Use `DateTimeInterface $fieldName = null` for timestamp fields:
 
@@ -169,9 +169,9 @@ $this->command->add($id, $title); // Current time auto-injected by DI
 - DI automatically injects current timestamp
 - Testable (can mock DateTimeInterface in tests)
 
-**2. Exclude Auto-Generated and Default Value Fields**
+#### 2. Exclude Auto-Generated and Default Value Fields
 
-**Exclude from Command parameters:**
+Exclude from Command parameters:
 - Fields with `DEFAULT` in migration (e.g., `completed DEFAULT false`)
 - Auto-generated fields (e.g., `id` generated in Resource)
 
@@ -183,7 +183,7 @@ $this->command->add($id, $title); // Current time auto-injected by DI
 // Resource: $this->command->add($id, $title); // Only user input
 ```
 
-**3. Query Interface @return Type**
+#### 3. Query Interface @return Type
 
 Use PHPDoc `@return` for automatic Entity conversion:
 
@@ -367,13 +367,13 @@ class {Entity} extends ResourceObject
 - DELETE: 204 No Content / 404 Not Found
 - 400 Bad Request: Automatically handled by JsonSchema validation
 
-**Optional: Advanced Resource Patterns**
+### Optional: Advanced Resource Patterns
 
 These patterns are added manually based on your resource relationships:
 
-**1. #[Embed] - Embed Related Resources**
+#### 1. #[Embed] - Embed Related Resources
 
-Reference: https://bearsunday.github.io/manuals/1.0/ja/resource_link.html
+Reference: [Resource Link documentation](https://bearsunday.github.io/manuals/1.0/ja/resource_link.html)
 
 Use when you need to include related resource data in the response:
 
@@ -397,9 +397,9 @@ public function onGet(string $id): static
 - Order with customer information
 - Todo with creator information
 
-**2. #[ResourceParam] - Inject from Other Resources**
+#### 2. #[ResourceParam] - Inject from Other Resources
 
-Reference: https://bearsunday.github.io/manuals/1.0/ja/resource_param.html
+Reference: [Resource Param documentation](https://bearsunday.github.io/manuals/1.0/ja/resource_param.html)
 
 Use when you need to inject values from other resources (e.g., authentication):
 
@@ -589,7 +589,6 @@ After generating all files, provide a summary:
    ```bash
    cd app && composer cs-fix
    ```
-```
 
 ## Important Notes
 

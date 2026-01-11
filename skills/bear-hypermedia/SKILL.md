@@ -67,7 +67,7 @@ public function testArticleEditWorkflow(): void
 
 ### 記事管理
 
-```
+```text
 [記事一覧] --item--> [記事詳細] --edit--> [編集フォーム] --update--> [記事詳細]
                          |
                          +--delete--> [記事一覧]
@@ -77,7 +77,7 @@ public function testArticleEditWorkflow(): void
 
 ### ユーザー登録
 
-```
+```text
 [トップ] --signup--> [登録フォーム] --create--> [確認] --verify--> [完了]
 ```
 

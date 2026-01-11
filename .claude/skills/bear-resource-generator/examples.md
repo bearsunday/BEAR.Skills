@@ -17,7 +17,7 @@ Operations:
 
 ### Expected Output Structure
 
-```
+```text
 app/
 ├── src/
 │   ├── Entity/
