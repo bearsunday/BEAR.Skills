@@ -1,0 +1,14 @@
+{
+  "name": "bear-skills",
+  "description": "PHP and BEAR.Sunday code quality review skills. Includes php-cleancode-review for general PHP and bear-cleancode-review for BEAR.Sunday framework.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Akihito Koriyama",
+    "email": "akihito.koriyama@gmail.com"
+  },
+  "homepage": "https://github.com/bearsunday/BEAR.Skills",
+  "repository": "https://github.com/bearsunday/BEAR.Skills",
+  "license": "MIT",
+  "keywords": ["php", "code-review", "phpmd", "bear-sunday", "code-quality"],
+  "skills": "./skills/"
+}

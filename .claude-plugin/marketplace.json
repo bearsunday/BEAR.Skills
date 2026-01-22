@@ -1,0 +1,21 @@
+{
+  "name": "bear-skills",
+  "owner": {
+    "name": "Akihito Koriyama",
+    "email": "akihito.koriyama@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "php-cleancode-review",
+      "source": "./",
+      "description": "PHP clean code review skill. Evaluates code quality using PHPMD metrics and programming standards.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "bear-cleancode-review",
+      "source": "./",
+      "description": "BEAR.Sunday code quality review skill. Evaluates resource design, DI patterns, and framework-specific best practices.",
+      "version": "1.0.0"
+    }
+  ]
+}
