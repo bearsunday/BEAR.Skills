@@ -117,6 +117,12 @@ cd app
 composer test          # Run PHPUnit tests
 composer coverage      # Generate coverage report with Xdebug
 composer pcov          # Generate coverage report with PCOV
+
+# Run a single test file
+./vendor/bin/phpunit tests/Resource/App/TodoTest.php
+
+# Run a single test method
+./vendor/bin/phpunit --filter testOnGet tests/Resource/App/TodoTest.php
 ```
 
 ### Code Quality
@@ -138,6 +144,30 @@ composer serve         # Start server at http://127.0.0.1:8080
 ```bash
 cd app
 composer build         # Run clean + cs + sa + pcov + compile + metrics
+```
+
+## Skill Development
+
+### Directory Structure
+
+Skills are located in `.claude/skills/`:
+```text
+.claude/skills/
+├── SKILL.md                    # Default skill (bear-to-alps)
+├── bear-resource-generator/    # Each skill in its own directory
+│   └── SKILL.md
+├── bear-cleancode-review/
+│   └── SKILL.md
+└── ...
+```
+
+### Sync Utility
+
+Use `bin/sync-skills.sh` to manage skills between repo and global `~/.claude/skills/`:
+```bash
+./bin/sync-skills.sh status  # Show which is newer for each skill
+./bin/sync-skills.sh diff    # Show detailed differences
+./bin/sync-skills.sh copy    # Copy all skills from repo to global
 ```
 
 ## Xdebug Integration

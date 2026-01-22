@@ -10,7 +10,7 @@ A collection of AI-powered skills that understand BEAR.Sunday's resource-oriente
 
 ### Code Quality
 
-#### bear-review
+#### bear-cleancode-review
 
 Comprehensive code quality evaluation using PHPMD metrics and BEAR.Sunday-specific patterns.
 
