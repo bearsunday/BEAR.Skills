@@ -161,15 +161,6 @@ Skills are located in `.claude/skills/`:
 └── ...
 ```
 
-### Sync Utility
-
-Use `bin/sync-skills.sh` to manage skills between repo and global `~/.claude/skills/`:
-```bash
-./bin/sync-skills.sh status  # Show which is newer for each skill
-./bin/sync-skills.sh diff    # Show detailed differences
-./bin/sync-skills.sh copy    # Copy all skills from repo to global
-```
-
 ## Xdebug Integration
 
 This project has Xdebug MCP server enabled for debugging PHP code:
