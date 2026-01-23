@@ -10,17 +10,31 @@ A collection of AI-powered skills that understand BEAR.Sunday's resource-oriente
 
 ### Code Quality
 
-#### bear-cleancode-review
+#### php-cleancode-review
 
-Comprehensive code quality evaluation using PHPMD metrics and BEAR.Sunday-specific patterns.
+General PHP code quality evaluation using PHPMD metrics and clean code principles.
 
 | Category | Checks |
 |----------|--------|
 | Metrics | Cyclomatic Complexity, NPath, Parameters, Fields |
+| Naming | Variable length, boolean prefixes, method verbs |
+| Structure | Nesting depth, early return, method length |
+| Error Handling | Exception design, catch blocks, exception chaining |
+| Type Safety | Type declarations, mixed usage |
+
+Includes "Troubled Developer's Code Gallery" for detecting anti-patterns like God Class, Static Cola, Service Locator, etc.
+
+#### bear-cleancode-review
+
+BEAR.Sunday-specific code quality evaluation. Extends `php-cleancode-review` with framework-specific patterns.
+
+| Category | Checks |
+|----------|--------|
 | Resource Design | Embed usage, body assignment, loop delegation |
 | DI | Constructor injection, trait prohibition, Provider overuse |
 | REST | 201 + Location header, HTTP status codes |
-| Type Safety | Exception design, DateTime immutability |
+| Validation | JsonSchema, Input classes |
+| AOP | Interceptor separation, cross-cutting concerns |
 
 #### sql-quality
 
@@ -103,11 +117,22 @@ Pre-deployment comprehensive check covering compile, security, performance, qual
 ✅ Configuration - Context, environment variables
 ```
 
+## Directory Structure
+
+```
+BEAR.Skills/
+├── .claude/skills/      # Development (gitignored in most projects)
+├── skills/              # Distribution (plugin marketplace)
+│   ├── bear-cleancode-review/
+│   └── php-cleancode-review/
+└── .claude-plugin/      # Plugin manifest
+```
+
 ## Installation
 
 ```bash
 # Copy skills to your project
-cp -r .claude/skills/ /path/to/your/project/.claude/skills/
+cp -r skills/* /path/to/your/project/.claude/skills/
 ```
 
 ## Requirements
