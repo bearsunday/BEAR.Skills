@@ -1,29 +1,33 @@
-# BEAR.Skills (alpha)
+# BEAR.Skills
 
-Claude Code skills for BEAR.Sunday framework development.
+**AI-Powered Skills for BEAR.Sunday Development**
 
-> **Note:** This project is in alpha stage. Skills are experimental and not fully tested.
+Claude Code skills that understand BEAR.Sunday's resource-oriented architecture. Generate code, review quality, and enforce framework conventions with natural language.
 
-## Overview
+---
 
-A collection of AI-powered skills that understand BEAR.Sunday's resource-oriented architecture. These skills help maintain code quality, generate boilerplate, and enforce framework conventions.
+## Natural Language Development
 
-## Available Skills
+Just tell your AI assistant what you want:
 
-| Skill | Command | Description |
-|-------|---------|-------------|
-| bear-resource-generator | `/bear-resource-generator` | Generate complete resource sets from specifications |
-| bear-review | `/bear-review` | Code quality evaluation with PHPMD metrics |
-| bear-preflight | `/bear-preflight` | Pre-deployment comprehensive check |
-| bear-security-setup | `/bear-security-setup` | Set up BEAR.Security with SAST |
-| bear-cache-strategy | `/bear-cache-strategy` | Apply cache attributes to resources |
-| bear-hypermedia | `/bear-hypermedia` | Add #[Link] and generate HyperMedia tests |
-| bear-resource-test | `/bear-resource-test` | Generate smoke test dataProvider |
-| sql-quality | `/sql-quality` | SQL performance analysis |
-| const-documenter | `/const-documenter` | Auto-generate PHPDoc for constants |
-| resource-documenter | `/resource-documenter` | Auto-generate PHPDoc for resources |
-| named-to-qualifier | `/named-to-qualifier` | Convert Named to Qualifier attributes |
-| fix-return-static | `/fix-return-static` | Convert return types to static |
+**English:**
+```text
+"Review the Article resource for BEAR.Sunday best practices"
+"Generate a User resource with CRUD operations"
+"Check if my DI patterns follow Ray.Di conventions"
+```
+
+**日本語:**
+```text
+"Articleリソースをレビューして"
+"CRUDを持つUserリソースを生成して"
+"DIパターンがRay.Diの規約に従っているか確認して"
+```
+
+## Requirements
+
+- Claude Code
+- BEAR.Sunday project
 
 ## Installation
 
@@ -33,7 +37,7 @@ A collection of AI-powered skills that understand BEAR.Sunday's resource-oriente
 # 1. Add marketplace
 /plugin marketplace add bearsunday/BEAR.Skills
 
-# 2. Install (all 12 skills included)
+# 2. Install
 /plugin install bear-skills
 ```
 
@@ -56,125 +60,77 @@ git clone https://github.com/bearsunday/BEAR.Skills.git
 cp -r BEAR.Skills/skills/ /path/to/your/project/.claude/skills/
 ```
 
-## Usage
+## Quick Start
 
-Use skills via slash commands:
-
-```
-/bear-review
-/bear-resource-generator
-/bear-preflight
+```text
+/bear-cleancode-review
 ```
 
 Or describe your task naturally - Claude will automatically select the appropriate skill.
 
-## Skills
+## Available Skills
 
 ### Code Quality
 
-#### bear-review
-
-Comprehensive code quality evaluation using PHPMD metrics and BEAR.Sunday-specific patterns.
-
-| Category | Checks |
-|----------|--------|
-| Metrics | Cyclomatic Complexity, NPath, Parameters, Fields |
-| Resource Design | Embed usage, body assignment, loop delegation |
-| DI | Constructor injection, trait prohibition, Provider overuse |
-| REST | 201 + Location header, HTTP status codes |
-| Type Safety | Exception design, DateTime immutability |
-
-#### sql-quality
-
-SQL performance analysis using [Koriym.SqlQuality](https://github.com/koriym/Koriym.SqlQuality).
-
-- Full table scan detection
-- Inefficient JOIN analysis
-- Index invalidation warnings
+| Skill | Purpose | Example Prompt |
+|-------|---------|----------------|
+| `php-cleancode-review` | General PHP quality review | "Check the code quality of this class" |
+| `bear-cleancode-review` | BEAR.Sunday specific review | "Review this resource for framework patterns" |
+| `sql-quality` | SQL performance analysis | "Analyze the SQL queries for performance issues" |
 
 ### Code Generation
 
-#### bear-resource-generator
-
-Generate complete resource sets from specifications or ALPS profiles.
-
-```
-Specification → Migration + Query/Command + SQL + Entity + Resource + JsonSchema + Tests
-```
-
-### Documentation
-
-#### const-documenter
-
-Auto-generate PHPDoc for constant classes with confidence levels.
-
-#### resource-documenter
-
-Auto-generate PHPDoc for Resource classes based on REST semantics.
+| Skill | Purpose | Example Prompt |
+|-------|---------|----------------|
+| `bear-resource-generator` | Generate complete resource sets | "Generate a Ticket resource with CRUD" |
+| `alps-to-bear` | Generate from ALPS profile | "Create resources from this ALPS profile" |
 
 ### Refactoring
 
-#### named-to-qualifier
+| Skill | Purpose | Example Prompt |
+|-------|---------|----------------|
+| `named-to-qualifier` | Convert Named to Qualifier | "Replace #[Named] with type-safe qualifiers" |
+| `fix-return-static` | Fix return types | "Convert ResourceObject returns to static" |
 
-Convert `#[Named('string')]` to type-safe `#[Qualifier]` attributes.
+### Documentation
 
-```php
-// Before
-#[Named('api_endpoint')] string $endpoint
-
-// After
-#[ApiEndpoint] string $endpoint
-```
-
-#### fix-return-static
-
-Bulk convert `ResourceObject` return types to `static`.
+| Skill | Purpose | Example Prompt |
+|-------|---------|----------------|
+| `const-documenter` | PHPDoc for constants | "Add documentation to constant classes" |
+| `resource-documenter` | PHPDoc for resources | "Document this resource class" |
 
 ### Resource Enhancement
 
-#### bear-hypermedia
+| Skill | Purpose | Example Prompt |
+|-------|---------|----------------|
+| `bear-hypermedia` | Add Link attributes | "Add hypermedia links to resources" |
+| `bear-cache-strategy` | Apply cache attributes | "Analyze and add cache attributes" |
+| `bear-resource-test` | Generate smoke tests | "Generate tests for all resources" |
 
-Add `#[Link]` attributes and generate HyperMedia tests expressing use cases as workflows.
+### Security & Deployment
 
-#### bear-cache-strategy
+| Skill | Purpose | Example Prompt |
+|-------|---------|----------------|
+| `bear-security-setup` | Setup BEAR.Security | "Configure security scanning" |
+| `bear-preflight` | Pre-deploy checks | "Run deployment preflight checks" |
 
-Analyze resources and apply appropriate cache attributes (`#[Cacheable]`, `#[DonutCache]`, TTL).
-
-#### bear-resource-test
-
-Generate smoke test dataProvider covering all resource endpoints.
-
-### Security
-
-#### bear-security-setup
-
-Set up [BEAR.Security](https://github.com/bearsunday/BEAR.Security) with SAST, AI Auditor, and GitHub Actions.
-
-### Deployment
-
-#### bear-preflight
-
-Pre-deployment comprehensive check covering compile, security, performance, quality, and configuration.
+## Directory Structure
 
 ```text
-✅ Compile    - bear.compile + runtime bindings (Ray.MediaQuery Entity, etc.)
-✅ Security   - SAST, hardcoded credentials, env settings
-✅ Performance - Cache attributes, SQL quality, N+1 detection
-✅ Quality    - Static analysis, tests, coverage
-✅ Dependencies - composer audit, lock file
-✅ Configuration - Context, environment variables
+BEAR.Skills/
+├── .claude/skills/      # Development
+├── skills/              # Distribution (plugin)
+│   ├── bear-cleancode-review/
+│   └── php-cleancode-review/
+└── .claude-plugin/      # Plugin manifest
 ```
-
-## Requirements
-
-- Claude Code CLI
-- BEAR.Sunday project
 
 ## References
 
 - [BEAR.Sunday Documentation](https://bearsunday.github.io/)
 - [Ray.Di Documentation](https://ray-di.github.io/)
+- [BEAR.Sunday llms.txt](https://bearsunday.github.io/llms-full.txt)
 
-## License
+---
 
-MIT
+**Stop coding blind. Just ask your AI.**

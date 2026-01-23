@@ -9,7 +9,7 @@
       "name": "bear-skills",
       "source": "./",
       "description": "Claude Skills for BEAR.Sunday resource-oriented framework",
-      "version": "1.0.0-alpha"
+      "version": "1.0.0"
     }
   ]
 }
