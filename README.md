@@ -29,19 +29,44 @@ Just tell your AI assistant what you want:
 - Claude Code
 - BEAR.Sunday project
 
-## Quick Start
+## Installation
 
-### 1. Install
+### Claude Code Plugin (Recommended)
 
-```text
-/install bearsunday/BEAR.Skills
+```bash
+# 1. Add marketplace
+/plugin marketplace add bearsunday/BEAR.Skills
+
+# 2. Install
+/plugin install bear-skills
 ```
 
-### 2. Try it
+### Update
+
+```bash
+/plugin update bear-skills
+```
+
+### Remove
+
+```bash
+/plugin uninstall bear-skills
+```
+
+### Manual Installation (Alternative)
+
+```bash
+git clone https://github.com/bearsunday/BEAR.Skills.git
+cp -r BEAR.Skills/skills/ /path/to/your/project/.claude/skills/
+```
+
+## Quick Start
 
 ```text
 /bear-cleancode-review
 ```
+
+Or describe your task naturally - Claude will automatically select the appropriate skill.
 
 ## Available Skills
 
