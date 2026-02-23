@@ -1,6 +1,6 @@
 ---
 name: bear-from-alps
-description: Generate a BEAR.Sunday project from an ALPS profile. Interactively collects vendor name, package name, router selection, etc. to build the project. Uses bear-resource-generator internally.
+description: Generate a BEAR.Sunday project from an ALPS profile. Interactively collects vendor name, package name, router selection, etc. to build the project. Uses bear-resource-gen internally.
 user-invocable: true
 ---
 
@@ -592,7 +592,7 @@ If changes are needed, we will update FakeJson and JsonSchema.
 
 ## Phase 2: Implementation (Continuation of Inside-Out)
 
-After user agreement, implement the DB. This phase uses the bear-resource-generator skill.
+After user agreement, implement the DB. This phase uses the bear-resource-gen skill.
 
 ### Phase 2 Execution Conditions
 
@@ -604,7 +604,7 @@ Use AskUserQuestion tool to ask:
 
 ### Phase 2 Steps
 
-1. **Invoke bear-resource-generator**
+1. **Invoke bear-resource-gen**
    - Generate Entity/Query/Command/SQL using existing FakeJson as reference
    - Generate migration files
 
@@ -671,11 +671,11 @@ class Users extends ResourceObject
 
 When Outside-In is selected, execute the following Step 6.
 
-### Step 6: Invoke bear-resource-generator
+### Step 6: Invoke bear-resource-gen
 
-**Invoke bear-resource-generator for each entity.**
+**Invoke bear-resource-gen for each entity.**
 
-Convert information extracted from ALPS to bear-resource-generator input format:
+Convert information extracted from ALPS to bear-resource-gen input format:
 
 ```markdown
 Entity: {EntityName} ({properties_from_semantics})
@@ -701,7 +701,7 @@ ALPS:
 {"id": "doUpdateUser", "type": "idempotent", "rt": "#User"}
 {"id": "doDeleteUser", "type": "idempotent", "rt": "#UserList"}
 
-↓ Convert to bear-resource-generator input format
+↓ Convert to bear-resource-gen input format
 
 Entity: User (userId: string, userName: string)
 
@@ -713,7 +713,7 @@ Operations:
 - Delete user (DELETE)
 ```
 
-**Generated files (bear-resource-generator output):**
+**Generated files (bear-resource-gen output):**
 
 ```
 src/

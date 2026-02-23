@@ -1,6 +1,6 @@
 ---
 user-invocable: true
-name: bear-cache-strategy
+name: bear-cacheable
 description: Scan resource classes and add cache attributes. Detect resources without cache declarations and apply appropriate attributes.
 ---
 

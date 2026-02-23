@@ -8,7 +8,7 @@ BEAR.Skills is a collection of Claude Skills designed for BEAR.Sunday, a PHP res
 
 ### Core Skill: BEAR.Sunday Resource Generator
 
-**Location:** `.claude/skills/bear-resource-generator/`
+**Location:** `.claude/skills/bear-resource-gen/`
 
 This skill generates a complete, consistent set of files for BEAR.Sunday resources leveraging Ray.MediaQuery:
 
@@ -153,13 +153,13 @@ composer build         # Run clean + cs + sa + pcov + compile + metrics
 Skills are located in `.claude/skills/` (development) and `skills/` (distribution):
 ```text
 .claude/skills/
-├── bear-cache-strategy/
+├── bear-cacheable/
 ├── bear-documenter/
 ├── bear-from-alps/          # Generate project from ALPS profile
 ├── bear-hypermedia/
 ├── bear-preflight/
 ├── bear-refactor/
-├── bear-resource-generator/
+├── bear-resource-gen/
 ├── bear-resource-test/
 ├── bear-review/
 ├── bear-security-setup/
