@@ -531,7 +531,7 @@ class UsersTest extends TestCase
 
     protected function setUp(): void
     {
-        $injector = Injector::getInstance('app');
+        $injector = Injector::getInstance('fake');
         $this->resource = $injector->getInstance(ResourceInterface::class);
     }
 

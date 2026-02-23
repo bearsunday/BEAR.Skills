@@ -91,7 +91,7 @@ SELECT id, title, body FROM articles WHERE id = 1;
 
 ### SQL File Layout
 
-```
+```text
 var/
 └── sql/
     └── Article/
