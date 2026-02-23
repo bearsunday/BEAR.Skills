@@ -284,8 +284,8 @@ class Article extends ResourceObject
 | `onGet` | なし or ページング | 一覧取得 |
 | `onGet` | 検索条件 | 検索/フィルタ |
 | `onPost` | 作成データ | 新規作成 (201) |
-| `onPut` | `$id` + データ | 全体更新 |
-| `onPatch` | `$id` + 部分データ | 部分更新 |
+| `onPut` | `$id` + データ | 全体更新 (200) |
+| `onPatch` | `$id` + 部分データ | 部分更新 (200) |
 | `onDelete` | `int $id` | 削除 (204) |
 
 ### パラメータ名からの推測

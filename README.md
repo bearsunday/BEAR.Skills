@@ -120,7 +120,8 @@ BEAR.Skills/
 │   ├── bear-review/
 │   ├── bear-refactor/
 │   ├── bear-documenter/
-│   └── bear-sql-quality/
+│   ├── bear-sql-quality/
+│   └── ... (6 more skills)
 └── .claude-plugin/      # Plugin manifest
 ```
 

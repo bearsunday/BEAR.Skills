@@ -120,8 +120,8 @@ echo "抑制されている: $((baseline_off - baseline_on))件"
 
 ```bash
 # Critical: CC>20 または NPath>10000
-critical_cc=$(grep 'CyclomaticComplexity' phpmd_output.txt | awk '{print $NF}' | awk -F. '{if($1>20)print}' | wc -l)
-critical_npath=$(grep 'NPathComplexity' phpmd_output.txt | awk '{print $NF}' | awk -F. '{if($1>10000)print}' | wc -l)
+critical_cc=$(grep 'CyclomaticComplexity' phpmd_output.txt | grep -oP 'Complexity of \K[0-9]+' | awk '{if($1>20)print}' | wc -l)
+critical_npath=$(grep 'NPathComplexity' phpmd_output.txt | grep -oP 'complexity of \K[0-9]+' | awk '{if($1>10000)print}' | wc -l)
 
 echo "=== 深刻度別 ==="
 echo "Critical (CC>20 or NPath>10000): $((critical_cc + critical_npath)) 件"
@@ -322,7 +322,7 @@ public function onGet(int $id): self
 | 戻り値型 | 評価 |
 |----------|------|
 | `static` | OK |
-| `ResourceObject` / `self` | 推奨（staticへの変更を推奨） |
+| `ResourceObject` / `self` | ⚠️ 非推奨（staticへの変更を推奨） |
 
 #### 依存性注入
 
