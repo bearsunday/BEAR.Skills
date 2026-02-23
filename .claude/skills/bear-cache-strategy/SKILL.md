@@ -1,32 +1,32 @@
 ---
 user-invocable: true
 name: bear-cache-strategy
-description: リソースクラスを走査し、キャッシュ属性を追加する。キャッシュ宣言がないリソースを検出して適切な属性を適用。
+description: Scan resource classes and add cache attributes. Detect resources without cache declarations and apply appropriate attributes.
 ---
 
-# BEAR.Sunday キャッシュ属性追加スキル
+# BEAR.Sunday Cache Attribute Addition Skill
 
-## 目的
+## Purpose
 
-キャッシュ宣言がないリソースを検出し、適切なキャッシュ属性を追加する。
+Detect resources without cache declarations and add appropriate cache attributes.
 
-## 実行手順
+## Execution Steps
 
-### 1. キャッシュ未宣言リソースを検出
+### 1. Detect Resources Without Cache Declarations
 
 ```bash
-# onGetがあるがCacheableがないファイルを検出
+# Find files that have onGet but no Cacheable
 grep -rl "function onGet" src/Resource | xargs grep -L "Cacheable"
 ```
 
-### 2. 各リソースを分類
+### 2. Classify Each Resource
 
-リソースを読み、以下を判定:
-- コンテンツAPI → `#[Cacheable]`
-- 計算API → `#[Cacheable(expirySecond: N)]`
-- キャッシュ不可 → コメントで理由明示
+Read the resource and determine:
+- Content API — `#[Cacheable]`
+- Computation API — `#[Cacheable(expirySecond: N)]`
+- Not cacheable — State the reason in a comment
 
-### 3. キャッシュ属性を追加
+### 3. Add Cache Attributes
 
 ```php
 use BEAR\RepositoryModule\Annotation\Cacheable;
@@ -35,79 +35,79 @@ use BEAR\RepositoryModule\Annotation\Cacheable;
 public function onGet(int $id): static
 ```
 
-## リソースの分類
+## Resource Classification
 
-### コンテンツAPI（キャッシュ可能）
+### Content API (Cacheable)
 
-データの取得・表示が主目的。同じ入力には同じ出力。
+Primary purpose is data retrieval and display. Same input produces same output.
 
-| 特徴 | 例 |
-|------|-----|
-| 記事、ページ | Article, Page, Post |
-| 一覧表示 | Articles, List, Index |
-| マスタデータ | Category, Tag, User |
-| 静的コンテンツ | About, Help, Guide |
+| Characteristics | Examples |
+|----------------|----------|
+| Articles, pages | Article, Page, Post |
+| List display | Articles, List, Index |
+| Master data | Category, Tag, User |
+| Static content | About, Help, Guide |
 
-**適用属性:**
+**Applicable attributes:**
 ```php
 #[Cacheable]
 #[CacheableResponse(maxAge: 3600)]
-#[DonutCache]  // 部分キャッシュ
+#[DonutCache]  // Partial caching
 ```
 
-### 計算API（キャッシュ不可/短時間）
+### Computation API (Not cacheable / Short-lived)
 
-リアルタイム性が必要、または副作用がある。
+Requires real-time data or has side effects.
 
-| 特徴 | 例 |
-|------|-----|
-| リアルタイムデータ | Stock, Rate, Weather |
-| ユーザー固有 | Cart, Session, Preference |
-| 集計・計算 | Analytics, Report, Stats |
-| 書き込み操作 | POST/PUT/DELETE |
+| Characteristics | Examples |
+|----------------|----------|
+| Real-time data | Stock, Rate, Weather |
+| User-specific | Cart, Session, Preference |
+| Aggregation/calculation | Analytics, Report, Stats |
+| Write operations | POST/PUT/DELETE |
 
-**適用属性:**
+**Applicable attributes:**
 ```php
-#[Cacheable(expirySecond: 60)]  // 短時間キャッシュ
-// または属性なし（キャッシュしない）
+#[Cacheable(expirySecond: 60)]  // Short-lived cache
+// Or no attribute (no caching)
 ```
 
-## 判定フロー
+## Decision Flow
 
 ```text
-リソースクラスを読む
-    ↓
-onGet のみ？ ─No→ キャッシュしない（書き込み操作）
-    ↓ Yes
-外部API依存？ ─Yes→ 短時間キャッシュ or キャッシュしない
-    ↓ No
-ユーザー固有？ ─Yes→ キャッシュしない or Vary: Cookie
-    ↓ No
-時間依存？ ─Yes→ 短時間キャッシュ
-    ↓ No
-コンテンツAPI → #[Cacheable] 適用
+Read the resource class
+    |
+onGet only? --No--> Do not cache (write operation)
+    | Yes
+Depends on external API? --Yes--> Short-lived cache or no cache
+    | No
+User-specific? --Yes--> No cache or Vary: Cookie
+    | No
+Time-dependent? --Yes--> Short-lived cache
+    | No
+Content API --> Apply #[Cacheable]
 ```
 
-## 適用手順
+## Application Steps
 
-### 1. リソースを走査して分類
+### 1. Scan and Classify Resources
 
 ```php
-// 分類結果
+// Classification results
 $contentApis = [
-    'App\Resource\App\Article',      // 記事
-    'App\Resource\App\Category',     // カテゴリ
-    'App\Resource\Page\Index',       // トップページ
+    'App\Resource\App\Article',      // Article
+    'App\Resource\App\Category',     // Category
+    'App\Resource\Page\Index',       // Top page
 ];
 
 $computationApis = [
-    'App\Resource\App\Cart',         // カート（ユーザー固有）
-    'App\Resource\App\Search',       // 検索（パラメータ多様）
-    'App\Resource\App\Analytics',    // 集計（リアルタイム）
+    'App\Resource\App\Cart',         // Cart (user-specific)
+    'App\Resource\App\Search',       // Search (diverse parameters)
+    'App\Resource\App\Analytics',    // Analytics (real-time)
 ];
 ```
 
-### 2. コンテンツAPIにキャッシュ属性を追加
+### 2. Add Cache Attributes to Content APIs
 
 ```php
 use BEAR\RepositoryModule\Annotation\Cacheable;
@@ -119,71 +119,71 @@ class Article extends ResourceObject
 }
 ```
 
-### 3. 計算APIは短時間または無効
+### 3. Short-lived or No Cache for Computation APIs
 
 ```php
-// 短時間キャッシュ（60秒）
+// Short-lived cache (60 seconds)
 #[Cacheable(expirySecond: 60)]
 class Ranking extends ResourceObject
 
-// キャッシュなし（属性なし）
+// No cache (no attribute)
 class Cart extends ResourceObject
 ```
 
-## キャッシュ戦略の選択
+## Cache Strategy Selection
 
-### #[Cacheable] - 依存が明確なリソース
+### #[Cacheable] - Resources with Clear Dependencies
 
-予測可能性が高く、依存関係が明らかなリソースに使用。
+Used for resources with high predictability and obvious dependency relationships.
 
 ```php
-// ✅ 適用: 依存が明確（記事IDのみに依存）
+// Applicable: Clear dependency (depends only on article ID)
 #[Cacheable]
 public function onGet(int $id): static
 
-// ✅ 適用: ETagで自動無効化
+// Applicable: Auto-invalidation via ETag
 #[Cacheable]
 #[Embed(rel: 'author', src: 'app://self/user{?id}')]
 public function onGet(int $id): static
 ```
 
-**適用条件:**
-- 入力パラメータのみに依存
-- 時間に依存しない
-- 外部状態に依存しない
-- Embedの依存も自動追跡される
+**Application conditions:**
+- Depends only on input parameters
+- Not time-dependent
+- Not dependent on external state
+- Embed dependencies are also auto-tracked
 
-### #[DonutCache] - 部分的に動的なページ
+### #[DonutCache] - Partially Dynamic Pages
 
-ページの大部分はキャッシュ可能だが、一部が動的（ユーザー情報等）。
+Most of the page is cacheable, but some parts are dynamic (user information, etc.).
 
 ```php
-// Pageリソース: 全体をドーナッツキャッシュ
+// Page resource: Donut cache the entire page
 #[DonutCache]
-#[Embed(rel: 'article', src: 'app://self/article{?id}')]      // キャッシュされる
-#[Embed(rel: 'sidebar', src: 'app://self/sidebar')]           // キャッシュされる
-#[Embed(rel: 'user_menu', src: 'app://self/user/menu')]       // 動的（穴）
+#[Embed(rel: 'article', src: 'app://self/article{?id}')]      // Cached
+#[Embed(rel: 'sidebar', src: 'app://self/sidebar')]           // Cached
+#[Embed(rel: 'user_menu', src: 'app://self/user/menu')]       // Dynamic (hole)
 public function onGet(int $id): static
 ```
 
 ```text
-┌─────────────────────────────┐
-│  ヘッダー（キャッシュ）      │
-├─────────────────────────────┤
-│  記事本文（キャッシュ）      │
-│                             │
-│  ┌─────────────────────┐   │
-│  │ ユーザーメニュー     │   │  ← ドーナッツの穴（動的）
-│  │ （毎回取得）         │   │
-│  └─────────────────────┘   │
-│                             │
-│  サイドバー（キャッシュ）    │
-└─────────────────────────────┘
++-----------------------------+
+|  Header (cached)            |
++-----------------------------+
+|  Article body (cached)      |
+|                             |
+|  +---------------------+   |
+|  | User menu            |   |  <-- Donut hole (dynamic)
+|  | (fetched every time) |   |
+|  +---------------------+   |
+|                             |
+|  Sidebar (cached)           |
++-----------------------------+
 ```
 
-### #[CacheableResponse] - CDN/ブラウザキャッシュ
+### #[CacheableResponse] - CDN/Browser Cache
 
-HTTPレスポンスレベルでキャッシュ。CDNやブラウザに指示。
+Cache at the HTTP response level. Instructs CDN and browsers.
 
 ```php
 #[CacheableResponse(maxAge: 3600, sMaxAge: 86400)]
@@ -191,127 +191,127 @@ public function onGet(int $id): static
 // Cache-Control: max-age=3600, s-maxage=86400
 ```
 
-### #[Cacheable(expirySecond: N)] - TTLが明確な計算API
+### #[Cacheable(expirySecond: N)] - Computation APIs with Known TTL
 
-計算APIでも更新頻度がわかればキャッシュ可能。
+Even computation APIs can be cached if the update frequency is known.
 
 ```php
-// ランキング: 5分ごとに更新で十分
+// Ranking: Updating every 5 minutes is sufficient
 #[Cacheable(expirySecond: 300)]
 public function onGet(): static
 
-// 為替レート: 1分で十分
+// Exchange rate: 1 minute is sufficient
 #[Cacheable(expirySecond: 60)]
 public function onGet(string $currency): static
 
-// 天気: 10分で十分
+// Weather: 10 minutes is sufficient
 #[Cacheable(expirySecond: 600)]
 public function onGet(string $city): static
 ```
 
-**TTL判定の質問:**
-- このデータは何秒古くても許容される？
-- 更新頻度はどのくらい？
-- ユーザーは古いデータに気づく？
+**Questions for determining TTL:**
+- How many seconds old can this data be and still be acceptable?
+- How frequently is it updated?
+- Will users notice stale data?
 
-| リソース | 許容遅延 | TTL例 |
-|---------|---------|-------|
-| ランキング | 5分 | 300 |
-| 為替レート | 1分 | 60 |
-| 天気 | 10分 | 600 |
-| 在庫数 | 30秒 | 30 |
-| ニュース一覧 | 1分 | 60 |
+| Resource | Acceptable Delay | TTL Example |
+|----------|-----------------|-------------|
+| Ranking | 5 min | 300 |
+| Exchange rate | 1 min | 60 |
+| Weather | 10 min | 600 |
+| Stock count | 30 sec | 30 |
+| News list | 1 min | 60 |
 
-### キャッシュなし - 本当に予測不能なリソース
+### No Cache - Truly Unpredictable Resources
 
 ```php
-// キャッシュしない: ユーザー固有、セッション依存
-public function onGet(): static  // 属性なし
+// No cache: User-specific, session-dependent
+public function onGet(): static  // No attribute
 ```
 
-**キャッシュ不可の条件:**
-- ユーザーセッションに依存
-- リアルタイム性が絶対必要（チャット等）
-- 書き込み操作（POST/PUT/DELETE）
+**Conditions for no cache:**
+- Depends on user session
+- Real-time data is absolutely required (chat, etc.)
+- Write operations (POST/PUT/DELETE)
 
-### キャッシュ宣言がないリソース = 問題
+### Resources Without Cache Declarations = Problem
 
-キャッシュ属性が何もないのは「考慮漏れ」。すべてのGETリソースはキャッシュ戦略を明示すべき。
+Having no cache attribute means "cache consideration was missed." All GET resources should explicitly declare a cache strategy.
 
 ```php
-// ❌ 問題: キャッシュ宣言なし（考慮漏れ）
+// Bad: No cache declaration (oversight)
 public function onGet(int $id): static
 
-// ✅ 推奨: 明示的にキャッシュ
+// Good: Explicitly cached
 #[Cacheable]
 public function onGet(int $id): static
 
-// ✅ 推奨: 明示的にTTL指定
+// Good: Explicit TTL
 #[Cacheable(expirySecond: 300)]
 public function onGet(): static
 
-// ✅ 推奨: キャッシュ不可なら #[NoCache] や コメントで明示
-/** @note キャッシュ不可: ユーザーセッションに依存 */
+// Good: If not cacheable, state explicitly with #[NoCache] or a comment
+/** @note Not cacheable: Depends on user session */
 public function onGet(): static
 ```
 
-**レビュー時のチェック:**
-- onGetメソッドにキャッシュ属性があるか？
-- なければ理由が明示されているか？
+**Review checklist:**
+- Does the onGet method have a cache attribute?
+- If not, is the reason explicitly stated?
 
-## 判定マトリクス
+## Decision Matrix
 
-| 条件 | キャッシュ戦略 |
-|------|---------------|
-| 依存が明確 + 時間非依存 | `#[Cacheable]` |
-| ページ全体は静的、一部動的 | `#[DonutCache]` |
-| CDN/ブラウザでキャッシュ | `#[CacheableResponse]` |
-| 許容遅延が明確 | `#[Cacheable(expirySecond: N)]` |
-| ユーザー固有/セッション依存 | キャッシュなし |
+| Condition | Cache Strategy |
+|-----------|---------------|
+| Clear dependencies + not time-dependent | `#[Cacheable]` |
+| Page is mostly static, partially dynamic | `#[DonutCache]` |
+| Cache at CDN/browser | `#[CacheableResponse]` |
+| Acceptable delay is known | `#[Cacheable(expirySecond: N)]` |
+| User-specific / session-dependent | No cache |
 
-## 戦略選択フロー
+## Strategy Selection Flow
 
 ```text
-リソースを分析
-    ↓
-書き込み操作？ ─Yes→ キャッシュ不可
-    ↓ No
-ユーザー固有？ ─Yes→ キャッシュ不可
-    ↓ No
-依存が明確？ ─Yes→ #[Cacheable]
-    ↓ No
-許容遅延がある？ ─Yes→ #[Cacheable(expirySecond: N)]
-    ↓ No
-キャッシュ不可
+Analyze the resource
+    |
+Write operation? --Yes--> Not cacheable
+    | No
+User-specific? --Yes--> Not cacheable
+    | No
+Clear dependencies? --Yes--> #[Cacheable]
+    | No
+Acceptable delay? --Yes--> #[Cacheable(expirySecond: N)]
+    | No
+Not cacheable
 ```
 
-## キャッシュ無効化
+## Cache Invalidation
 
-| 属性 | タイミング | 動作 |
-|------|-----------|------|
-| `#[Purge]` | PUT/DELETE時 | キャッシュ削除 |
-| `#[Refresh]` | PUT時 | 再生成して更新 |
+| Attribute | Timing | Behavior |
+|-----------|--------|----------|
+| `#[Purge]` | On PUT/DELETE | Delete cache |
+| `#[Refresh]` | On PUT | Regenerate and update |
 
-## 出力例
+## Output Example
 
 ```markdown
-## キャッシュ戦略レポート
+## Cache Strategy Report
 
-### コンテンツAPI（#[Cacheable]適用推奨）
+### Content APIs (Recommend applying #[Cacheable])
 - src/Resource/App/Article.php
 - src/Resource/App/Category.php
 - src/Resource/Page/Index.php
 - src/Resource/Page/Article.php
 
-### 計算API（キャッシュなしまたは短時間）
-- src/Resource/App/Cart.php - ユーザー固有
-- src/Resource/App/Search.php - パラメータ多様
-- src/Resource/App/Ranking.php - #[Cacheable(expirySecond: 300)]推奨
+### Computation APIs (No cache or short-lived)
+- src/Resource/App/Cart.php - User-specific
+- src/Resource/App/Search.php - Diverse parameters
+- src/Resource/App/Ranking.php - Recommend #[Cacheable(expirySecond: 300)]
 
-### 書き込みAPI（キャッシュ不可）
+### Write APIs (Not cacheable)
 - src/Resource/App/Article.php (onPost, onPut, onDelete)
 ```
 
-## 参考資料
+## References
 
-- [BEAR.Sunday キャッシュ](https://bearsunday.github.io/manuals/1.0/ja/cache.html)
+- [BEAR.Sunday Cache](https://bearsunday.github.io/manuals/1.0/ja/cache.html)

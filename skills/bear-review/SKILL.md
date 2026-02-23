@@ -1,200 +1,200 @@
 ---
 user-invocable: true
 name: bear-review
-description: BEAR.SundayプロジェクトのPHPコード品質を評価する。PHPMDメトリクス（CC, NPath, パラメータ数, フィールド数）とBEAR.Sunday固有の基準（リソース設計, DI, 型安全性）で評価。コードレビュー、品質チェック、リファクタリング検討時に使用。
+description: Evaluate PHP code quality for BEAR.Sunday projects. Assess using PHPMD metrics (CC, NPath, parameter count, field count) and BEAR.Sunday-specific criteria (resource design, DI, type safety). Use for code reviews, quality checks, and refactoring considerations.
 ---
 
-# BEAR.Sunday コードレビュースキル
+# BEAR.Sunday Code Review Skill
 
-## 評価手順
+## Evaluation Procedure
 
-### 1. PHPMDによる定量評価
+### 1. Quantitative Evaluation with PHPMD
 
-以下のコマンドでメトリクスを取得:
+Retrieve metrics with the following command:
 
 ```bash
-./vendor-bin/tools/vendor/bin/phpmd [ファイルパス] text codesize,design 2>/dev/null | grep -v "^Deprecated"
+./vendor-bin/tools/vendor/bin/phpmd [file-path] text codesize,design 2>/dev/null | grep -v "^Deprecated"
 ```
 
-### 1.1 統計レポートの自動生成（推奨）
+### 1.1 Automatic Statistics Report Generation (Recommended)
 
-プロジェクト全体の品質状況を把握するため、PHPMD違反の統計レポートを自動生成することを強く推奨します。
+To understand the overall quality status of the project, it is strongly recommended to automatically generate a PHPMD violation statistics report.
 
-#### baselineなしでの実行
+#### Running without baseline
 
-`phpmd.baseline.xml`が存在する場合、真の品質状態を把握するために一時的に無効化します：
+If `phpmd.baseline.xml` exists, temporarily disable it to understand the true quality state:
 
 ```bash
-# 1. baselineを一時的にリネーム
+# 1. Temporarily rename baseline
 mv phpmd.baseline.xml phpmd.baseline.xml.bak
 
-# 2. 全リソースディレクトリに対してPHPMD実行
+# 2. Run PHPMD against all resource directories
 ./vendor-bin/tools/vendor/bin/phpmd src/Resource text phpmd.xml 2>&1 > phpmd_output.txt
 
-# 3. 復元
+# 3. Restore
 mv phpmd.baseline.xml.bak phpmd.baseline.xml
 ```
 
-#### 統計集計コマンド
+#### Statistics Aggregation Commands
 
-PHPMDの出力から自動的に統計を生成：
+Automatically generate statistics from PHPMD output:
 
 ```bash
-# 総違反数
+# Total violations
 cat phpmd_output.txt | wc -l
 
-# カテゴリ別集計
-echo "=== カテゴリ別統計 ==="
-echo "LongVariable:           $(grep -c 'LongVariable' phpmd_output.txt) 件"
-echo "CouplingBetweenObjects: $(grep -c 'CouplingBetweenObjects' phpmd_output.txt) 件"
-echo "StaticAccess:           $(grep -c 'StaticAccess' phpmd_output.txt) 件"
-echo "ElseExpression:         $(grep -c 'ElseExpression' phpmd_output.txt) 件"
-echo "UnusedFormalParameter:  $(grep -c 'UnusedFormalParameter' phpmd_output.txt) 件"
+# Count by category
+echo "=== Category Statistics ==="
+echo "LongVariable:           $(grep -c 'LongVariable' phpmd_output.txt) violations"
+echo "CouplingBetweenObjects: $(grep -c 'CouplingBetweenObjects' phpmd_output.txt) violations"
+echo "StaticAccess:           $(grep -c 'StaticAccess' phpmd_output.txt) violations"
+echo "ElseExpression:         $(grep -c 'ElseExpression' phpmd_output.txt) violations"
+echo "UnusedFormalParameter:  $(grep -c 'UnusedFormalParameter' phpmd_output.txt) violations"
 
-# 複雑度違反（重要度高）
+# Complexity violations (high priority)
 echo ""
-echo "=== 複雑度違反（高優先度） ==="
-echo "CyclomaticComplexity:   $(grep -c 'CyclomaticComplexity' phpmd_output.txt) 件"
-echo "NPathComplexity:        $(grep -c 'NPathComplexity' phpmd_output.txt) 件"
-echo "ExcessiveMethodLength:  $(grep -c 'ExcessiveMethodLength' phpmd_output.txt) 件"
-echo "ExcessiveClassLength:   $(grep -c 'ExcessiveClassLength' phpmd_output.txt) 件"
-echo "TooManyFields:          $(grep -c 'TooManyFields' phpmd_output.txt) 件"
+echo "=== Complexity Violations (High Priority) ==="
+echo "CyclomaticComplexity:   $(grep -c 'CyclomaticComplexity' phpmd_output.txt) violations"
+echo "NPathComplexity:        $(grep -c 'NPathComplexity' phpmd_output.txt) violations"
+echo "ExcessiveMethodLength:  $(grep -c 'ExcessiveMethodLength' phpmd_output.txt) violations"
+echo "ExcessiveClassLength:   $(grep -c 'ExcessiveClassLength' phpmd_output.txt) violations"
+echo "TooManyFields:          $(grep -c 'TooManyFields' phpmd_output.txt) violations"
 ```
 
-#### 統計レポート例
+#### Statistics Report Example
 
-実行結果の例：
+Example of execution results:
 
 ```text
-=== PHPMD統計レポート ===
-総違反数: 259件
+=== PHPMD Statistics Report ===
+Total violations: 259
 
-【カテゴリ別】
-- LongVariable:            92件 (35.5%)
-- CouplingBetweenObjects:  28件 (10.8%)
-- StaticAccess:            24件 (9.3%)
-- ElseExpression:          20件 (7.7%)
-- UnusedFormalParameter:   18件 (7.0%)
+[By Category]
+- LongVariable:            92 (35.5%)
+- CouplingBetweenObjects:  28 (10.8%)
+- StaticAccess:            24 (9.3%)
+- ElseExpression:          20 (7.7%)
+- UnusedFormalParameter:   18 (7.0%)
 ...
 
-【複雑度違反（高優先度）】
-- CyclomaticComplexity:     5件
-- NPathComplexity:          5件
-- ExcessiveMethodLength:    7件
-- ExcessiveClassLength:     1件
-- TooManyFields:            0件
+[Complexity Violations (High Priority)]
+- CyclomaticComplexity:     5
+- NPathComplexity:          5
+- ExcessiveMethodLength:    7
+- ExcessiveClassLength:     1
+- TooManyFields:            0
 ```
 
-#### 最も問題のあるファイルの特定
+#### Identifying the Most Problematic Files
 
 ```bash
-# 違反数が多いファイル TOP 10
+# Top 10 files by violation count
 cat phpmd_output.txt | awk -F: '{print $1}' | sort | uniq -c | sort -rn | head -10
 
-# 例:
+# Example:
 #   5 src/Resource/Page/Content/SpecialContent.php
 #   4 src/Resource/App/GlobalNav.php
 #   3 src/Resource/App/Contents/Ranking.php
 ```
 
-#### baselineありなしの比較
+#### Comparison With and Without Baseline
 
-baselineによって隠蔽されている問題数を可視化：
+Visualize the number of issues hidden by the baseline:
 
 ```bash
-# baseline なしの違反数
+# Violation count without baseline
 baseline_off=$(cat phpmd_output.txt | wc -l)
 
-# baseline ありの違反数（通常実行）
+# Violation count with baseline (normal execution)
 baseline_on=$(./vendor-bin/tools/vendor/bin/phpmd src/Resource text phpmd.xml 2>&1 | wc -l)
 
-echo "=== Baseline比較 ==="
-echo "baselineあり:   ${baseline_on}件"
-echo "baselineなし:   ${baseline_off}件"
-echo "抑制されている: $((baseline_off - baseline_on))件"
+echo "=== Baseline Comparison ==="
+echo "With baseline:    ${baseline_on} violations"
+echo "Without baseline: ${baseline_off} violations"
+echo "Suppressed:       $((baseline_off - baseline_on)) violations"
 ```
 
-#### 深刻度別の分類
+#### Classification by Severity
 
-複雑度の値に基づいて深刻度を判定：
+Determine severity based on complexity values:
 
 ```bash
-# Critical: CC>20 または NPath>10000
+# Critical: CC>20 or NPath>10000
 critical_cc=$(grep 'CyclomaticComplexity' phpmd_output.txt | grep -oP 'Complexity of \K[0-9]+' | awk '{if($1>20)print}' | wc -l)
 critical_npath=$(grep 'NPathComplexity' phpmd_output.txt | grep -oP 'complexity of \K[0-9]+' | awk '{if($1>10000)print}' | wc -l)
 
-echo "=== 深刻度別 ==="
-echo "Critical (CC>20 or NPath>10000): $((critical_cc + critical_npath)) 件"
+echo "=== By Severity ==="
+echo "Critical (CC>20 or NPath>10000): $((critical_cc + critical_npath)) violations"
 ```
 
-#### 統計の活用方法
+#### How to Use the Statistics
 
-1. **技術的負債の可視化**: baselineで隠蔽された問題の総数を把握
-2. **優先順位付け**: 複雑度違反を優先的に対応
-3. **改善計画**: カテゴリ別の件数から段階的な改善計画を策定
-4. **トレンド分析**: 定期的に実行して改善状況をモニタリング
+1. **Visualize technical debt**: Understand the total number of issues hidden by the baseline
+2. **Prioritize**: Address complexity violations first
+3. **Improvement plan**: Create a phased improvement plan based on per-category counts
+4. **Trend analysis**: Run periodically to monitor improvement progress
 
-### 2. 評価基準
+### 2. Evaluation Criteria
 
 #### Cyclomatic Complexity (CC)
 
-| 評価 | CC値 | 状態 | アクション |
-|------|------|------|-----------|
-| **A** | 1-10 | 非常に良好。シンプルでテストが容易 | 維持すべき状態 |
-| **B** | 11-20 | 許容範囲。少し複雑だがメンテナンス可能 | 複雑なロジックなら許容 |
-| **C** | 21-30 | 警告。テストが書きづらくバグが混入しやすい | リファクタリング推奨 |
-| **D** | 31+ | 失格。保守不能 | 即時対応必須 |
+| Grade | CC Value | Status | Action |
+|-------|----------|--------|--------|
+| **A** | 1-10 | Very good. Simple and easy to test | State to maintain |
+| **B** | 11-20 | Acceptable. Slightly complex but maintainable | Acceptable for complex logic |
+| **C** | 21-30 | Warning. Hard to test and prone to bugs | Refactoring recommended |
+| **D** | 31+ | Failing. Unmaintainable | Immediate action required |
 
 #### NPath Complexity
 
-| 評価 | NPath | 状態 |
-|------|-------|------|
-| **A** | 1-200 | 良好 |
-| **B** | 201-500 | 許容範囲 |
-| **C** | 501-1000 | 警告 |
-| **D** | 1001+ | 失格 |
+| Grade | NPath | Status |
+|-------|-------|--------|
+| **A** | 1-200 | Good |
+| **B** | 201-500 | Acceptable |
+| **C** | 501-1000 | Warning |
+| **D** | 1001+ | Failing |
 
 #### ExcessiveParameterList
 
-| 評価 | パラメータ数 | 状態 |
-|------|-------------|------|
-| **A** | 1-10 | 良好 |
-| **B** | 11-15 | 許容範囲（DTOを検討） |
-| **C** | 16-20 | 警告（オブジェクトでラップ推奨） |
-| **D** | 21+ | 失格 |
+| Grade | Parameter Count | Status |
+|-------|----------------|--------|
+| **A** | 1-10 | Good |
+| **B** | 11-15 | Acceptable (consider DTO) |
+| **C** | 16-20 | Warning (recommend wrapping in object) |
+| **D** | 21+ | Failing |
 
 #### TooManyFields
 
-| 評価 | フィールド数 | 状態 |
-|------|-------------|------|
-| **A** | 1-15 | 良好 |
-| **B** | 16-22 | 許容範囲（分割を検討） |
-| **C** | 23-30 | 警告 |
-| **D** | 31+ | 失格 |
+| Grade | Field Count | Status |
+|-------|------------|--------|
+| **A** | 1-15 | Good |
+| **B** | 16-22 | Acceptable (consider splitting) |
+| **C** | 23-30 | Warning |
+| **D** | 31+ | Failing |
 
-### 3. BEAR.Sunday固有の評価
+### 3. BEAR.Sunday-Specific Evaluation
 
-#### リソース設計 (Resourceクラスのみ)
+#### Resource Design (Resource classes only)
 
-| 評価 | 基準 |
-|------|------|
-| **A** | `#[Embed]`を適切に使用、単一責任、適切なHTTPメソッド |
-| **B** | 基本的なリソースパターンに従っている |
-| **C** | ロジックが肥大化、責務が曖昧 |
-| **D** | リソースでないコード（コントローラー的実装） |
+| Grade | Criteria |
+|-------|----------|
+| **A** | Proper use of `#[Embed]`, single responsibility, appropriate HTTP methods |
+| **B** | Follows basic resource patterns |
+| **C** | Bloated logic, unclear responsibilities |
+| **D** | Non-resource code (controller-like implementation) |
 
-#### bodyへの代入パターン
+#### Body Assignment Pattern
 
-逐次代入ではなく、最後にまとめて構造を明示すべき。
+Assign all at once at the end to make the structure explicit, rather than assigning sequentially.
 
 ```php
-// ❌ 問題: 逐次代入（構造が見えにくい）
+// ❌ Problem: Sequential assignment (structure is hard to see)
 $this['contentTags'] = $tags;
 $this['article'] = $article;
 $this['blogger'] = $blogger;
 $this['meta'] = $meta;
 
-// ✅ 推奨: 最後にまとめて構造を明示
+// ✅ Recommended: Assign all at once to make structure explicit
 $this->body = [
     'article' => $article,
     'blogger' => $blogger,
@@ -203,22 +203,22 @@ $this->body = [
 ];
 ```
 
-**利点:**
-- レスポンス構造が一目でわかる
-- プロパティの追加・削除が容易
-- コードレビューしやすい
+**Benefits:**
+- Response structure is visible at a glance
+- Easy to add or remove properties
+- Easy to code review
 
-#### privateメソッドへの引数渡しパターン
+#### Private Method Argument Passing Pattern
 
-同じ引数を複数のprivateメソッドに渡すパターンは、リソースの責務過多を示す。
+Passing the same arguments to multiple private methods indicates excessive resource responsibility.
 
 ```php
-// ❌ 問題: 同じ引数を何度も渡す、リソースが肥大化
+// ❌ Problem: Passing the same arguments repeatedly, resource is bloated
 $this->setTdParams($article, $blogger->displayName ?? '', $tags);
 $this->setStructuredData($article, $meta, $blogger, $tags);
 $this->setSurrogateKey($article, $blogger);
 
-// ✅ 推奨: サービスに委譲、リソースは「何を返すか」のみ
+// ✅ Recommended: Delegate to services, resource only decides "what to return"
 $this->body = [
     'article' => $article,
     'blogger' => $blogger,
@@ -229,14 +229,14 @@ $this->body = [
 $this->headers[Header::SURROGATE_KEY] = $this->surrogateKeyBuilder->build($article, $blogger);
 ```
 
-**原則**: リソースは「何を返すか」を決める。「どう作るか」はサービスに任せる。
+**Principle**: A resource decides "what to return." "How to create it" is delegated to services.
 
-#### リソース内のループ
+#### Loops Inside Resources
 
-リソース内に複雑なループを書かない。ドメイン層に委譲する。
+Do not write complex loops inside resources. Delegate to the domain layer.
 
 ```php
-// ❌ 問題: リソース内に複雑なループ
+// ❌ Problem: Complex loop inside resource
 foreach (Ranking::CATEGORIES as $key => $categorySlugArray) {
     if ($key === self::ALL) {
         $result = $this->article->rankingAllArticleList(...);
@@ -250,7 +250,7 @@ foreach (Ranking::CATEGORIES as $key => $categorySlugArray) {
     $list[$key] = new ValidRankingArticleList($result, ...);
 }
 
-// ✅ 推奨: ドメインに委譲
+// ✅ Recommended: Delegate to domain
 $rankingCollection = $this->rankingAggregator->aggregate($limit);
 $this->body = [
     'rankings' => $rankingCollection->lists,
@@ -258,91 +258,91 @@ $this->body = [
 ];
 ```
 
-#### Domain vs Service の区別
+#### Domain vs Service Distinction
 
-| 層 | 責務 | 委譲すべきロジック |
-|---|------|-------------------|
-| **Domain** | ビジネスロジック、ルール | 集計、計算、変換、バリデーション |
-| **Service** | 外部連携、ユースケース調整 | API呼び出し、メール送信、ファイル操作 |
-| **Query** | データ取得 | SQLによるデータアクセス |
+| Layer | Responsibility | Logic to delegate |
+|-------|---------------|-------------------|
+| **Domain** | Business logic, rules | Aggregation, calculation, transformation, validation |
+| **Service** | External integration, use case coordination | API calls, email sending, file operations |
+| **Query** | Data retrieval | Data access via SQL |
 
 ```php
-// Domain: ビジネスロジック
+// Domain: Business logic
 class RankingAggregator
 {
     public function aggregate(array $results): RankingCollection
 }
 
-// Service: 外部連携
+// Service: External integration
 class MailNotificationService
 {
     public function notify(User $user, Article $article): void
 }
 
-// Query: データ取得
+// Query: Data retrieval
 interface RankingQueryInterface
 {
     public function getCategoryRankings(int $limit): array;
 }
 ```
 
-#### Embed未使用の検出
+#### Detecting Unused Embed
 
-`$this->resource->get()` で他リソースを取得して `$this->body` にセットしている場合、
-正当な理由がなければ `#[Embed]` を使用すべき。
+When fetching other resources with `$this->resource->get()` and setting them to `$this->body`,
+`#[Embed]` should be used unless there is a valid reason not to.
 
 ```php
-// ❌ 問題: 手続き的なリソース取得
+// ❌ Problem: Procedural resource fetching
 $user = $this->resource->get('app://self/user', ['id' => $id]);
 $this->body['user'] = $user->body;
 
-// ✅ 推奨: 宣言的なEmbed
+// ✅ Recommended: Declarative Embed
 #[Embed(src: 'app://self/user{?id}', rel: 'user')]
 public function onGet(int $id): static
 ```
 
-**例外（許容されるケース）:**
-- 条件付きで取得する場合（if文内でのget）
-- 取得結果を加工・変換する場合
-- PUT/POST/DELETE内での参照
+**Exceptions (acceptable cases):**
+- Conditional fetching (get inside an if statement)
+- Processing/transforming the fetched result
+- References within PUT/POST/DELETE
 
-#### 戻り値の型
+#### Return Type
 
-リソースメソッド（onGet, onPost, onPut, onPatch, onDelete）は `static` を返すべき。
+Resource methods (onGet, onPost, onPut, onPatch, onDelete) should return `static`.
 
 ```php
-// ✅ 正しい
+// ✅ Correct
 public function onGet(int $id): static
 
-// ⚠️ 動作するが推奨されない
+// ⚠️ Works but not recommended
 public function onGet(int $id): ResourceObject
 public function onGet(int $id): self
 ```
 
-| 戻り値型 | 評価 |
-|----------|------|
+| Return Type | Grade |
+|-------------|-------|
 | `static` | OK |
-| `ResourceObject` / `self` | ⚠️ 非推奨（staticへの変更を推奨） |
+| `ResourceObject` / `self` | ⚠️ Deprecated (recommend changing to static) |
 
-#### 依存性注入
+#### Dependency Injection
 
-| 評価 | 基準 |
-|------|------|
-| **A** | コンストラクタ注入のみ、インターフェース依存 |
-| **B** | 具象クラス依存が一部 |
-| **C** | トレイトによるセッターインジェクション、サービスロケーター混在 |
-| **D** | グローバル状態、静的メソッド依存 |
+| Grade | Criteria |
+|-------|----------|
+| **A** | Constructor injection only, interface dependencies |
+| **B** | Some concrete class dependencies |
+| **C** | Setter injection via traits, mixed service locator |
+| **D** | Global state, static method dependencies |
 
-#### セッターインジェクションの判定
+#### Setter Injection Assessment
 
-**原則**: コンストラクタインジェクションを推奨。PHP 8のコンストラクタプロモーションにより、従来のインジェクショントレイトは不要。
+**Principle**: Constructor injection is recommended. With PHP 8 constructor promotion, legacy injection traits are unnecessary.
 
-**Ray.Diの使い分け:**
-- **必須の依存関係** → コンストラクタインジェクション
-- **オプショナルな依存関係** → セッターインジェクション（`optional: true`）も許容
+**Ray.Di usage:**
+- **Required dependencies** → Constructor injection
+- **Optional dependencies** → Setter injection (`optional: true`) is also acceptable
 
 ```php
-// ⚠️ 非推奨: トレイトでセッターインジェクション（必須依存）
+// ⚠️ Deprecated: Setter injection via trait (required dependency)
 trait MetaTag
 {
     protected Article $articleMeta;
@@ -354,12 +354,12 @@ trait MetaTag
     }
 }
 
-// ✅ 推奨: コンストラクタインジェクション
+// ✅ Recommended: Constructor injection
 public function __construct(
     private readonly Article $articleMeta,
 )
 
-// ✅ OK: オプショナルな依存（存在しない場合は無視される）
+// ✅ OK: Optional dependency (ignored if not available)
 #[Inject(optional: true)]
 public function setDebugger(?DebuggerInterface $debugger): void
 {
@@ -367,113 +367,113 @@ public function setDebugger(?DebuggerInterface $debugger): void
 }
 ```
 
-| パターン | 評価 |
-|----------|------|
-| コンストラクタインジェクション | ✅ 推奨 |
-| トレイトによる `#[Inject]` セッター（必須依存） | ⚠️ 非推奨 |
-| `#[Inject(optional: true)]` セッター | ✅ OK（オプショナル依存） |
-| `use ResourceInject` | ⚠️ 非推奨（コンストラクタ注入を推奨） |
-| `use AInject` 系トレイト | ⚠️ 非推奨 |
-| ResourceObject固有のセッター（`setRenderer`等） | ✅ OK（フレームワーク用） |
+| Pattern | Grade |
+|---------|-------|
+| Constructor injection | ✅ Recommended |
+| `#[Inject]` setter via trait (required dependency) | ⚠️ Deprecated |
+| `#[Inject(optional: true)]` setter | ✅ OK (optional dependency) |
+| `use ResourceInject` | ⚠️ Deprecated (recommend constructor injection) |
+| `use AInject` traits | ⚠️ Deprecated |
+| ResourceObject-specific setters (`setRenderer`, etc.) | ✅ OK (framework use) |
 
 ```php
-// ⚠️ 非推奨: トレイトでリソース注入
+// ⚠️ Deprecated: Resource injection via trait
 use ResourceInject;
 
-// ✅ 推奨: コンストラクタで注入
+// ✅ Recommended: Inject via constructor
 public function __construct(
     private readonly ResourceInterface $resource,
 )
 ```
 
-**トレイトでのセッターインジェクションの問題点:**
-- 依存関係が隠蔽される（コンストラクタを見ても分からない）
-- テストが困難（セッターを呼ぶかリフレクションが必要）
-- 依存がミュータブル（後から変更可能）
+**Problems with setter injection via traits:**
+- Dependencies are hidden (not visible from the constructor)
+- Difficult to test (requires calling setters or using reflection)
+- Dependencies are mutable (can be changed later)
 
-**注**: 既存コードでResourceInjectを使用している場合、即座にエラーではないが、新規コードではコンストラクタインジェクションを使用すべき。
+**Note**: If existing code uses ResourceInject, it is not an immediate error, but new code should use constructor injection.
 
-#### `new` の使用判定
+#### `new` Usage Assessment
 
-**重要**: `new` の使用が問題かどうかは、生成対象の種類で判断する。
+**Important**: Whether `new` usage is problematic depends on the type of object being created.
 
-| 種類 | `new` 使用 | 判定基準 |
-|------|-----------|----------|
-| ドメインオブジェクト | ✅ OK | データを保持、状態を表現（Entity, ValueObject） |
-| 値オブジェクト | ✅ OK | イミュータブル、データ表現（DateTime, Money等） |
-| DTO | ✅ OK | データ転送用オブジェクト |
-| サービス | ❌ NG → DI | 振る舞いを持つ、外部依存がある |
-| リポジトリ | ❌ NG → DI | データアクセス層 |
-| HTTPクライアント | ❌ NG → DI | 外部通信 |
+| Type | `new` Usage | Assessment Criteria |
+|------|-----------|---------------------|
+| Domain object | ✅ OK | Holds data, represents state (Entity, ValueObject) |
+| Value object | ✅ OK | Immutable, data representation (DateTime, Money, etc.) |
+| DTO | ✅ OK | Data transfer object |
+| Service | ❌ NG → DI | Has behavior, has external dependencies |
+| Repository | ❌ NG → DI | Data access layer |
+| HTTP client | ❌ NG → DI | External communication |
 
 ```php
-// ✅ OK: ドメイン/値オブジェクト
+// ✅ OK: Domain/value objects
 $article = new ArticleDomain($data);
-$dateTime = new DateTimeImmutable();  // イミュータブル推奨
+$dateTime = new DateTimeImmutable();  // Immutable recommended
 $thumbnail = new Thumbnail($data);
 
-// ⚠️ 警告: ミュータブルなDateTime
-$date = new DateTime();  // → DateTimeImmutableを使用すべき
+// ⚠️ Warning: Mutable DateTime
+$date = new DateTime();  // → Should use DateTimeImmutable
 
-// ❌ NG: サービスはDIすべき
-$client = new HttpClient();        // → HttpClientInterface を注入
-$logger = new FileLogger();        // → LoggerInterface を注入
-$mailer = new SmtpMailer();        // → MailerInterface を注入
+// ❌ NG: Services should be injected via DI
+$client = new HttpClient();        // → Inject HttpClientInterface
+$logger = new FileLogger();        // → Inject LoggerInterface
+$mailer = new SmtpMailer();        // → Inject MailerInterface
 ```
 
-**文脈から判断すること**: クラス名、名前空間、コンストラクタ引数から種類を判定する。
+**Judge from context**: Determine the type from class name, namespace, and constructor arguments.
 
-#### 例外の設計
+#### Exception Design
 
-`@throws Exception` は問題。具体的なドメイン例外を使用すべき。
+`@throws Exception` is problematic. Use specific domain exceptions.
 
-| 記述 | 評価 |
-|------|------|
-| `@throws Exception` | ❌ 問題（何の例外かわからない） |
-| `@throws \Exception` | ❌ 問題 |
-| `@throws RuntimeException` | ⚠️ 広すぎる |
-| `@throws ArticleNotFoundException` | ✅ 具体的で良い |
+| Notation | Grade |
+|----------|-------|
+| `@throws Exception` | ❌ Problem (unclear what exception) |
+| `@throws \Exception` | ❌ Problem |
+| `@throws RuntimeException` | ⚠️ Too broad |
+| `@throws ArticleNotFoundException` | ✅ Specific and good |
 
-**推奨**: すべての例外は `RuntimeException` か `LogicException` を継承したドメイン例外とする。
+**Recommended**: All exceptions should be domain exceptions extending `RuntimeException` or `LogicException`.
 
 ```php
-// ✅ 推奨: ドメイン例外
+// ✅ Recommended: Domain exceptions
 class ArticleNotFoundException extends RuntimeException {}
 class InvalidArticleStateException extends LogicException {}
 
-// 使用例
+// Usage example
 /**
- * @throws ArticleNotFoundException 記事が見つからない場合
+ * @throws ArticleNotFoundException When the article is not found
  */
 public function onGet(int $id): static
 ```
 
-| 基底クラス | 用途 |
-|-----------|------|
-| `RuntimeException` | 実行時に発生する回復可能なエラー（リソース不在、外部API失敗等） |
-| `LogicException` | プログラムのロジックエラー（不正な引数、不正な状態遷移等） |
+| Base Class | Use Case |
+|-----------|----------|
+| `RuntimeException` | Recoverable errors at runtime (resource not found, external API failure, etc.) |
+| `LogicException` | Program logic errors (invalid arguments, invalid state transitions, etc.) |
 
-#### リソース内のtry-catch（ポケモンキャッチ問題）
+#### try-catch Inside Resources (Pokemon Catch Problem)
 
-リソース内に巨大なtry-catchブロックを書かない。
+Do not write large try-catch blocks inside resources.
 
 ```php
-// ❌ 問題: 巨大なtry-catch、Throwableキャッチ
+// ❌ Problem: Large try-catch, catching Throwable
 public function onGet(int $id): static
 {
     try {
-        // 100行以上のロジック...
+        // 100+ lines of logic...
         $article = $this->article->item($id);
         $blogger = $this->blogger->item($article['bloggerId']);
         $meta = $this->meta->generate($article);
-        // さらに続く...
+        // continues further...
     } catch (Throwable $e) {
-        $this->logger->error('エラー', ['exception' => $e]);
+        $this->logger->error('Error', ['exception' => $e]);
         throw $e;
     }
 }
 
-// ✅ 推奨: フレームワークに任せる、ロジックは委譲
+// ✅ Recommended: Let the framework handle it, delegate logic
 public function onGet(int $id): static
 {
     $articleView = $this->articleViewFactory->create($id);
@@ -488,53 +488,53 @@ public function onGet(int $id): static
 }
 ```
 
-**問題点:**
-- `Throwable` や `Exception` の広範なキャッチ（何でも捕まえる「ポケモンキャッチ」）
-- tryブロックが巨大（どこでエラーが起きるか不明）
-- ログして再throwは冗長（フレームワークが処理する）
-- リソースの責務過多を示す
+**Problems:**
+- Broad catch of `Throwable` or `Exception` (catching everything - "Pokemon catch")
+- Try block is too large (unclear where errors occur)
+- Logging and re-throwing is redundant (framework handles it)
+- Indicates excessive resource responsibility
 
-**推奨:**
-- 例外処理はフレームワークに任せる
-- 特定の例外のみ必要な場合は小さなtry-catchで
-- ロジックはDomain/Serviceに委譲してリソースをシンプルに
+**Recommended:**
+- Let the framework handle exception processing
+- Use small try-catch blocks only when specific exceptions are needed
+- Delegate logic to Domain/Service to keep resources simple
 
-| パターン | 評価 |
-|----------|------|
-| try-catchなし（フレームワーク任せ） | ✅ 推奨 |
-| 特定例外の小さなcatch | ✅ OK |
-| 巨大try + `catch (Throwable)` | ❌ 問題 |
-| 巨大try + `catch (Exception)` | ❌ 問題 |
+| Pattern | Grade |
+|---------|-------|
+| No try-catch (let framework handle) | ✅ Recommended |
+| Small catch for specific exceptions | ✅ OK |
+| Large try + `catch (Throwable)` | ❌ Problem |
+| Large try + `catch (Exception)` | ❌ Problem |
 
-#### 型安全性
+#### Type Safety
 
-| 評価 | 基準 |
-|------|------|
-| **A** | 完全な型指定、ジェネリクス使用、`mixed`なし |
-| **B** | 基本的な型指定あり、一部`mixed` |
-| **C** | `array<string, mixed>`多用、`@psalm-suppress`多数 |
-| **D** | 型指定なし、`array<object>`使用 |
+| Grade | Criteria |
+|-------|----------|
+| **A** | Full type declarations, generics usage, no `mixed` |
+| **B** | Basic type declarations, some `mixed` |
+| **C** | Heavy use of `array<string, mixed>`, many `@psalm-suppress` |
+| **D** | No type declarations, `array<object>` usage |
 
-#### DoctrineアノテーションとPHP 8属性
+#### Doctrine Annotations and PHP 8 Attributes
 
-PHP 8ではDoctrineアノテーション `/** @Embed */` ではなくネイティブ属性 `#[Embed]` を使用。
+In PHP 8, use native attributes `#[Embed]` instead of Doctrine annotations `/** @Embed */`.
 
-| パターン | 評価 |
-|----------|------|
-| `#[Embed]`, `#[Inject]`, `#[Named]` | ✅ 推奨 |
-| `/** @Embed */`, `/** @Inject */` | ❌ レガシー |
+| Pattern | Grade |
+|---------|-------|
+| `#[Embed]`, `#[Inject]`, `#[Named]` | ✅ Recommended |
+| `/** @Embed */`, `/** @Inject */` | ❌ Legacy |
 
-#### 定数と設定値
+#### Constants and Configuration Values
 
-**環境依存の設定値**はクラス定数ではなく注入すべき。**アプリケーション構造の定義**はクラス定数でOK。ドメイン不変値はEnumを使用。
+**Environment-dependent configuration values** should be injected, not defined as class constants. **Application structure definitions** are OK as class constants. Use Enum for domain invariant values.
 
 ```php
-// ❌ 問題: 環境依存の設定値をクラス定数に
+// ❌ Problem: Environment-dependent config values as class constants
 private const API_URL = 'https://api.example.com';
 private const TIMEOUT = 30;
 private const API_KEY = 'xxx';
 
-// ✅ 推奨: NamedModuleでバインド、#[Named]で注入
+// ✅ Recommended: Bind with NamedModule, inject with #[Named]
 // Module:
 $this->bind()->annotatedWith('API_URL')->toInstance($apiUrl);
 
@@ -544,153 +544,153 @@ public function __construct(
     #[Named('TIMEOUT')] private readonly int $timeout,
 )
 
-// ✅ OK: アプリケーション構造の定義（環境非依存）
+// ✅ OK: Application structure definitions (environment-independent)
 private const RESOURCE_URI_LIST = [
     ['list' => 'app://self/article/publishable', 'update' => 'app://self/article/publish'],
     // ...
 ];
 private const SUPPORTED_CONTENT_TYPES = ['article', 'blog', 'news'];
 
-// ✅ ドメイン不変値はEnum
+// ✅ Domain invariant values use Enum
 enum ContentStatus: string {
     case Draft = 'draft';
     case Published = 'published';
 }
 ```
 
-| 種類 | クラス定数 | 注入 |
-|------|-----------|------|
-| URL、パス、APIキー | ❌ | ✅ |
-| タイムアウト、認証情報 | ❌ | ✅ |
-| 環境依存のID | ❌ | ✅ |
-| **アプリ構造の定義（URIリスト等）** | **✅** | - |
-| ステータス、型識別子 | △ Enum推奨 | - |
+| Type | Class Constant | Injection |
+|------|---------------|-----------|
+| URLs, paths, API keys | ❌ | ✅ |
+| Timeouts, credentials | ❌ | ✅ |
+| Environment-dependent IDs | ❌ | ✅ |
+| **App structure definitions (URI lists, etc.)** | **✅** | - |
+| Statuses, type identifiers | △ Enum recommended | - |
 
-#### リソース内のDB直接アクセス
+#### Direct DB Access Inside Resources
 
-リソースでトランザクションやSQL実行は禁止。Query層に委譲する。
+Transactions and SQL execution in resources are prohibited. Delegate to the Query layer.
 
 ```php
-// ❌ 問題: リソース内でDB操作
+// ❌ Problem: DB operations inside resource
 $this->pdo->beginTransaction();
 $this->pdo->exec($sql);
 $this->pdo->commit();
 
-// ✅ 推奨: Query層に委譲
+// ✅ Recommended: Delegate to Query layer
 $this->articleQuery->createWithTransaction($data);
 ```
 
-#### デバッグコード
+#### Debug Code
 
-`error_log()`, `var_dump()`, `print_r()` は禁止。LoggerInterfaceを使用。
+`error_log()`, `var_dump()`, `print_r()` are prohibited. Use LoggerInterface.
 
 ```php
-// ❌ 問題
+// ❌ Problem
 error_log('Error: ' . $e->getMessage());
 
-// ✅ 推奨
+// ✅ Recommended
 $this->logger->error('Error', ['exception' => $e]);
 ```
 
-#### ファイルサイズ
+#### File Size
 
-| 行数 | 評価 |
-|------|------|
-| 1-200 | ✅ 良好 |
-| 201-400 | ⚠️ 分割を検討 |
-| 401+ | ❌ 責務過多 |
+| Lines | Grade |
+|-------|-------|
+| 1-200 | ✅ Good |
+| 201-400 | ⚠️ Consider splitting |
+| 401+ | ❌ Excessive responsibility |
 
-#### リソースメソッドの引数
+#### Resource Method Arguments
 
-`array<string, mixed>` ではなく、明示的な引数またはInputクラスを使用。
+Use explicit arguments or Input classes instead of `array<string, mixed>`.
 
 ```php
-// ❌ 問題: マジックバッグ
+// ❌ Problem: Magic bag
 public function onGet(array $conditions): static
 
-// ✅ 推奨: 明示的なスカラー引数
+// ✅ Recommended: Explicit scalar arguments
 public function onGet(
     ?int $categoryId = null,
     ?string $keyword = null,
 ): static
 
-// ✅ 推奨: Inputクラス（複雑なデータ）
+// ✅ Recommended: Input class (for complex data)
 public function onPost(UserInput $user): static
 ```
 
-| パラメータ数 | 推奨 |
-|-------------|------|
-| 1-10 | スカラー引数（明示的で良い） |
-| 11+ | `#[Input]` + DTOクラスを検討 |
+| Parameter Count | Recommendation |
+|----------------|----------------|
+| 1-10 | Scalar arguments (explicit and good) |
+| 11+ | Consider `#[Input]` + DTO class |
 
-**Inputを使うべき時:**
-- 関連パラメータが概念として一体（住所、ユーザー情報等）
-- ネスト構造や配列を含む
-- 複数リソースで同じパラメータセットを使う
+**When to use Input:**
+- Related parameters form a single concept (address, user info, etc.)
+- Contains nested structures or arrays
+- Same parameter set is used across multiple resources
 
-#### Webコンテキストの取得
+#### Web Context Retrieval
 
-スーパーグローバル直接アクセスは禁止。属性で取得する。
+Direct access to superglobals is prohibited. Use attributes to retrieve them.
 
 ```php
-// ❌ 問題: スーパーグローバル直接アクセス
+// ❌ Problem: Direct superglobal access
 $id = $_GET['id'];
 $token = $_COOKIE['token'];
 
-// ✅ 推奨: 属性で取得（テスト容易）
+// ✅ Recommended: Retrieve via attributes (easy to test)
 public function onGet(
     #[QueryParam('id')] string $userId,
     #[CookieParam('token')] string $token = '',
 ): static
 ```
 
-#### ResourceParam（リソース間依存）
+#### ResourceParam (Inter-Resource Dependencies)
 
-他リソースの結果を引数として注入。手続き的な取得より宣言的で推奨。
+Inject results from other resources as arguments. More declarative and recommended over procedural fetching.
 
 ```php
-// ❌ 問題: 手続き的に取得
+// ❌ Problem: Procedural fetching
 public function onPut(array $data): static
 {
     $userId = $this->resource->get('app://self/user/me')['id'];
     // ...
 }
 
-// ✅ 推奨: 宣言的に注入
+// ✅ Recommended: Declarative injection
 #[ResourceParam(uri: 'app://self/user/me#id', param: 'userId')]
 public function onPut(int $userId, array $data): static
 ```
 
-#### ファイルアップロード
+#### File Upload
 
-`$_FILES` 直接アクセスではなく `#[UploadFiles]` を使用。
+Use `#[UploadFiles]` instead of direct `$_FILES` access.
 
 ```php
-// ❌ 問題
+// ❌ Problem
 $file = $_FILES['image'];
 
-// ✅ 推奨
+// ✅ Recommended
 public function onPost(#[UploadFiles] array $files): static
 ```
 
-#### HTTPステータスコード
+#### HTTP Status Codes
 
-適切なステータスコードを返す。
+Return appropriate status codes.
 
-| 操作 | コード |
-|------|--------|
-| GET成功 | 200 OK |
-| POST成功（作成） | 201 Created |
-| 削除成功 | 204 No Content |
-| 見つからない | 404 Not Found |
-| バリデーションエラー | 400 Bad Request |
+| Operation | Code |
+|-----------|------|
+| GET success | 200 OK |
+| POST success (creation) | 201 Created |
+| Delete success | 204 No Content |
+| Not found | 404 Not Found |
+| Validation error | 400 Bad Request |
 
-#### 201 Created と Location ヘッダー
+#### 201 Created and Location Header
 
-リソースを作成する `onPost` では、201ステータスと `Location` ヘッダーをセットで返す。
+`onPost` that creates a resource should return 201 status and `Location` header together.
 
 ```php
-// ❌ 問題: 作成しているのに200のまま、Locationもない
+// ❌ Problem: Creating but returning 200, no Location
 public function onPost(string $title): static
 {
     $id = $this->command->create($title);
@@ -698,7 +698,7 @@ public function onPost(string $title): static
     return $this;
 }
 
-// ✅ 推奨: 201 + Location ヘッダー
+// ✅ Recommended: 201 + Location header
 public function onPost(string $title): static
 {
     $id = $this->command->create($title);
@@ -711,52 +711,52 @@ public function onPost(string $title): static
 }
 ```
 
-**検出パターン:**
-- `onPost` で `$this->command->create` や `$this->command->add` を呼んでいる
-- しかし `$this->code = 201` がない
-- または `$this->headers['Location']` がない
+**Detection pattern:**
+- `onPost` calls `$this->command->create` or `$this->command->add`
+- But `$this->code = 201` is missing
+- Or `$this->headers['Location']` is missing
 
-| パターン | 評価 |
-|----------|------|
-| 201 + Location あり | ✅ 推奨 |
-| 201 あり、Location なし | ⚠️ 警告（Locationも追加推奨） |
-| 200のまま（作成処理あり） | ❌ 問題 |
+| Pattern | Grade |
+|---------|-------|
+| 201 + Location present | ✅ Recommended |
+| 201 present, Location missing | ⚠️ Warning (recommend adding Location) |
+| Remains 200 (with creation logic) | ❌ Problem |
 
-#### Pageリソースの制限
+#### Page Resource Restrictions
 
-Pageリソースは `onGet` と `onPost` のみ使用。
+Page resources should only use `onGet` and `onPost`.
 
 ```php
-// ❌ 問題: PageでonPut/onDelete
+// ❌ Problem: onPut/onDelete in Page
 class UserPage extends ResourceObject {
     public function onDelete(int $id): static  // NG
 }
 
-// ✅ 推奨: AppリソースでCRUD、PageはGET/POSTのみ
+// ✅ Recommended: CRUD in App resource, Page uses GET/POST only
 ```
 
-#### 継承より合成
+#### Composition Over Inheritance
 
-トレイトや親クラスメソッドより依存性注入で組み合わせる。
+Prefer dependency injection over traits or parent class methods.
 
 ```php
-// ❌ 問題: トレイトで機能追加
+// ❌ Problem: Adding functionality via traits
 use MetaTagTrait;
 use SurrogateKeyTrait;
 
-// ✅ 推奨: 依存性注入
+// ✅ Recommended: Dependency injection
 public function __construct(
     private readonly MetaTagService $metaTag,
     private readonly SurrogateKeyService $surrogateKey,
 )
 ```
 
-#### Providerの過剰使用
+#### Overuse of Providers
 
-`Provider` は複雑な生成ロジックが必要な場合のみ使用。単純な `new` だけなら `toConstructor` を使用すべき。
+Use `Provider` only when complex creation logic is needed. For simple `new`, use `toConstructor`.
 
 ```php
-// ❌ 問題: Providerで単純にnewしているだけ
+// ❌ Problem: Provider that simply calls new
 class FooProvider implements ProviderInterface
 {
     public function __construct(
@@ -773,7 +773,7 @@ class FooProvider implements ProviderInterface
 // Module
 $this->bind(Foo::class)->toProvider(FooProvider::class);
 
-// ✅ 推奨: toConstructor束縛（Providerクラス不要）
+// ✅ Recommended: toConstructor binding (no Provider class needed)
 $this->bind(Foo::class)->toConstructor(
     Foo::class,
     ['timeout' => 'foo_timeout']
@@ -781,45 +781,45 @@ $this->bind(Foo::class)->toConstructor(
 $this->bind()->annotatedWith('foo_timeout')->toInstance($config['timeout']);
 ```
 
-**Providerが必要なケース（許容）:**
-- 条件分岐による生成（環境によって異なるインスタンス）
-- ファクトリパターン（引数に基づく動的生成）
-- 遅延初期化が必要な場合
-- 外部リソースの接続確立
+**Cases where Provider is needed (acceptable):**
+- Conditional creation (different instances per environment)
+- Factory pattern (dynamic creation based on arguments)
+- When lazy initialization is required
+- Establishing external resource connections
 
-**Providerが不要なケース（問題）:**
-- `get()` 内で単に `new` して返すだけ
-- 依存を受け取って渡すだけの中継
+**Cases where Provider is unnecessary (problematic):**
+- `get()` simply calls `new` and returns
+- Just relaying received dependencies
 
-| パターン | 評価 |
-|----------|------|
-| `toConstructor` で済む | ✅ 推奨 |
-| 単純な `new` だけの Provider | ❌ 過剰（toConstructorを使用） |
-| 条件分岐のある Provider | ✅ 許容 |
-| ファクトリ的な Provider | ✅ 許容 |
+| Pattern | Grade |
+|---------|-------|
+| `toConstructor` suffices | ✅ Recommended |
+| Provider that only does simple `new` | ❌ Excessive (use toConstructor) |
+| Provider with conditional logic | ✅ Acceptable |
+| Factory-like Provider | ✅ Acceptable |
 
-#### グローバル参照禁止
+#### Global References Prohibited
 
-`define`定数、staticメソッド直接呼び出しは禁止。
+`define` constants and direct static method calls are prohibited.
 
 ```php
-// ❌ 問題
+// ❌ Problem
 $value = SOME_CONSTANT;
 $result = SomeClass::staticMethod();
 
-// ✅ 推奨: 注入
+// ✅ Recommended: Injection
 public function __construct(
     #[Named('SOME_VALUE')] private readonly string $value,
     private readonly SomeService $service,
 )
 ```
 
-#### バリデーション（JsonSchema）
+#### Validation (JsonSchema)
 
-入力バリデーションはJsonSchemaで宣言的に行う。
+Input validation should be done declaratively with JsonSchema.
 
 ```php
-// ❌ 問題: 手動バリデーション
+// ❌ Problem: Manual validation
 public function onPost(array $data): static
 {
     if (empty($data['title'])) {
@@ -828,7 +828,7 @@ public function onPost(array $data): static
     // ...
 }
 
-// ✅ 推奨: JsonSchemaで宣言
+// ✅ Recommended: Declare with JsonSchema
 #[JsonSchema(schema: 'article.post.json')]
 public function onPost(string $title, string $body): static
 ```
@@ -845,21 +845,21 @@ public function onPost(string $title, string $body): static
 }
 ```
 
-#### AOP（インターセプター）
+#### AOP (Interceptors)
 
-横断的関心事はインターセプターで分離。リソースに直接書かない。
+Separate cross-cutting concerns with interceptors. Do not write them directly in resources.
 
 ```php
-// ❌ 問題: リソースに横断的関心事
+// ❌ Problem: Cross-cutting concerns in resource
 public function onPost(array $data): static
 {
     $this->logger->info('Creating article');
     $start = microtime(true);
-    // ビジネスロジック
+    // Business logic
     $this->logger->info('Created', ['time' => microtime(true) - $start]);
 }
 
-// ✅ 推奨: インターセプターで分離
+// ✅ Recommended: Separate with interceptor
 // Module:
 $this->bindInterceptor(
     $this->matcher->subclassesOf(ResourceObject::class),
@@ -868,20 +868,20 @@ $this->bindInterceptor(
 );
 ```
 
-| 用途 | 実装場所 |
-|------|---------|
-| ロギング | インターセプター |
-| トランザクション | インターセプター |
-| 認証チェック | インターセプター |
-| キャッシュ | `#[Cacheable]` |
-| バリデーション | `#[JsonSchema]` |
+| Use Case | Implementation Location |
+|----------|----------------------|
+| Logging | Interceptor |
+| Transaction | Interceptor |
+| Authentication check | Interceptor |
+| Cache | `#[Cacheable]` |
+| Validation | `#[JsonSchema]` |
 
-#### 認証・認可
+#### Authentication and Authorization
 
-認証はインターセプターまたはミドルウェアで。リソース内に認証ロジックを書かない。
+Authentication should be in interceptors or middleware. Do not write authentication logic in resources.
 
 ```php
-// ❌ 問題: リソース内で認証チェック
+// ❌ Problem: Authentication check inside resource
 public function onGet(int $id): static
 {
     if (!$this->auth->isLoggedIn()) {
@@ -891,64 +891,64 @@ public function onGet(int $id): static
     // ...
 }
 
-// ✅ 推奨: アトリビュート + インターセプター
+// ✅ Recommended: Attribute + interceptor
 #[RequireLogin]
 public function onGet(int $id): static
 
-// ✅ 推奨: ロールベース
+// ✅ Recommended: Role-based
 #[RequireRole('admin')]
 public function onDelete(int $id): static
 ```
 
-| パターン | 評価 |
-|----------|------|
-| カスタム属性 + インターセプター | ✅ 推奨 |
-| ミドルウェア | ✅ 推奨 |
-| リソース内で直接チェック | ❌ 問題 |
+| Pattern | Grade |
+|---------|-------|
+| Custom attribute + interceptor | ✅ Recommended |
+| Middleware | ✅ Recommended |
+| Direct check inside resource | ❌ Problem |
 
-## 出力フォーマット
+## Output Format
 
 ```text
-## ファイル評価: [ファイルパス]
+## File Evaluation: [file-path]
 
-### PHPMDメトリクス
+### PHPMD Metrics
 
-| メトリクス | 値 | 評価 |
-|-----------|-----|------|
+| Metric | Value | Grade |
+|--------|-------|-------|
 | Cyclomatic Complexity | X | A/B/C/D |
 | NPath Complexity | X | A/B/C/D |
 | Parameters | X | A/B/C/D |
 | Fields | X | A/B/C/D |
 
-### BEAR.Sunday固有評価
+### BEAR.Sunday-Specific Evaluation
 
-| 項目 | 評価 | コメント |
-|------|------|----------|
-| リソース設計 | A/B/C/D | ... |
-| body代入 | OK/問題あり | 逐次代入ではなくまとめて構造を明示 |
-| Embed使用 | OK/問題あり | resource->get()でbodyにセットしていないか |
-| 戻り値型 | OK/推奨 | static を使用しているか |
-| 依存性注入 | A/B/C/D | ... |
-| 例外設計 | OK/問題あり | @throws Exception は問題、ドメイン例外を使用 |
-| try-catch | OK/問題あり | 巨大try-catch、Throwable/Exceptionキャッチは問題 |
-| 型安全性 | A/B/C/D | ... |
+| Item | Grade | Comment |
+|------|-------|---------|
+| Resource design | A/B/C/D | ... |
+| Body assignment | OK/Problem | Assign all at once to make structure explicit, not sequential |
+| Embed usage | OK/Problem | Check if resource->get() sets to body |
+| Return type | OK/Recommended | Whether static is used |
+| Dependency injection | A/B/C/D | ... |
+| Exception design | OK/Problem | @throws Exception is problematic, use domain exceptions |
+| try-catch | OK/Problem | Large try-catch, catching Throwable/Exception is problematic |
+| Type safety | A/B/C/D | ... |
 
-### 総合評価: [A/B/C/D]
+### Overall Grade: [A/B/C/D]
 
-### 改善提案
+### Improvement Suggestions
 
 1. ...
 2. ...
 ```
 
-## 参考資料
+## References
 
-- [BEAR.Sunday 1ページ版](https://bearsunday.github.io/llms-full.txt)
-- [リソース](https://bearsunday.github.io/manuals/1.0/ja/resource.html)
-- [リソースパラメーター](https://bearsunday.github.io/manuals/1.0/ja/resource_param.html)
+- [BEAR.Sunday Single Page](https://bearsunday.github.io/llms-full.txt)
+- [Resource](https://bearsunday.github.io/manuals/1.0/ja/resource.html)
+- [Resource Parameters](https://bearsunday.github.io/manuals/1.0/ja/resource_param.html)
 - [DI](https://bearsunday.github.io/manuals/1.0/ja/di.html)
 - [AOP](https://bearsunday.github.io/manuals/1.0/ja/aop.html)
-- [バリデーション](https://bearsunday.github.io/manuals/1.0/ja/validation.html)
-- [データベース](https://bearsunday.github.io/manuals/1.0/ja/database.html)
-- [コーディングガイド](https://bearsunday.github.io/manuals/1.0/ja/coding-guide.html)
+- [Validation](https://bearsunday.github.io/manuals/1.0/ja/validation.html)
+- [Database](https://bearsunday.github.io/manuals/1.0/ja/database.html)
+- [Coding Guide](https://bearsunday.github.io/manuals/1.0/ja/coding-guide.html)
 - [PHPMD Code Size Rules](https://phpmd.org/rules/codesize.html)
