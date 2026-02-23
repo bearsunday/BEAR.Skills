@@ -1,97 +1,97 @@
 ---
 user-invocable: true
 name: bear-sql-quality
-description: Koriym.SqlQualityを使用してSQLクエリの性能問題を検出・改善する。フルテーブルスキャン、非効率なJOIN、インデックス無効化を検出。
+description: Detect and fix SQL query performance issues using Koriym.SqlQuality. Identifies full table scans, inefficient JOINs, and index invalidation.
 ---
 
-# SQL品質改善スキル
+# SQL Quality Improvement Skill
 
-## 概要
+## Overview
 
-[Koriym.SqlQuality](https://github.com/koriym/Koriym.SqlQuality)を使用してMySQLクエリを分析し、性能問題を検出・改善する。
+Analyze MySQL queries using [Koriym.SqlQuality](https://github.com/koriym/Koriym.SqlQuality) to detect and fix performance issues.
 
-## 検出可能な問題
+## Detectable Issues
 
-| 問題 | 説明 |
-|------|------|
-| フルテーブルスキャン | インデックスを使用せず全行走査 |
-| 非効率なJOIN | 適切なインデックスがないJOIN |
-| インデックス無効化 | 関数使用によるインデックス無効化 |
+| Issue | Description |
+|-------|-------------|
+| Full table scan | Scans all rows without using an index |
+| Inefficient JOIN | JOIN without a proper index |
+| Index invalidation | Index disabled by function usage |
 
-## 使い方
+## Usage
 
-### 1. インストール
+### 1. Installation
 
 ```bash
 composer require koriym/sql-quality --dev
 ```
 
-### 2. SQLファイルの分析
+### 2. Analyze SQL Files
 
 ```bash
 vendor/bin/sql-quality analyze var/sql/
 ```
 
-### 3. 出力の確認
+### 3. Review Output
 
-**クエリ分析リスト:**
-- 各クエリのコスト
-- パフォーマンスレベル
-- 検出された問題
+**Query analysis list:**
+- Cost of each query
+- Performance level
+- Detected issues
 
-**オプティマイザー影響分析:**
-- オプティマイザー有効/無効時の比較
-- コスト削減率
+**Optimizer impact analysis:**
+- Comparison with optimizer enabled/disabled
+- Cost reduction rate
 
-## 改善パターン
+## Improvement Patterns
 
-### インデックス無効化の回避
+### Avoiding Index Invalidation
 
 ```sql
--- ❌ 問題: 関数でインデックス無効化
+-- ❌ Problem: Index invalidated by function
 SELECT * FROM articles WHERE YEAR(created_at) = 2024;
 
--- ✅ 推奨: 範囲指定
+-- ✅ Recommended: Use range condition
 SELECT * FROM articles
 WHERE created_at >= '2024-01-01' AND created_at < '2025-01-01';
 ```
 
-### LIKEの前方一致
+### LIKE with Prefix Matching
 
 ```sql
--- ❌ 問題: 前方ワイルドカード
+-- ❌ Problem: Leading wildcard
 SELECT * FROM users WHERE name LIKE '%田中';
 
--- ✅ 推奨: 後方ワイルドカード（インデックス使用可能）
+-- ✅ Recommended: Trailing wildcard (allows index usage)
 SELECT * FROM users WHERE name LIKE '田中%';
 ```
 
-### JOINの最適化
+### JOIN Optimization
 
 ```sql
--- ❌ 問題: インデックスなしのJOIN
+-- ❌ Problem: JOIN without index
 SELECT * FROM orders o
-JOIN order_items oi ON o.id = oi.order_id;  -- order_idにインデックスがない
+JOIN order_items oi ON o.id = oi.order_id;  -- No index on order_id
 
--- ✅ 推奨: インデックス追加
+-- ✅ Recommended: Add index
 ALTER TABLE order_items ADD INDEX idx_order_id (order_id);
 ```
 
-### SELECT *の回避
+### Avoiding SELECT *
 
 ```sql
--- ❌ 問題: 全カラム取得
+-- ❌ Problem: Fetching all columns
 SELECT * FROM articles WHERE id = 1;
 
--- ✅ 推奨: 必要なカラムのみ
+-- ✅ Recommended: Select only required columns
 SELECT id, title, body FROM articles WHERE id = 1;
 ```
 
-## BEAR.Sundayとの連携
+## Integration with BEAR.Sunday
 
-### SQLファイルの配置
+### SQL File Layout
 
-```
+```text
 var/
 └── sql/
     └── Article/
@@ -100,7 +100,7 @@ var/
         └── search.sql
 ```
 
-### Queryクラスでの使用
+### Usage in Query Classes
 
 ```php
 interface ArticleQueryInterface
@@ -110,7 +110,7 @@ interface ArticleQueryInterface
 }
 ```
 
-### CI/CDでの自動チェック
+### Automated Check in CI/CD
 
 ```yaml
 # .github/workflows/sql-quality.yml
@@ -118,7 +118,7 @@ interface ArticleQueryInterface
   run: vendor/bin/sql-quality analyze var/sql/
 ```
 
-## 参考資料
+## References
 
 - [Koriym.SqlQuality](https://github.com/koriym/Koriym.SqlQuality)
 - [MySQL EXPLAIN](https://dev.mysql.com/doc/refman/8.0/en/explain.html)

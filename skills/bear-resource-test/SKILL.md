@@ -1,16 +1,16 @@
 ---
 user-invocable: true
 name: bear-resource-test
-description: リソースクラスを読んでスモークテストのdataProviderを生成する。全リソースを1つのテストクラスでテスト。
+description: Read resource classes and generate dataProvider for smoke tests. Test all resources in a single test class.
 ---
 
-# BEAR.Sunday リソーステスト生成スキル
+# BEAR.Sunday Resource Test Generation Skill
 
-## 目的
+## Purpose
 
-リソースクラスを分析し、スモークテスト用のdataProviderを生成する。
+Analyze resource classes and generate dataProvider for smoke tests.
 
-## テスト構造
+## Test Structure
 
 ```php
 class ResourceTest extends TestCase
@@ -29,7 +29,7 @@ class ResourceTest extends TestCase
     public static function resourceProvider(): array
     {
         return [
-            // 生成されたテストケース
+            // Generated test cases
             'GET /article' => ['get', 'app://self/article', ['id' => 1], 200],
             'GET /articles' => ['get', 'app://self/articles', [], 200],
             'POST /article' => ['post', 'app://self/article', ['title' => 'Test', 'body' => 'Content'], 201],
@@ -39,26 +39,26 @@ class ResourceTest extends TestCase
 }
 ```
 
-## 生成手順
+## Generation Steps
 
-### 1. リソースクラスを分析
+### 1. Analyze Resource Classes
 
 ```php
-// 入力: src/Resource/App/Article.php
+// Input: src/Resource/App/Article.php
 public function onGet(int $id): static
 public function onPost(string $title, string $body): static
 public function onDelete(int $id): static
 ```
 
-### 2. テストケースを抽出
+### 2. Extract Test Cases
 
-| メソッド | URI | 必須パラメータ | 期待コード |
-|---------|-----|---------------|-----------|
+| Method | URI | Required Parameters | Expected Code |
+|--------|-----|---------------------|---------------|
 | GET | app://self/article | id | 200 |
 | POST | app://self/article | title, body | 201 |
 | DELETE | app://self/article | id | 204 |
 
-### 3. dataProviderに追加
+### 3. Add to dataProvider
 
 ```php
 'GET /article' => ['get', 'app://self/article', ['id' => 1], 200],
@@ -66,34 +66,34 @@ public function onDelete(int $id): static
 'DELETE /article' => ['delete', 'app://self/article', ['id' => 1], 204],
 ```
 
-## パラメータのデフォルト値
+## Default Parameter Values
 
-| 型 | デフォルト値 |
-|----|-------------|
+| Type | Default Value |
+|------|---------------|
 | int | 1 |
 | string | 'test' |
 | bool | true |
 | array | [] |
 | ?type | null |
 
-## 期待コードの判定
+## Expected Code Determination
 
-| メソッド | デフォルトコード |
-|---------|-----------------|
+| Method | Default Code |
+|--------|--------------|
 | onGet | 200 |
 | onPost | 201 |
 | onPut | 200 |
 | onPatch | 200 |
 | onDelete | 204 |
 
-## 使い方
+## Usage
 
-1. リソースディレクトリを指定
-2. スキルがリソースクラスを走査
-3. dataProviderのPHPコードを生成
-4. 既存テストに追加または新規作成
+1. Specify the resource directory
+2. The skill scans resource classes
+3. Generate dataProvider PHP code
+4. Add to existing test or create new one
 
-## 出力例
+## Output Example
 
 ```php
 public static function resourceProvider(): array
@@ -113,8 +113,8 @@ public static function resourceProvider(): array
 }
 ```
 
-## 注意事項
+## Notes
 
-- 認証が必要なリソースは別途設定が必要
-- 外部依存のあるリソースはモックが必要な場合あり
-- 生成後に手動でパラメータ値を調整
+- Resources requiring authentication need separate configuration
+- Resources with external dependencies may require mocks
+- Adjust parameter values manually after generation

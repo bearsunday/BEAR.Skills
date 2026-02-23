@@ -1,30 +1,30 @@
 ---
 user-invocable: true
 name: bear-refactor
-description: BEAR.Sundayプロジェクトのリファクタリングツール。ResourceObject→static変換、Named→Qualifier変換を提供。
+description: Refactoring tool for BEAR.Sunday projects. Provides ResourceObject to static conversion and Named to Qualifier conversion.
 ---
 
-# BEAR.Sunday リファクタリングスキル
+# BEAR.Sunday Refactoring Skill
 
-## 概要
+## Overview
 
-BEAR.Sundayプロジェクトのコードをモダンな記法に変換するリファクタリングツール。以下の2つの操作を提供。
+A refactoring tool that converts BEAR.Sunday project code to modern syntax. Provides the following two operations.
 
-## 1. ResourceObject → static 一括変換
+## 1. ResourceObject to static Bulk Conversion
 
-BEAR.Sundayリソースクラスの戻り値型 `ResourceObject` を `static` に変換する。
+Convert the return type `ResourceObject` to `static` in BEAR.Sunday resource classes.
 
-### 変換対象
+### Conversion Targets
 
 ```php
-// 変換前
+// Before
 public function onGet(): ResourceObject
 public function onPost(string $name): ResourceObject
 public function onPut(int $id): ResourceObject
 public function onPatch(int $id): ResourceObject
 public function onDelete(int $id): ResourceObject
 
-// 変換後
+// After
 public function onGet(): static
 public function onPost(string $name): static
 public function onPut(int $id): static
@@ -32,26 +32,26 @@ public function onPatch(int $id): static
 public function onDelete(int $id): static
 ```
 
-### 実行手順
+### Steps
 
-#### 1. 対象ファイルの確認
+#### 1. Check Target Files
 
 ```bash
 grep -r "): ResourceObject" src/Resource --include="*.php" | wc -l
 ```
 
-#### 2. 一括変換の実行
+#### 2. Run Bulk Conversion
 
 ```bash
 find src/Resource -name "*.php" -exec sed -i '' 's/): ResourceObject/): static/g' {} +
 ```
 
-#### 3. 不要なuse文の削除
+#### 3. Remove Unnecessary use Statements
 
-変換後、`use BEAR\Resource\ResourceObject;` が戻り値型のためだけに使われていた場合は削除する。
+After conversion, remove `use BEAR\Resource\ResourceObject;` if it was only used for the return type.
 
 ```bash
-# 確認（ResourceObjectが他で使われていないファイル）
+# Check (files where ResourceObject is not used elsewhere)
 grep -l "use BEAR\\\\Resource\\\\ResourceObject;" src/Resource --include="*.php" | while read f; do
   if ! grep -q "extends ResourceObject" "$f"; then
     echo "$f"
@@ -59,61 +59,61 @@ grep -l "use BEAR\\\\Resource\\\\ResourceObject;" src/Resource --include="*.php"
 done
 ```
 
-#### 4. コーディング規約の適用
+#### 4. Apply Coding Standards
 
 ```bash
 composer cs-fix
 ```
 
-#### 5. テストの実行
+#### 5. Run Tests
 
 ```bash
 composer test
 ```
 
-### 注意事項
+### Notes
 
-- `extends ResourceObject` は変更しない（クラス継承は維持）
-- テストが通ることを確認してからコミット
-- 大量の変更になるため、専用ブランチで作業推奨
+- Do not change `extends ResourceObject` (class inheritance must be preserved)
+- Confirm tests pass before committing
+- Since this produces a large number of changes, working on a dedicated branch is recommended
 
-## 2. Named → Qualifier 変換
+## 2. Named to Qualifier Conversion
 
-`#[Named('string_key')]` による文字列ベースのDI識別を、型安全な `#[QualifierClass]` に変換する。
+Convert string-based DI identification with `#[Named('string_key')]` to type-safe `#[QualifierClass]`.
 
-### 変換前後
+### Before and After
 
 ```php
-// Before: 文字列ベース
+// Before: String-based
 public function __construct(
     #[Named('api_endpoint')] private readonly string $endpoint,
     #[Named('max_retry')] private readonly int $maxRetry,
 ) {}
 
-// After: Qualifier属性ベース
+// After: Qualifier attribute-based
 public function __construct(
     #[ApiEndpoint] private readonly string $endpoint,
     #[MaxRetry] private readonly int $maxRetry,
 ) {}
 ```
 
-### 手順
+### Steps
 
-#### 1. Named文字列の使用箇所を検索
+#### 1. Search for Named String Usage
 
 ```bash
 grep -r "#\[Named(" src/ --include="*.php" | grep -v "^Binary"
 ```
 
-#### 2. 使用されているキーを一覧化
+#### 2. List All Keys in Use
 
 ```bash
 grep -roh "#\[Named(['\"][^'\"]*['\"])" src/ --include="*.php" | sort | uniq -c | sort -rn
 ```
 
-#### 3. Qualifier属性クラスを作成
+#### 3. Create Qualifier Attribute Classes
 
-各Namedキーに対してQualifier属性を作成:
+Create a Qualifier attribute for each Named key:
 
 ```php
 <?php
@@ -132,12 +132,12 @@ final class ApiEndpoint
 }
 ```
 
-**命名規則:**
-- `api_endpoint` → `ApiEndpoint`
-- `max_retry_count` → `MaxRetryCount`
-- スネークケースをパスカルケースに変換
+**Naming Convention:**
+- `api_endpoint` -> `ApiEndpoint`
+- `max_retry_count` -> `MaxRetryCount`
+- Convert snake_case to PascalCase
 
-#### 4. 使用箇所を置換
+#### 4. Replace Usage Sites
 
 ```php
 // Before
@@ -147,7 +147,7 @@ final class ApiEndpoint
 #[ApiEndpoint]
 ```
 
-#### 5. NamedModuleの設定を更新
+#### 5. Update NamedModule Configuration
 
 ```php
 // Before
@@ -166,15 +166,15 @@ new NamedModule([
 ]);
 ```
 
-#### 6. コード整形
+#### 6. Format Code
 
 ```bash
 composer cs-fix
 ```
 
-use文の追加・削除・並び替えは自動で行われる。
+Use statement additions, removals, and reordering are handled automatically.
 
-### Qualifier属性テンプレート
+### Qualifier Attribute Template
 
 ```php
 <?php
@@ -196,9 +196,9 @@ final class {ClassName}
 }
 ```
 
-### グループ化の指針
+### Grouping Guidelines
 
-関連するQualifierは同じディレクトリにまとめる:
+Group related Qualifiers in the same directory:
 
 ```text
 src/Annotation/
@@ -214,26 +214,26 @@ src/Annotation/
     └── CachePrefix.php
 ```
 
-### 変換対象の判断
+### Conversion Decision Guide
 
-| パターン | 変換すべきか | 理由 |
-|----------|--------------|------|
-| 環境依存値 | ✅ | 差し替えが必要 |
-| 設定値 | ✅ | テスト時に変更したい |
-| ドメイン定数 | ❌ → enum | 差し替え不要 |
-| 技術仕様 | ❌ → const | コードと不可分 |
+| Pattern | Should Convert? | Reason |
+|---------|-----------------|--------|
+| Environment-dependent values | ✅ | Needs to be swappable |
+| Configuration values | ✅ | Want to change during testing |
+| Domain constants | ❌ -> enum | No need to swap |
+| Technical specs | ❌ -> const | Inseparable from code |
 
-### 変換しない方がよいケース
+### Cases Where Conversion Is Not Recommended
 
-- 1-2箇所でしか使われていないNamed
-- 近い将来削除予定の機能
-- ドメイン不変値（enum化すべき）
+- Named values used in only 1-2 places
+- Features planned for removal in the near future
+- Domain invariant values (should be converted to enum)
 
-### チェックリスト
+### Checklist
 
-- [ ] Named文字列の一覧を作成
-- [ ] 各キーに対してQualifier属性クラスを作成
-- [ ] `#[Named('key')]` を `#[QualifierClass]` に置換
-- [ ] NamedModuleの設定を更新
-- [ ] `composer cs-fix` でコード整形
-- [ ] テスト実行で動作確認
+- [ ] Create a list of Named strings
+- [ ] Create Qualifier attribute classes for each key
+- [ ] Replace `#[Named('key')]` with `#[QualifierClass]`
+- [ ] Update NamedModule configuration
+- [ ] Format code with `composer cs-fix`
+- [ ] Run tests to verify functionality

@@ -1,111 +1,111 @@
 ---
 user-invocable: true
 name: bear-preflight
-description: デプロイ前総合チェック。Compile、セキュリティ、パフォーマンス、品質の各レポートを生成し、デプロイ可否を判定する。
+description: Comprehensive pre-deployment check. Generates reports for Compile, Security, Performance, and Quality, then determines deployment readiness.
 ---
 
 # BEAR.Sunday Preflight Check
 
-デプロイ前の総合チェックを実行し、レポートを生成する。
+Run a comprehensive pre-deployment check and generate a report.
 
-## チェック項目
+## Check Items
 
 ### 1. Compile Check
 
-#### 静的バインディング
+#### Static Bindings
 
 ```bash
 ./vendor/bin/bear.compile 'App\Name' prod-app-context
 ```
 
-- DIコンテナのコンパイル成功
-- 未バインドの依存関係検出
-- AOP織り込みエラー
+- DI container compilation success
+- Unbound dependency detection
+- AOP weaving errors
 
-#### ランタイムバインディング
+#### Runtime Bindings
 
-静的コンパイルでは検出できないバインディングを確認：
+Verify bindings that cannot be detected by static compilation:
 
-| パターン | 検証方法 |
-|----------|----------|
-| Ray.MediaQuery Entity | クエリ実行 → Entityマッピング確認 |
-| FactoryInterface | ファクトリ経由の生成テスト |
-| AssistedInject | 引数付き生成のテスト |
-| Provider条件分岐 | 各条件パスの実行確認 |
+| Pattern | Verification Method |
+|---------|---------------------|
+| Ray.MediaQuery Entity | Execute query -> verify Entity mapping |
+| FactoryInterface | Test creation via factory |
+| AssistedInject | Test creation with arguments |
+| Provider branching | Verify execution of each condition path |
 
 ```php
-// Ray.MediaQuery Entityの検証例
-// SQLの戻り値がEntityクラスにマッピングできるか確認
+// Ray.MediaQuery Entity verification example
+// Verify that SQL return values can be mapped to the Entity class
 interface ArticleQueryInterface
 {
     #[DbQuery('article_item')]
-    public function item(string $id): Article|null;  // ← Articleのプロパティとカラム名の一致確認
+    public function item(string $id): Article|null;  // <- Verify Article property and column name match
 }
 ```
 
 ### 2. Security Check
 
-#### SAST（静的解析）
+#### SAST (Static Analysis)
 
 ```bash
 ./vendor/bin/bear.security-scan src
 ```
 
-- SQLインジェクション
+- SQL injection
 - XSS
-- パストラバーサル
-- その他OWASP Top 10
+- Path traversal
+- Other OWASP Top 10
 
-#### 機密情報検出
+#### Sensitive Information Detection
 
 ```bash
-# ハードコードされた機密情報を検索
+# Search for hardcoded sensitive information
 grep -r "password\s*=" src/ --include="*.php"
 grep -r "api_key\s*=" src/ --include="*.php"
 grep -r "secret" src/ --include="*.php"
 ```
 
-#### 環境設定
+#### Environment Settings
 
-| 項目 | 本番設定 |
-|------|----------|
+| Item | Production Setting |
+|------|--------------------|
 | APP_DEBUG | false |
 | APP_ENV | production |
-| エラー表示 | 無効 |
+| Error display | Disabled |
 
 ### 3. Performance Check
 
-#### キャッシュ設定
+#### Cache Configuration
 
 ```bash
-# キャッシュ属性がないリソースを検出
+# Detect resources without cache attributes
 grep -rL "#\[Cacheable\]" src/Resource/App/ --include="*.php"
 ```
 
-| リソースタイプ | 推奨キャッシュ |
-|----------------|----------------|
-| 参照系（onGet） | `#[Cacheable]` または `#[DonutCache]` |
-| 更新系 | キャッシュなし |
-| 静的コンテンツ | 長TTL |
+| Resource Type | Recommended Cache |
+|---------------|-------------------|
+| Read (onGet) | `#[Cacheable]` or `#[DonutCache]` |
+| Write | No cache |
+| Static content | Long TTL |
 
-#### SQLパフォーマンス
+#### SQL Performance
 
 ```bash
-# Koriym.SqlQualityでEXPLAIN解析
+# EXPLAIN analysis with Koriym.SqlQuality
 ./vendor/bin/sql-quality var/sql/
 ```
 
-- フルテーブルスキャン
-- 非効率なJOIN
-- インデックス未使用
+- Full table scans
+- Inefficient JOINs
+- Unused indexes
 
-#### N+1検出
+#### N+1 Detection
 
-Embedリソースのループ内クエリを検出。
+Detect in-loop queries from Embed resources.
 
 ### 4. Quality Check
 
-#### 静的解析
+#### Static Analysis
 
 ```bash
 ./vendor/bin/phpstan analyse -c phpstan.neon
@@ -113,22 +113,22 @@ Embedリソースのループ内クエリを検出。
 ./vendor/bin/phpmd src text codesize,design
 ```
 
-#### テスト
+#### Tests
 
 ```bash
 ./vendor/bin/phpunit
 ```
 
-| メトリクス | 閾値 |
-|-----------|------|
-| テスト成功率 | 100% |
-| カバレッジ | 80%以上（推奨） |
+| Metric | Threshold |
+|--------|-----------|
+| Test pass rate | 100% |
+| Coverage | 80% or above (recommended) |
 
-#### コーディング規約
+#### Coding Standards
 
 ```bash
 ./vendor/bin/phpcs
-# または
+# or
 ./vendor/bin/php-cs-fixer fix --dry-run --diff
 ```
 
@@ -137,14 +137,14 @@ Embedリソースのループ内クエリを検出。
 #### composer.lock
 
 ```bash
-# lockファイルの存在確認
+# Verify lock file existence
 test -f composer.lock && echo "OK" || echo "MISSING"
 
-# dev依存が本番に含まれていないか
+# Ensure dev dependencies are not included in production
 composer install --no-dev --dry-run
 ```
 
-#### セキュリティアドバイザリ
+#### Security Advisories
 
 ```bash
 composer audit
@@ -152,23 +152,23 @@ composer audit
 
 ### 6. Configuration Check
 
-#### コンテキスト確認
+#### Context Verification
 
 ```php
-// 本番コンテキストの確認
-// prod-app, prod-html-app など
+// Verify production context
+// prod-app, prod-html-app, etc.
 ```
 
-#### 環境変数
+#### Environment Variables
 
-必須環境変数の存在確認：
+Verify required environment variables exist:
 
 ```bash
-# .env.example と実際の設定を比較
+# Compare .env.example with actual settings
 diff <(grep -oP '^[A-Z_]+=' .env.example | sort) <(grep -oP '^[A-Z_]+=' .env | sort)
 ```
 
-## 出力フォーマット
+## Output Format
 
 ```markdown
 # Preflight Check Report
@@ -233,36 +233,36 @@ Context: prod-app
 Address 3 warnings before deployment.
 ```
 
-## 判定基準
+## Decision Criteria
 
-| ステータス | 条件 | アクション |
-|-----------|------|-----------|
-| ✅ Pass | 全項目クリア | デプロイ可 |
-| ⚠️ Warn | 警告あり、ブロッカーなし | レビュー後デプロイ可 |
-| ❌ Fail | ブロッカーあり | デプロイ不可 |
+| Status | Condition | Action |
+|--------|-----------|--------|
+| ✅ Pass | All items clear | Ready to deploy |
+| ⚠️ Warn | Warnings present, no blockers | Deploy after review |
+| ❌ Fail | Blockers present | Do not deploy |
 
-### ブロッカー（デプロイ不可）
+### Blockers (Deployment Blocked)
 
-- Compileエラー
-- 未バインド依存
-- テスト失敗
-- 重大なセキュリティ脆弱性
-- セキュリティアドバイザリ（Critical/High）
+- Compile errors
+- Unbound dependencies
+- Test failures
+- Critical security vulnerabilities
+- Security advisories (Critical/High)
 
-### 警告（レビュー必要）
+### Warnings (Review Required)
 
-- カバレッジ閾値未達
-- キャッシュ未設定リソース
-- デバッグ設定有効
-- パフォーマンス警告
+- Coverage below threshold
+- Resources without cache configuration
+- Debug settings enabled
+- Performance warnings
 
-## 実行タイミング
+## When to Run
 
-- デプロイ前（手動）
-- CI/CDパイプライン（自動）
-- 定期監査（週次/月次）
+- Pre-deployment (manual)
+- CI/CD pipeline (automated)
+- Periodic audit (weekly/monthly)
 
-## CI/CD統合例
+## CI/CD Integration Example
 
 ```yaml
 # GitHub Actions

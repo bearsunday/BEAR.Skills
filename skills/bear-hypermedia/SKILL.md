@@ -1,29 +1,29 @@
 ---
 user-invocable: true
 name: bear-hypermedia
-description: リソースクラスに#[Link]を追加し、HyperMediaテストでユースケースを表現する。API設計改善時に使用。
+description: Add #[Link] to resource classes and express use cases through HyperMedia tests. Use when improving API design.
 ---
 
-# BEAR.Sunday ハイパーメディア実装スキル
+# BEAR.Sunday Hypermedia Implementation Skill
 
-## 目的
+## Purpose
 
-1. リソースクラスに `#[Link]` を追加して遷移可能なアクションを宣言
-2. HyperMediaテストでユースケース（ワークフロー）を表現
+1. Add `#[Link]` to resource classes to declare navigable actions
+2. Express use cases (workflows) through HyperMedia tests
 
-## 手順
+## Procedure
 
-### 1. リソースクラスの分析
+### 1. Analyze Resource Classes
 
-リソースを読み、可能なアクションを特定:
+Read the resource and identify possible actions:
 
-- 編集できる → `rel: 'edit'`
-- 削除できる → `rel: 'delete'`
-- 詳細がある → `rel: 'item'`
-- 一覧に戻れる → `rel: 'collection'`
-- 次/前がある → `rel: 'next'` / `rel: 'prev'`
+- Can be edited -> `rel: 'edit'`
+- Can be deleted -> `rel: 'delete'`
+- Has details -> `rel: 'item'`
+- Can return to list -> `rel: 'collection'`
+- Has next/previous -> `rel: 'next'` / `rel: 'prev'`
 
-### 2. #[Link]の追加
+### 2. Add #[Link]
 
 ```php
 use BEAR\Resource\Annotation\Link;
@@ -34,79 +34,79 @@ use BEAR\Resource\Annotation\Link;
 public function onGet(int $id): static
 ```
 
-### 3. HyperMediaテストの実装
+### 3. Implement HyperMedia Tests
 
-ユースケースをテストで表現:
+Express use cases as tests:
 
 ```php
 /**
- * 記事編集ワークフロー
+ * Article edit workflow
  *
- * [記事一覧] --item--> [記事詳細] --edit--> [編集] --update--> [記事詳細]
+ * [Article List] --item--> [Article Detail] --edit--> [Edit] --update--> [Article Detail]
  */
 public function testArticleEditWorkflow(): void
 {
-    // 記事一覧を取得
+    // Get article list
     $articles = $this->resource->get('app://self/articles');
 
-    // 最初の記事の詳細へ遷移
+    // Navigate to the first article's detail
     $article = $this->resource->href('item', $articles);
     $this->assertSame(200, $article->code);
 
-    // 編集へ遷移
+    // Navigate to edit
     $edit = $this->resource->href('edit', $article);
     $this->assertSame(200, $edit->code);
 
-    // 更新を実行
+    // Execute update
     $updated = $this->resource->href('update', $edit, ['title' => 'New Title']);
     $this->assertSame(200, $updated->code);
 }
 ```
 
-## ユースケース例
+## Use Case Examples
 
-### 記事管理
-
-```text
-[記事一覧] --item--> [記事詳細] --edit--> [編集フォーム] --update--> [記事詳細]
-                         |
-                         +--delete--> [記事一覧]
-                         |
-                         +--comments--> [コメント一覧]
-```
-
-### ユーザー登録
+### Article Management
 
 ```text
-[トップ] --signup--> [登録フォーム] --create--> [確認] --verify--> [完了]
+[Article List] --item--> [Article Detail] --edit--> [Edit Form] --update--> [Article Detail]
+                              |
+                              +--delete--> [Article List]
+                              |
+                              +--comments--> [Comment List]
 ```
 
-## リソースクラスからALPS生成
+### User Registration
 
-リソースクラスを分析してALPSプロファイルを生成する。
+```text
+[Top] --signup--> [Registration Form] --create--> [Confirmation] --verify--> [Complete]
+```
 
-### マッピング
+## Generate ALPS from Resource Classes
+
+Analyze resource classes to generate ALPS profiles.
+
+### Mapping
 
 | BEAR.Sunday | ALPS |
 |-------------|------|
-| リソースクラス | State（状態） |
-| `#[Link(rel, href)]` | Transition（遷移） |
-| `#[Embed(rel, src)]` | 埋め込み状態 |
-| メソッド引数 | Semantic descriptor |
+| Resource class | State |
+| `#[Link(rel, href)]` | Transition |
+| `#[Embed(rel, src)]` | Embedded state |
+| Method arguments | Semantic descriptor |
 | onGet | safe transition |
 | onPost | unsafe transition |
 | onPut/onDelete | idempotent transition |
 
-### 生成手順
+### Generation Steps
 
-1. リソースクラスを読む
-2. クラス名 → State ID
-3. `#[Link]` → Transition（relからgo/do判定）
-4. `#[Embed]` → 埋め込み参照
-5. 引数 → Semantic descriptor
-6. ALPSスキルで生成・検証
+1. Read the resource class
+2. Class name -> State ID
+3. `#[Link]` -> Transition (determine go/do from rel)
+4. `#[Embed]` -> Embedded reference
+5. Arguments -> Semantic descriptor
+6. Generate and validate with the ALPS skill
 
-### 例: ArticleリソースからALPS
+### Example: ALPS from Article Resource
 
 ```php
 // Resource
@@ -117,7 +117,7 @@ public function testArticleEditWorkflow(): void
 public function onGet(int $id): static
 ```
 
-↓ 生成
+Generated:
 
 ```json
 {
@@ -133,15 +133,15 @@ public function onGet(int $id): static
 }
 ```
 
-### ALPSスキルとの連携
+### Integration with ALPS Skill
 
-生成後は `/alps` スキルで:
-- 検証: `asd --validate profile.json`
-- 図生成: `asd profile.json`
-- 改善提案を取得
+After generation, use the `/alps` skill to:
+- Validate: `asd --validate profile.json`
+- Generate diagrams: `asd profile.json`
+- Get improvement suggestions
 
-## 参考資料
+## References
 
-- [BEAR.Sunday リソース](https://bearsunday.github.io/manuals/1.0/ja/resource.html)
-- [BEAR.Sunday テスト](https://bearsunday.github.io/manuals/1.0/ja/test.html)
+- [BEAR.Sunday Resource](https://bearsunday.github.io/manuals/1.0/en/resource.html)
+- [BEAR.Sunday Testing](https://bearsunday.github.io/manuals/1.0/en/test.html)
 - [ALPS Specification](http://alps.io/spec/)

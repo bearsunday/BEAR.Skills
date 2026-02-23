@@ -1,6 +1,6 @@
 ---
 user-invocable: true
-name: bear-resource-generator
+name: bear-resource-gen
 description: Generate complete BEAR.Sunday resource sets (Phinx migrations, Query/Command interfaces, SQL files, Entity classes, Resource classes, JsonSchema, tests) from simple specifications or ALPS profiles. Supports Ray.MediaQuery pattern and clean architecture principles.
 ---
 
@@ -150,7 +150,7 @@ interface {Entity}CommandInterface
 
 ### Critical: Parameter Rules
 
-Reference: [Database Media documentation](https://bearsunday.github.io/manuals/1.0/ja/database_media.html)
+Reference: [Database Media documentation](https://bearsunday.github.io/manuals/1.0/en/database_media.html)
 
 #### 1. DateTimeInterface Auto-Injection
 
@@ -373,7 +373,7 @@ These patterns are added manually based on your resource relationships:
 
 #### 1. #[Embed] - Embed Related Resources
 
-Reference: [Resource Link documentation](https://bearsunday.github.io/manuals/1.0/ja/resource_link.html)
+Reference: [Resource Link documentation](https://bearsunday.github.io/manuals/1.0/en/resource_link.html)
 
 Use when you need to include related resource data in the response:
 
@@ -399,7 +399,7 @@ public function onGet(string $id): static
 
 #### 2. #[ResourceParam] - Inject from Other Resources
 
-Reference: [Resource Param documentation](https://bearsunday.github.io/manuals/1.0/ja/resource_param.html)
+Reference: [Resource Param documentation](https://bearsunday.github.io/manuals/1.0/en/resource_param.html)
 
 Use when you need to inject values from other resources (e.g., authentication):
 

@@ -1,70 +1,70 @@
 ---
 user-invocable: true
 name: bear-documenter
-description: BEAR.Sundayプロジェクトの定数クラス・リソースクラスにPHPDocコメントを自動生成する。名前・値・文脈から意図を推測し、確信度付きのコメントを付与。
+description: Auto-generate PHPDoc comments for constant classes and resource classes in BEAR.Sunday projects. Infers intent from names, values, and context, and assigns comments with confidence levels.
 ---
 
-# ドキュメント自動生成スキル
+# Auto Documentation Generation Skill
 
-## 概要
+## Overview
 
-定数クラスおよびリソースクラスのPHPDocコメントを自動生成する。名前・値・文脈から意図を推測し、確信度付きでコメントを付与。
+Auto-generate PHPDoc comments for constant classes and resource classes. Infers intent from names, values, and context, and assigns comments with confidence levels.
 
-## 共通フロー
+## Common Flow
 
-### @todoマーカーの確認
+### Checking @todo Markers
 
-コメント生成前に以下を説明し、選択を求める:
-
----
-
-**@todoマーカーを付けますか？**
-
-`@todo 要確認(確信度X):` マーカーを付けると:
-
-- **IDEのTODOリストに表示** → 未レビューのコメントを一覧で確認可能
-- **確信度が明示される** → 低確信度のコメントを優先的にレビュー
-- **レビュー漏れを防止** → マーカーが残っている = 未確認
-
-マーカーを付けない場合:
-
-- コメントのみ生成される
-- 自分で全て確認する必要がある
-- 確信度の高い対象に推奨
-
-**選択肢:**
-- **はい**: 全コメントに `@todo 要確認(確信度X):` を付与
-- **いいえ**: コメントのみ生成
+Before generating comments, explain the following and ask for a choice:
 
 ---
 
-### サンプル実行
+**Would you like to add @todo markers?**
 
-1ファイルを選んでコメントを生成し、結果を表示:
+Adding `@todo needs-review(confidence X):` markers will:
 
-**このスタイルで続けますか？**
+- **Appear in the IDE's TODO list** — Review unreviewed comments at a glance
+- **Make confidence levels explicit** — Prioritize reviewing low-confidence comments
+- **Prevent review oversights** — Remaining markers = unreviewed
 
-- **はい**: 残りのファイルにも適用
-- **修正が必要**: スタイルを調整してから続行
-- **中止**: このファイルのみで終了
+Without markers:
 
-### レビュー後の作業
+- Only comments are generated
+- You need to review everything yourself
+- Recommended for high-confidence targets
 
-レビュー完了後、`@todo 要確認(確信度X):` 部分を削除してコメントのみ残す。
+**Options:**
+- **Yes**: Add `@todo needs-review(confidence X):` to all comments
+- **No**: Generate comments only
 
-### 生成しないケース
+---
 
-- 既にPHPDocコメントがある対象（上書きしない）
-- 明らかにdeprecatedなコード
-- テスト用のコード
+### Sample Run
 
-## 1. 定数ドキュメント
+Select one file, generate comments, and display the results:
 
-定数クラスのPHPDocコメントを自動生成する。定数名・値・文脈から意図を推測。
+**Would you like to continue with this style?**
 
-### 生成例
+- **Yes**: Apply to remaining files
+- **Needs adjustment**: Adjust the style before continuing
+- **Cancel**: Stop after this file only
 
-#### @todoマーカーあり
+### Post-Review Work
+
+After completing the review, remove the `@todo needs-review(confidence X):` portions and keep only the comments.
+
+### Cases Where Comments Are Not Generated
+
+- Targets that already have PHPDoc comments (no overwriting)
+- Clearly deprecated code
+- Test code
+
+## 1. Constant Documentation
+
+Auto-generate PHPDoc comments for constant classes. Infer intent from constant names, values, and context.
+
+### Generation Examples
+
+#### With @todo Markers
 
 ```php
 <?php
@@ -74,109 +74,109 @@ declare(strict_types=1);
 namespace App\Constants;
 
 /**
- * @todo 要確認(確信度高): HTMLメタタグ用の定数
+ * @todo needs-review(confidence high): Constants for HTML meta tags
  *
- * SEO/OGP用のtitle、descriptionテンプレートを定義。
+ * Defines title and description templates for SEO/OGP.
  */
 final class MetaTag
 {
-    /** @todo 要確認(確信度高): 全ページ共通のタイトル接尾辞 */
+    /** @todo needs-review(confidence high): Common title suffix for all pages */
     public const TITLE_DEFAULT_SUFFIX = '｜Web eclat（ウェブエクラ）';
 
-    /** @todo 要確認(確信度高): OGP (Open Graph Protocol) 用プロパティ識別子 */
+    /** @todo needs-review(confidence high): OGP (Open Graph Protocol) property identifier */
     public const PROPERTY_OGP = 'ogp';
 
-    /** @todo 要確認(確信度低): 集計閾値？用途要調査 */
+    /** @todo needs-review(confidence low): Aggregation threshold? Needs investigation */
     public const THRESHOLD = 100;
 }
 ```
 
-#### @todoマーカーなし
+#### Without @todo Markers
 
 ```php
 /**
- * HTMLメタタグ用の定数
+ * Constants for HTML meta tags
  *
- * SEO/OGP用のtitle、descriptionテンプレートを定義。
+ * Defines title and description templates for SEO/OGP.
  */
 final class MetaTag
 {
-    /** 全ページ共通のタイトル接尾辞 */
+    /** Common title suffix for all pages */
     public const TITLE_DEFAULT_SUFFIX = '｜Web eclat（ウェブエクラ）';
 }
 ```
 
-### 確信度の判定基準（定数）
+### Confidence Criteria (Constants)
 
-#### 確信度: 高
+#### Confidence: High
 
-- 定数名が明確で意図が読み取れる
+- Constant name is clear and intent is readable
   - `TITLE_PREFIX_*`, `DESCRIPTION_*`, `MAX_*_COUNT`
-- 値が自己説明的
+- Value is self-explanatory
   - `'ogp'`, `'twitter'`, `'draft'`, `'published'`
-- 定数名と値が一致または対応
+- Constant name and value match or correspond
   - `STATUS_DRAFT = 'draft'`
-- 業界標準の用語
+- Industry-standard terminology
   - `OGP`, `TTL`, `HTTP_*`
 
-#### 確信度: 中
+#### Confidence: Medium
 
-- ドメイン固有語だが文脈から推測可能
-  - `HANAGUMI`, `JMADAM` (サイト固有だが用途は明確)
-- 略語だが一般的
+- Domain-specific terms but inferable from context
+  - `HANAGUMI`, `JMADAM` (site-specific but purpose is clear)
+- Abbreviations but common
   - `API_URL`, `DB_HOST`
-- 配列構造から意図が読み取れる
+- Intent is readable from array structure
 
-#### 確信度: 低
+#### Confidence: Low
 
-- マジックナンバーで意図不明
+- Magic numbers with unclear intent
   - `100`, `3600`, `256`
-- 略語のみで文脈なし
+- Abbreviations only with no context
   - `TH`, `CT`, `FLG`
-- 複数の解釈が可能
-  - `LIMIT` (件数? サイズ? 時間?)
-- 使用箇所を確認しないと判断できない
+- Multiple interpretations possible
+  - `LIMIT` (count? size? time?)
+- Cannot determine without checking usage locations
 
-### 定数名の推測パターン
+### Constant Name Inference Patterns
 
-| パターン | 推測 |
-|----------|------|
-| `*_URL`, `*_ENDPOINT` | URLエンドポイント |
-| `*_TIMEOUT`, `*_TTL` | 時間設定（秒/ミリ秒を確認） |
-| `*_LIMIT`, `*_MAX`, `*_MIN` | 制限値 |
-| `*_PREFIX`, `*_SUFFIX` | 文字列の接頭辞/接尾辞 |
-| `STATUS_*`, `STATE_*` | ステータス値 |
-| `TYPE_*`, `KIND_*` | 種別識別子 |
-| `DEFAULT_*` | デフォルト値 |
-| `ENABLE_*`, `DISABLE_*` | フラグ |
+| Pattern | Inference |
+|---------|-----------|
+| `*_URL`, `*_ENDPOINT` | URL endpoint |
+| `*_TIMEOUT`, `*_TTL` | Time setting (check seconds/milliseconds) |
+| `*_LIMIT`, `*_MAX`, `*_MIN` | Limit value |
+| `*_PREFIX`, `*_SUFFIX` | String prefix/suffix |
+| `STATUS_*`, `STATE_*` | Status value |
+| `TYPE_*`, `KIND_*` | Type identifier |
+| `DEFAULT_*` | Default value |
+| `ENABLE_*`, `DISABLE_*` | Flag |
 
-### 値の推測パターン
+### Value Inference Patterns
 
-| パターン | 推測 |
-|----------|------|
-| `3600`, `86400` | 秒単位の時間（1時間、1日） |
-| `1024`, `2048` | バイトサイズ (KB, MB) |
-| `200`, `404`, `500` | HTTPステータスコード |
-| 日本語文字列 | UI表示用ラベル、SEOテキスト |
-| URL形式 | 外部サービスエンドポイント |
+| Pattern | Inference |
+|---------|-----------|
+| `3600`, `86400` | Time in seconds (1 hour, 1 day) |
+| `1024`, `2048` | Byte size (KB, MB) |
+| `200`, `404`, `500` | HTTP status code |
+| Japanese strings | UI display labels, SEO text |
+| URL format | External service endpoint |
 
-### レビュー後の検索
+### Post-Review Search
 
 ```bash
-# 未レビューの定数を検索
-grep -r "@todo 要確認" src/Constants/
+# Search for unreviewed constants
+grep -r "@todo needs-review" src/Constants/
 
-# 確信度低のみ検索
-grep -r "確信度低" src/Constants/
+# Search for low confidence only
+grep -r "confidence low" src/Constants/
 ```
 
-## 2. リソースドキュメント
+## 2. Resource Documentation
 
-リソースクラスのPHPDocコメントを自動生成する。クラス名・HTTPメソッド・パラメータから意図を推測。
+Auto-generate PHPDoc comments for resource classes. Infer intent from class name, HTTP methods, and parameters.
 
-### 生成例
+### Generation Examples
 
-#### @todoマーカーあり
+#### With @todo Markers
 
 ```php
 <?php
@@ -188,16 +188,16 @@ namespace App\Resource\App;
 use BEAR\Resource\ResourceObject;
 
 /**
- * @todo 要確認(確信度高): 記事リソース
+ * @todo needs-review(confidence high): Article resource
  *
- * 記事の取得・作成・更新・削除を提供。
+ * Provides retrieval, creation, update, and deletion of articles.
  */
 class Article extends ResourceObject
 {
     /**
-     * @todo 要確認(確信度高): 記事を取得
+     * @todo needs-review(confidence high): Retrieve an article
      *
-     * @param int $id 記事ID
+     * @param int $id Article ID
      * @return static
      */
     public function onGet(int $id): static
@@ -206,10 +206,10 @@ class Article extends ResourceObject
     }
 
     /**
-     * @todo 要確認(確信度高): 記事を作成
+     * @todo needs-review(confidence high): Create an article
      *
-     * @param string $title タイトル
-     * @param string $body 本文
+     * @param string $title Title
+     * @param string $body Body
      * @return static 201 Created
      */
     public function onPost(string $title, string $body): static
@@ -218,9 +218,9 @@ class Article extends ResourceObject
     }
 
     /**
-     * @todo 要確認(確信度高): 記事を削除
+     * @todo needs-review(confidence high): Delete an article
      *
-     * @param int $id 記事ID
+     * @param int $id Article ID
      * @return static 204 No Content
      */
     public function onDelete(int $id): static
@@ -230,100 +230,100 @@ class Article extends ResourceObject
 }
 ```
 
-### 確信度の判定基準（リソース）
+### Confidence Criteria (Resources)
 
-#### 確信度: 高
+#### Confidence: High
 
-- クラス名が明確な名詞
+- Class name is a clear noun
   - `Article`, `User`, `Order`, `Product`
-- 標準的なCRUDパターン
-  - `onGet($id)` → 1件取得
-  - `onGet()` → 一覧取得
-  - `onPost(...)` → 作成
-  - `onPut($id, ...)` → 更新
-  - `onDelete($id)` → 削除
-- パラメータ名が自己説明的
+- Standard CRUD pattern
+  - `onGet($id)` — Single item retrieval
+  - `onGet()` — List retrieval
+  - `onPost(...)` — Creation
+  - `onPut($id, ...)` — Update
+  - `onDelete($id)` — Deletion
+- Parameter names are self-explanatory
   - `$id`, `$title`, `$body`, `$email`
 
-#### 確信度: 中
+#### Confidence: Medium
 
-- クラス名がドメイン固有語
+- Class name is domain-specific
   - `Hanagumi`, `Flagshop`
-- 複合的な操作
-  - `onPost` で更新も行う
-- パラメータが多い（5個以上）
+- Compound operations
+  - `onPost` also performs updates
+- Many parameters (5 or more)
 
-#### 確信度: 低
+#### Confidence: Low
 
-- クラス名が略語
+- Class name is abbreviated
   - `Art`, `Usr`, `Ord`
-- 非標準のメソッドパターン
-  - `onGet` で副作用がある
-- パラメータの意図が不明
+- Non-standard method patterns
+  - `onGet` has side effects
+- Parameter intent is unclear
   - `$data`, `$params`, `$options`
-- 複雑なビジネスロジック
+- Complex business logic
 
-### クラス名からの推測
+### Inference from Class Name
 
-| パターン | 推測 |
-|----------|------|
-| `Article`, `Post`, `Blog` | 記事/投稿リソース |
-| `User`, `Member`, `Account` | ユーザーリソース |
-| `Order`, `Purchase` | 注文リソース |
-| `Product`, `Item` | 商品リソース |
-| `Category`, `Tag` | 分類リソース |
-| `Comment`, `Review` | コメント/レビューリソース |
-| `*List`, `*Index` | 一覧リソース |
-| `*Detail` | 詳細リソース |
+| Pattern | Inference |
+|---------|-----------|
+| `Article`, `Post`, `Blog` | Article/post resource |
+| `User`, `Member`, `Account` | User resource |
+| `Order`, `Purchase` | Order resource |
+| `Product`, `Item` | Product resource |
+| `Category`, `Tag` | Classification resource |
+| `Comment`, `Review` | Comment/review resource |
+| `*List`, `*Index` | List resource |
+| `*Detail` | Detail resource |
 
-### メソッドからの推測
+### Inference from Methods
 
-| メソッド | パラメータ | 推測 |
-|----------|------------|------|
-| `onGet` | `int $id` | 1件取得 |
-| `onGet` | なし or ページング | 一覧取得 |
-| `onGet` | 検索条件 | 検索/フィルタ |
-| `onPost` | 作成データ | 新規作成 (201) |
-| `onPut` | `$id` + データ | 全体更新 (200) |
-| `onPatch` | `$id` + 部分データ | 部分更新 (200) |
-| `onDelete` | `int $id` | 削除 (204) |
+| Method | Parameters | Inference |
+|--------|------------|-----------|
+| `onGet` | `int $id` | Single item retrieval |
+| `onGet` | None or pagination | List retrieval |
+| `onGet` | Search criteria | Search/filter |
+| `onPost` | Creation data | Create new (201) |
+| `onPut` | `$id` + data | Full update (200) |
+| `onPatch` | `$id` + partial data | Partial update (200) |
+| `onDelete` | `int $id` | Delete (204) |
 
-### パラメータ名からの推測
+### Inference from Parameter Names
 
-| パラメータ | 推測 |
-|------------|------|
-| `$id`, `$articleId` | リソース識別子 |
-| `$title`, `$name` | 名称 |
-| `$body`, `$content` | 本文 |
-| `$email`, `$phone` | 連絡先 |
-| `$page`, `$limit`, `$offset` | ページネーション |
-| `$sort`, `$order` | ソート |
-| `$q`, `$keyword`, `$search` | 検索キーワード |
+| Parameter | Inference |
+|-----------|-----------|
+| `$id`, `$articleId` | Resource identifier |
+| `$title`, `$name` | Name |
+| `$body`, `$content` | Body text |
+| `$email`, `$phone` | Contact information |
+| `$page`, `$limit`, `$offset` | Pagination |
+| `$sort`, `$order` | Sort |
+| `$q`, `$keyword`, `$search` | Search keyword |
 
-### 属性からの推測
+### Inference from Attributes
 
-| 属性 | 追加情報 |
-|------|----------|
-| `#[Embed]` | 埋め込みリソースあり |
-| `#[Link]` | 関連リソースへのリンク |
-| `#[Cacheable]` | キャッシュ可能 |
-| `#[JsonSchema]` | 入力バリデーションあり |
+| Attribute | Additional Information |
+|-----------|----------------------|
+| `#[Embed]` | Has embedded resources |
+| `#[Link]` | Links to related resources |
+| `#[Cacheable]` | Cacheable |
+| `#[JsonSchema]` | Has input validation |
 
-### レビュー後の検索
+### Post-Review Search
 
 ```bash
-# 未レビューのリソースを検索
-grep -r "@todo 要確認" src/Resource/
+# Search for unreviewed resources
+grep -r "@todo needs-review" src/Resource/
 
-# 確信度低のみ検索
-grep -r "確信度低" src/Resource/
+# Search for low confidence only
+grep -r "confidence low" src/Resource/
 ```
 
-## ワークフロー
+## Workflow
 
-1. 対象ファイルを指定
-2. @todoマーカーの有無を選択（上記説明を提示）
-3. コードを解析し、コメントを生成
-4. 確信度を判定して付与
-5. ファイルに適用
-6. `composer cs-fix` で整形
+1. Specify target files
+2. Choose whether to add @todo markers (present the explanation above)
+3. Analyze code and generate comments
+4. Determine and assign confidence levels
+5. Apply to files
+6. Format with `composer cs-fix`

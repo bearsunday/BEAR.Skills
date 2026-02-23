@@ -81,8 +81,15 @@ Or describe your task naturally - Claude will automatically select the appropria
 
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
-| `bear-resource-generator` | Generate complete resource sets | "Generate a Ticket resource with CRUD" |
-| `alps-to-bear` | Generate from ALPS profile | "Create resources from this ALPS profile" |
+| `bear-resource-gen` | Generate complete resource sets | "Generate a Ticket resource with CRUD" |
+| `bear-from-alps` | Generate project from ALPS profile | "Create resources from this ALPS profile" |
+
+### ALPS Integration
+
+| Skill | Purpose | Example Prompt |
+|-------|---------|----------------|
+| `bear-to-alps` | Extract ALPS profile from project | "Generate ALPS profile from resources" |
+| `bear-from-alps` | Generate project from ALPS profile | "Build a project from this ALPS profile" |
 
 ### Refactoring
 
@@ -101,7 +108,7 @@ Or describe your task naturally - Claude will automatically select the appropria
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
 | `bear-hypermedia` | Add Link attributes | "Add hypermedia links to resources" |
-| `bear-cache-strategy` | Apply cache attributes | "Analyze and add cache attributes" |
+| `bear-cacheable` | Apply cache attributes | "Analyze and add cache attributes" |
 | `bear-resource-test` | Generate smoke tests | "Generate tests for all resources" |
 
 ### Security & Deployment
@@ -117,11 +124,18 @@ Or describe your task naturally - Claude will automatically select the appropria
 BEAR.Skills/
 ├── .claude/skills/      # Development
 ├── skills/              # Distribution (plugin)
-│   ├── bear-review/
-│   ├── bear-refactor/
+│   ├── bear-cacheable/
 │   ├── bear-documenter/
+│   ├── bear-from-alps/
+│   ├── bear-hypermedia/
+│   ├── bear-preflight/
+│   ├── bear-refactor/
+│   ├── bear-resource-gen/
+│   ├── bear-resource-test/
+│   ├── bear-review/
+│   ├── bear-security-setup/
 │   ├── bear-sql-quality/
-│   └── ... (6 more skills)
+│   └── bear-to-alps/
 └── .claude-plugin/      # Plugin manifest
 ```
 
