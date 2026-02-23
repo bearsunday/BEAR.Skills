@@ -75,7 +75,6 @@ Or describe your task naturally - Claude will automatically select the appropria
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
 | `bear-review` | Code quality review | "Review this resource" |
-| `bear-sql-quality` | SQL performance analysis | "Analyze SQL queries" |
 
 ### Code Generation
 
@@ -107,9 +106,14 @@ Or describe your task naturally - Claude will automatically select the appropria
 
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
-| `bear-hypermedia` | Add Link attributes | "Add hypermedia links to resources" |
+| `bear-hypermedia` | Add #[Link] attributes | "Add hypermedia links to resources" |
 | `bear-cacheable` | Apply cache attributes | "Analyze and add cache attributes" |
-| `bear-resource-test` | Generate smoke tests | "Generate tests for all resources" |
+
+### Testing
+
+| Skill | Purpose | Example Prompt |
+|-------|---------|----------------|
+| `bear-smoke-test` | Generate 4-layer smoke tests | "Generate smoke tests for all resources" |
 
 ### Security & Deployment
 
@@ -131,10 +135,9 @@ BEAR.Skills/
 │   ├── bear-preflight/
 │   ├── bear-refactor/
 │   ├── bear-resource-gen/
-│   ├── bear-resource-test/
 │   ├── bear-review/
 │   ├── bear-security-setup/
-│   ├── bear-sql-quality/
+│   ├── bear-smoke-test/
 │   └── bear-to-alps/
 └── .claude-plugin/      # Plugin manifest
 ```
