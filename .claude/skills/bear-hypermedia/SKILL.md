@@ -142,6 +142,6 @@ After generation, use the `/alps` skill to:
 
 ## References
 
-- [BEAR.Sunday Resource](https://bearsunday.github.io/manuals/1.0/ja/resource.html)
-- [BEAR.Sunday Testing](https://bearsunday.github.io/manuals/1.0/ja/test.html)
+- [BEAR.Sunday Resource](https://bearsunday.github.io/manuals/1.0/en/resource.html)
+- [BEAR.Sunday Testing](https://bearsunday.github.io/manuals/1.0/en/test.html)
 - [ALPS Specification](http://alps.io/spec/)

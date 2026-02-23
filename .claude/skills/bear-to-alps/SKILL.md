@@ -477,6 +477,6 @@ Confirm: Do you want to proceed as is?
 ## References
 
 - ALPS Specification: https://alps-io.github.io/spec/
-- BEAR.Sunday Resource: https://bearsunday.github.io/manuals/1.0/ja/resource.html
+- BEAR.Sunday Resource: https://bearsunday.github.io/manuals/1.0/en/resource.html
 - BEAR.ApiDoc: https://github.com/bearsunday/BEAR.ApiDoc
 - app-state-diagram: https://github.com/alps-asd/app-state-diagram

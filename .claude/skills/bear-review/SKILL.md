@@ -944,11 +944,11 @@ public function onDelete(int $id): static
 ## References
 
 - [BEAR.Sunday Single Page](https://bearsunday.github.io/llms-full.txt)
-- [Resource](https://bearsunday.github.io/manuals/1.0/ja/resource.html)
-- [Resource Parameters](https://bearsunday.github.io/manuals/1.0/ja/resource_param.html)
-- [DI](https://bearsunday.github.io/manuals/1.0/ja/di.html)
-- [AOP](https://bearsunday.github.io/manuals/1.0/ja/aop.html)
-- [Validation](https://bearsunday.github.io/manuals/1.0/ja/validation.html)
-- [Database](https://bearsunday.github.io/manuals/1.0/ja/database.html)
-- [Coding Guide](https://bearsunday.github.io/manuals/1.0/ja/coding-guide.html)
+- [Resource](https://bearsunday.github.io/manuals/1.0/en/resource.html)
+- [Resource Parameters](https://bearsunday.github.io/manuals/1.0/en/resource_param.html)
+- [DI](https://bearsunday.github.io/manuals/1.0/en/di.html)
+- [AOP](https://bearsunday.github.io/manuals/1.0/en/aop.html)
+- [Validation](https://bearsunday.github.io/manuals/1.0/en/validation.html)
+- [Database](https://bearsunday.github.io/manuals/1.0/en/database.html)
+- [Coding Guide](https://bearsunday.github.io/manuals/1.0/en/coding-guide.html)
 - [PHPMD Code Size Rules](https://phpmd.org/rules/codesize.html)

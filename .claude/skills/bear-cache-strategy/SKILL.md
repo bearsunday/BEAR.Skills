@@ -314,4 +314,4 @@ Not cacheable
 
 ## References
 
-- [BEAR.Sunday Cache](https://bearsunday.github.io/manuals/1.0/ja/cache.html)
+- [BEAR.Sunday Cache](https://bearsunday.github.io/manuals/1.0/en/cache.html)

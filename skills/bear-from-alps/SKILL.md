@@ -41,7 +41,7 @@ Error: ALPS profile validation failed
 Details: {validation_error}
 
 Action: Use the alps skill to fix the profile
-Details: https://www.app-state-diagram.com/manuals/1.0/ja/ai-assistant.html#skill-claude-code
+Details: https://www.app-state-diagram.com/manuals/1.0/en/ai-assistant.html#skill-claude-code
 ```
 
 ### Step 2: Collect Project Information
