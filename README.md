@@ -82,7 +82,6 @@ Or describe your task naturally - Claude will automatically select the appropria
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
 | `bear-resource-generator` | Generate complete resource sets | "Generate a Ticket resource with CRUD" |
-| `bear-from-alps` | Generate project from ALPS profile | "Create resources from this ALPS profile" |
 
 ### ALPS Integration
 
