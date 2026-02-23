@@ -156,7 +156,11 @@ Skills are located in `.claude/skills/`:
 ├── SKILL.md                    # Default skill (bear-to-alps)
 ├── bear-resource-generator/    # Each skill in its own directory
 │   └── SKILL.md
-├── bear-cleancode-review/
+├── bear-review/
+│   └── SKILL.md
+├── bear-refactor/
+│   └── SKILL.md
+├── bear-documenter/
 │   └── SKILL.md
 └── ...
 ```

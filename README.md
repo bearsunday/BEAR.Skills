@@ -63,7 +63,7 @@ cp -r BEAR.Skills/skills/ /path/to/your/project/.claude/skills/
 ## Quick Start
 
 ```text
-/bear-cleancode-review
+/bear-review
 ```
 
 Or describe your task naturally - Claude will automatically select the appropriate skill.
@@ -74,9 +74,8 @@ Or describe your task naturally - Claude will automatically select the appropria
 
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
-| `php-cleancode-review` | General PHP quality review | "Check the code quality of this class" |
-| `bear-cleancode-review` | BEAR.Sunday specific review | "Review this resource for framework patterns" |
-| `sql-quality` | SQL performance analysis | "Analyze the SQL queries for performance issues" |
+| `bear-review` | Code quality review | "Review this resource" |
+| `bear-sql-quality` | SQL performance analysis | "Analyze SQL queries" |
 
 ### Code Generation
 
@@ -89,15 +88,13 @@ Or describe your task naturally - Claude will automatically select the appropria
 
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
-| `named-to-qualifier` | Convert Named to Qualifier | "Replace #[Named] with type-safe qualifiers" |
-| `fix-return-static` | Fix return types | "Convert ResourceObject returns to static" |
+| `bear-refactor` | Refactoring tools | "Convert Named to Qualifier" |
 
 ### Documentation
 
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
-| `const-documenter` | PHPDoc for constants | "Add documentation to constant classes" |
-| `resource-documenter` | PHPDoc for resources | "Document this resource class" |
+| `bear-documenter` | PHPDoc auto-generation | "Document this class" |
 
 ### Resource Enhancement
 
@@ -120,8 +117,10 @@ Or describe your task naturally - Claude will automatically select the appropria
 BEAR.Skills/
 ├── .claude/skills/      # Development
 ├── skills/              # Distribution (plugin)
-│   ├── bear-cleancode-review/
-│   └── php-cleancode-review/
+│   ├── bear-review/
+│   ├── bear-refactor/
+│   ├── bear-documenter/
+│   └── bear-sql-quality/
 └── .claude-plugin/      # Plugin manifest
 ```
 
