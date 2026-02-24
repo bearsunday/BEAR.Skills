@@ -63,7 +63,11 @@ class SqlTest extends TestCase
             // SQLite: EXPLAIN QUERY PLAN returns detail column
             $stmt = self::$pdo->query('EXPLAIN QUERY PLAN ' . $sql);
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                $this->assertStringNotContainsString('SCAN', $row['detail'] ?? '');
+                $detail = $row['detail'] ?? '';
+                // 'SCAN ... USING COVERING INDEX' is an index scan, not a full table scan
+                if (str_contains($detail, 'SCAN') && !str_contains($detail, 'USING')) {
+                    $this->fail('Full table scan: ' . $detail);
+                }
             }
             return;
         }

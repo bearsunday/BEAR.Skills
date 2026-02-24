@@ -15,6 +15,7 @@ use function file_get_contents;
 use function glob;
 use function preg_replace;
 use function sprintf;
+use function str_contains;
 use function stripos;
 use function trim;
 
@@ -61,7 +62,12 @@ class SqlTest extends TestCase
 
         foreach ($rows as $row) {
             $detail = $row['detail'] ?? '';
-            $this->assertStringNotContainsString('SCAN', $detail, sprintf(
+            // 'SCAN ... USING COVERING INDEX' is an index scan, not a full table scan
+            if (! str_contains($detail, 'SCAN') || str_contains($detail, 'USING')) {
+                continue;
+            }
+
+            $this->fail(sprintf(
                 'Full table scan detected in %s: %s',
                 basename($sqlFile),
                 $detail,
@@ -87,7 +93,7 @@ class SqlTest extends TestCase
     /** @return iterable<string, array{string}> */
     public static function sqlFileProvider(): iterable
     {
-        foreach (glob(__DIR__ . '/../../var/sql/*.sql') as $file) {
+        foreach (glob(__DIR__ . '/../../var/sql/*.sql') ?: [] as $file) {
             yield basename($file) => [$file];
         }
     }
@@ -95,7 +101,7 @@ class SqlTest extends TestCase
     /** @return iterable<string, array{string}> */
     public static function selectSqlProvider(): iterable
     {
-        foreach (glob(__DIR__ . '/../../var/sql/*.sql') as $file) {
+        foreach (glob(__DIR__ . '/../../var/sql/*.sql') ?: [] as $file) {
             $sql = (string) file_get_contents($file);
             if (stripos($sql, 'SELECT') === false || stripos($sql, 'INSERT') !== false) {
                 continue;

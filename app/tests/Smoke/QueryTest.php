@@ -9,8 +9,10 @@ use MyVendor\MyProject\Query\TodoCommandInterface;
 use MyVendor\MyProject\Query\TodoQueryInterface;
 use PHPUnit\Framework\TestCase;
 
+use function bin2hex;
 use function is_array;
 use function is_object;
+use function random_bytes;
 
 class QueryTest extends TestCase
 {
@@ -45,7 +47,7 @@ class QueryTest extends TestCase
         yield 'TodoCommandInterface::add' => [
             TodoCommandInterface::class,
             'add',
-            ['test-smoke-id', 'test', null],
+            [bin2hex(random_bytes(16)), 'test', null],
             'void',
         ];
     }
