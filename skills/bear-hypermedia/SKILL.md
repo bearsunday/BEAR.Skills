@@ -1,15 +1,16 @@
 ---
 user-invocable: true
 name: bear-hypermedia
-description: Add #[Link] to resource classes and express use cases through HyperMedia tests. Use when improving API design.
+description: Add #[Link] attributes to resource classes. Use when improving API design.
 ---
 
 # BEAR.Sunday Hypermedia Implementation Skill
 
 ## Purpose
 
-1. Add `#[Link]` to resource classes to declare navigable actions
-2. Express use cases (workflows) through HyperMedia tests
+Add `#[Link]` to resource classes to declare navigable actions.
+
+For workflow tests based on hypermedia links, use `/bear-smoke-test`.
 
 ## Procedure
 
@@ -32,53 +33,6 @@ use BEAR\Resource\Annotation\Link;
 #[Link(rel: 'delete', href: '/article/{id}', method: 'delete')]
 #[Link(rel: 'comments', href: '/article/{id}/comments')]
 public function onGet(int $id): static
-```
-
-### 3. Implement HyperMedia Tests
-
-Express use cases as tests:
-
-```php
-/**
- * Article edit workflow
- *
- * [Article List] --item--> [Article Detail] --edit--> [Edit] --update--> [Article Detail]
- */
-public function testArticleEditWorkflow(): void
-{
-    // Get article list
-    $articles = $this->resource->get('app://self/articles');
-
-    // Navigate to the first article's detail
-    $article = $this->resource->href('item', $articles);
-    $this->assertSame(200, $article->code);
-
-    // Navigate to edit
-    $edit = $this->resource->href('edit', $article);
-    $this->assertSame(200, $edit->code);
-
-    // Execute update
-    $updated = $this->resource->href('update', $edit, ['title' => 'New Title']);
-    $this->assertSame(200, $updated->code);
-}
-```
-
-## Use Case Examples
-
-### Article Management
-
-```text
-[Article List] --item--> [Article Detail] --edit--> [Edit Form] --update--> [Article Detail]
-                              |
-                              +--delete--> [Article List]
-                              |
-                              +--comments--> [Comment List]
-```
-
-### User Registration
-
-```text
-[Top] --signup--> [Registration Form] --create--> [Confirmation] --verify--> [Complete]
 ```
 
 ## Generate ALPS from Resource Classes

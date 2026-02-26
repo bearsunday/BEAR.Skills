@@ -160,10 +160,9 @@ Skills are located in `.claude/skills/` (development) and `skills/` (distributio
 ├── bear-preflight/
 ├── bear-refactor/
 ├── bear-resource-gen/
-├── bear-resource-test/
 ├── bear-review/
 ├── bear-security-setup/
-├── bear-sql-quality/
+├── bear-smoke-test/         # Generate 4-layer smoke test suite
 └── bear-to-alps/            # Extract ALPS profile from project
 ```
 
