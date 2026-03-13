@@ -32,7 +32,10 @@ File: `var/schema/request/{entity}-post.json`
   "type": "object",
   "required": ["{required_input_fields}"],
   "properties": {
-    // Input fields (exclude id and auto-generated fields)
+    "{field_name}": {
+      "type": "string",
+      "description": "..."
+    }
   }
 }
 ```
@@ -48,7 +51,10 @@ File: `var/schema/request/{entity}-put.json`
   "type": "object",
   "required": ["{required_update_fields}"],
   "properties": {
-    // Updateable fields
+    "{field_name}": {
+      "type": "string",
+      "description": "..."
+    }
   }
 }
 ```

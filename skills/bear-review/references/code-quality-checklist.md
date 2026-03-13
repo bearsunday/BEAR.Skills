@@ -261,7 +261,7 @@ public function onGet(int $id): static
 | `RuntimeException` | Recoverable errors at runtime (resource not found, external API failure, etc.) |
 | `LogicException` | Program logic errors (invalid arguments, invalid state transitions, etc.) |
 
-## try-catch Inside Resources (Pokemon Catch Problem)
+## try-catch Inside Resources (Pokémon Catch Problem)
 
 Do not write large try-catch blocks inside resources.
 
@@ -297,7 +297,7 @@ public function onGet(int $id): static
 ```
 
 **Problems:**
-- Broad catch of `Throwable` or `Exception` (catching everything - "Pokemon catch")
+- Broad catch of `Throwable` or `Exception` (catching everything - "Pokémon catch")
 - Try block is too large (unclear where errors occur)
 - Logging and re-throwing is redundant (framework handles it)
 - Indicates excessive resource responsibility

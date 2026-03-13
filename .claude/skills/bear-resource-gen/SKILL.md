@@ -143,15 +143,15 @@ See `references/templates.md` for the test templates.
 Ensure all necessary directories exist:
 
 ```bash
-mkdir -p app/src/Query
-mkdir -p app/src/Entity
-mkdir -p app/src/Resource/App
-mkdir -p app/var/sql
-mkdir -p app/var/phinx/migrations
-mkdir -p app/var/schema/request
-mkdir -p app/var/schema/response
-mkdir -p app/tests/Resource/App
-mkdir -p app/tests/Entity
+mkdir -p src/Query
+mkdir -p src/Entity
+mkdir -p src/Resource/App
+mkdir -p var/sql
+mkdir -p var/phinx/migrations
+mkdir -p var/schema/request
+mkdir -p var/schema/response
+mkdir -p tests/Resource/App
+mkdir -p tests/Entity
 ```
 
 ### Step 11: Summary Output

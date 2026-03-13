@@ -151,14 +151,12 @@ namespace {Namespace}\Entity;
 
 class {Entity}
 {
-    // Add readonly properties for snake_case -> camelCase conversion
+    public readonly string $propertyCamelCase;
 
     public function __construct(
         public readonly string $id,
-        // Add other properties
         string $property_snake_case
     ) {
-        // Convert snake_case to camelCase in constructor
         $this->propertyCamelCase = $property_snake_case;
     }
 }
