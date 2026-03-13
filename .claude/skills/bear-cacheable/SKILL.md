@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-cacheable
-description: Scan resource classes and add cache attributes. Detect resources without cache declarations and apply appropriate attributes.
+description: Scan resource classes and add cache attributes. Detect resources without cache declarations and apply appropriate attributes. Use when user says "add cache", "キャッシュを設定", "Cacheable", "optimize caching", or asks to configure cache attributes for resources.
 ---
 
 # BEAR.Sunday Cache Attribute Addition Skill

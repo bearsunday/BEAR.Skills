@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-documenter
-description: Auto-generate PHPDoc comments for constant classes and resource classes in BEAR.Sunday projects. Infers intent from names, values, and context, and assigns comments with confidence levels.
+description: Auto-generate PHPDoc comments for constant classes and resource classes in BEAR.Sunday projects. Infers intent from names, values, and context, and assigns comments with confidence levels. Use when user says "add PHPDoc", "ドキュメント生成", "document constants", "document resources", or asks to generate documentation comments.
 ---
 
 # Auto Documentation Generation Skill
