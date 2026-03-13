@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-preflight
-description: Comprehensive pre-deployment check. Generates reports for Compile, Security, Performance, and Quality, then determines deployment readiness.
+description: Comprehensive pre-deployment check. Generates reports for Compile, Security, Performance, and Quality, then determines deployment readiness. Use when user says "preflight", "デプロイ前チェック", "deployment readiness", "pre-deploy check", or asks to verify the app is ready for deployment.
 ---
 
 # BEAR.Sunday Preflight Check

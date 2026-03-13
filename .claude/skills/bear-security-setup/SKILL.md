@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-security-setup
-description: Set up bear/security for BEAR.Sunday projects. Configures installation, psalm.xml taint plugin, composer scripts, and GitHub Actions workflow.
+description: Set up bear/security for BEAR.Sunday projects. Configures installation, psalm.xml taint plugin, composer scripts, and GitHub Actions workflow. Use when user says "security setup", "セキュリティ設定", "Psalm taint", "bear/security", or asks to configure security analysis.
 ---
 
 # BEAR.Security Setup Skill

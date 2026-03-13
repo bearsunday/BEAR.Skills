@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-hypermedia
-description: Add #[Link] attributes to resource classes. Use when improving API design.
+description: Add #[Link] attributes to resource classes. Use when user says "add links", "ハイパーメディア", "HATEOAS", "API transitions", or asks to add hypermedia links or improve API design.
 ---
 
 # BEAR.Sunday Hypermedia Implementation Skill

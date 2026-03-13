@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-refactor
-description: Refactoring tool for BEAR.Sunday projects. Provides ResourceObject to static conversion and Named to Qualifier conversion.
+description: Refactoring tool for BEAR.Sunday projects. Provides ResourceObject to static conversion and Named to Qualifier conversion. Use when user says "戻り値をstaticに", "NamedをQualifierに", "modernize return types", "type-safe DI", or asks to refactor resource return types or DI bindings.
 ---
 
 # BEAR.Sunday Refactoring Skill

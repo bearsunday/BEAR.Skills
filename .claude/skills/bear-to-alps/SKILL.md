@@ -1,6 +1,6 @@
 ---
 name: bear-to-alps
-description: Generate ALPS profiles from existing BEAR.Sunday projects. Reads #[Alps] attributes or infers from resource structure to create ALPS profiles. Optionally adds #[Alps] attributes to resources.
+description: Generate ALPS profiles from existing BEAR.Sunday projects. Reads #[Alps] attributes or infers from resource structure to create ALPS profiles. Optionally adds #[Alps] attributes to resources. Use when user says "generate ALPS", "ALPSプロファイル生成", "resource to ALPS", "API documentation", or asks to create an ALPS profile from existing resources.
 user-invocable: true
 ---
 
@@ -31,28 +31,11 @@ A skill that scans existing BEAR.Sunday projects to generate ALPS profiles.
 2. Identify the namespace from composer.json
 3. List the resource classes under src/Resource/
 
-```bash
-# Verify directory structure
-ls -la src/Resource/App/
-ls -la src/Resource/Page/
-
-# Check namespace from composer.json
-cat composer.json | grep -A5 '"autoload"'
-```
-
-### Information Source Priority
-
-When extracting ALPS information, use sources in this priority order:
-
-1. **BEAR.ApiDoc HTML** (most complete) - Generated HTML contains semantic markup with full state transition data. Parse if available at `docs/alps.html` or similar location.
-2. **var/schema/ JsonSchema files** (Ontology + Taxonomy) - Response schemas define properties and types. Request schemas define input parameters.
-3. **PHP source extraction** (Choreography from on* methods, #[Link], templates) - Scan resource classes for methods, parameters, Link attributes, and JsonSchema attributes.
-
-**Note:** This skill performs lightweight extraction from existing files. No `composer install` or dependency installation is required.
+See `references/extraction-tools.md` for verification commands and information source priority.
 
 ### Step 2: Mode Selection
 
-```
+```text
 AskUserQuestion:
   Please select a generation mode:
 
@@ -70,111 +53,22 @@ AskUserQuestion:
 
 Extract the following information from each resource class:
 
-#### 3.1 Reading #[Alps] Attributes
+1. **#[Alps] attributes** - Class level (Taxonomy) and method level (Choreography)
+2. **#[Link] attributes** - Transition destination information
+3. **JsonSchema** - Property definitions from schema files
+4. **Method parameters** - Input parameters as Ontology
 
-```php
-// Read existing #[Alps] attributes
-use BEAR\ApiDoc\Annotation\Alps;
-
-// Class level: Taxonomy (state)
-#[Alps('UserList')]
-class Users extends ResourceObject { }
-
-// Method level: Choreography (transition)
-#[Alps('goUserList')]
-public function onGet(): static { }
-
-#[Alps('doCreateUser')]
-public function onPost(string $userName): static { }
-
-// Multiple #[Alps] attributes (IS_REPEATABLE)
-#[Alps('goUserList')]
-#[Alps('goUserListByAge')]
-public function onGet(?bool $orderByAge = false): static { }
-```
-
-**Handling multiple attributes:**
-- If a method has multiple #[Alps] attributes, extract all of them as Choreography
-- Each transition has the same rt (return type)
-- Output as separate descriptors in the ALPS profile
-
-#### 3.2 Reading #[Link] Attributes
-
-```php
-// Get transition destination information
-#[Link(rel: 'goUser', href: '/user{?id}')]
-#[Link(rel: 'doCreateUser', href: '/users')]
-public function onGet(): static { }
-```
-
-#### 3.3 Reading JsonSchema
-
-```php
-// Get property information
-#[JsonSchema(schema: 'users.json')]
-public function onGet(): static { }
-```
-
-Extract property definitions from the corresponding JsonSchema file (`var/schema/response/users.json`).
-
-#### 3.4 Reading Method Parameters
-
-```php
-// Extract input parameters
-public function onPost(string $userName, string $email): static { }
-// -> Extract userName, email as Ontology
-```
+See `references/extraction-tools.md` for detailed extraction examples and attribute reading patterns.
 
 ### Step 4: Building the ALPS Structure
 
 #### 4.1 Inference from Naming Conventions (when #[Alps] is absent)
 
-| Resource Class | ALPS Taxonomy ID |
-|--------------|-----------------|
-| Users.php | UserList |
-| User.php | UserDetail or User |
-| Products.php | ProductList |
-| Product.php | Product |
-
-| Method | ALPS Choreography ID | Type |
-|---------|---------------------|------|
-| onGet() | go{TaxonomyId} | safe |
-| onPost() | doCreate{Entity} | unsafe |
-| onPut() | doUpdate{Entity} | idempotent |
-| onPatch() | doModify{Entity} | idempotent |
-| onDelete() | doDelete{Entity} or doRemove{Entity} | idempotent |
+See `references/naming-conventions.md` for Taxonomy inference rules, Choreography ID patterns, and rt resolution logic.
 
 #### 4.2 Transition Information from #[Link] and rt Resolution
 
-```php
-#[Link(rel: 'goUser', href: '/user{?id}')]
-// -> ALPS: {"id": "goUser", "type": "safe", "rt": "#UserDetail"}
-```
-
-**rt (return type) resolution logic:**
-
-1. **Identify the resource class from href:**
-   ```
-   /user{?id} -> User.php -> User (Taxonomy ID)
-   /users -> Users.php -> UserList (Taxonomy ID)
-   ```
-
-2. **URI pattern to class name mapping:**
-   | href | Resource Class | Taxonomy ID |
-   |------|---------------|-------------|
-   | /user, /user{?id} | User.php | User |
-   | /users | Users.php | UserList |
-   | /product/{id} | Product.php | Product |
-   | /products | Products.php | ProductList |
-
-3. **rt resolution by transition type:**
-   - `go*` (safe): Taxonomy of the destination
-   - `doCreate*` (unsafe): Taxonomy of the created resource
-   - `doUpdate*` (idempotent): Taxonomy of the updated resource (usually the same)
-   - `doDelete*` (idempotent): Destination after deletion (usually the list)
-
-4. **When the class has an #[Alps] attribute:**
-   Use the #[Alps] value of that class as the Taxonomy ID
+See `references/naming-conventions.md` for rt resolution logic and URI-to-class mapping.
 
 ### Step 5: Generating the ALPS Profile
 
@@ -221,143 +115,26 @@ public function onPost(string $userName, string $email): static { }
 
 ### Step 6: Output and Validation
 
-```bash
-# Save the ALPS profile
-# docs/alps.json
-
-# Validate
-asd --validate docs/alps.json
-
-# Generate HTML
-asd docs/alps.json -o docs/alps.html
-
-# View the state transition diagram
-open docs/alps.html
-```
+See `references/extraction-tools.md` for validation commands and HTML generation.
 
 ### Step 7: Adding #[Alps] Attributes (Add Attributes Mode)
 
-When the user selects "Add Attributes" mode,
-add the inferred ALPS IDs as attributes to resource classes.
+When the user selects "Add Attributes" mode, add the inferred ALPS IDs as attributes to resource classes.
 
-**Before:**
-```php
-<?php
-declare(strict_types=1);
+See `references/alps-attribute-guide.md` for Before/After examples, attribute addition procedures, and #[Link] rel update rules.
 
-namespace MyVendor\MyProject\Resource\App;
+## Mapping Rules
 
-use BEAR\Resource\Annotation\Link;
-use BEAR\Resource\ResourceObject;
-
-class Users extends ResourceObject
-{
-    #[Link(rel: 'user', href: '/user{?id}')]
-    public function onGet(): static
-    {
-        // ...
-    }
-
-    public function onPost(string $userName, string $email): static
-    {
-        // ...
-    }
-}
-```
-
-**After:**
-```php
-<?php
-declare(strict_types=1);
-
-namespace MyVendor\MyProject\Resource\App;
-
-use BEAR\ApiDoc\Annotation\Alps;
-use BEAR\Resource\Annotation\Link;
-use BEAR\Resource\ResourceObject;
-
-#[Alps('UserList')]
-class Users extends ResourceObject
-{
-    #[Alps('goUserList')]
-    #[Link(rel: 'goUser', href: '/user{?id}')]
-    #[Link(rel: 'doCreateUser', href: '/users')]
-    public function onGet(): static
-    {
-        // ...
-    }
-
-    #[Alps('doCreateUser')]
-    public function onPost(string $userName, string $email): static
-    {
-        // ...
-    }
-}
-```
-
-**Notes when adding attributes:**
-
-1. Add use statement: `use BEAR\ApiDoc\Annotation\Alps;`
-2. Add #[Alps] attribute to the class (Taxonomy)
-3. Add #[Alps] attribute to each on* method (Choreography)
-4. Update #[Link] rel to ALPS ID (for consistency)
-
-### Step 8: Updating #[Link] rel
-
-Update the rel of existing #[Link] attributes to ALPS IDs for consistency:
-
-**Before:**
-```php
-#[Link(rel: 'user', href: '/user{?id}')]
-#[Link(rel: 'create', href: '/users')]
-```
-
-**After:**
-```php
-#[Link(rel: 'goUser', href: '/user{?id}')]
-#[Link(rel: 'doCreateUser', href: '/users')]
-```
-
-## Mapping Rules in Detail
-
-### HTTP Method -> ALPS Type
-
-| HTTP Method | ALPS Type | ID Prefix | Description |
-|-------------|-----------|-----------|-------------|
-| GET | safe | go | Safe read operation |
-| POST | unsafe | do | Create new resource (non-idempotent) |
-| PUT | idempotent | do | Full update (idempotent) |
-| PATCH | idempotent | do | Partial update (idempotent) |
-| DELETE | idempotent | do | Delete (idempotent) |
-
-### Resource Class -> Taxonomy
-
-| Class Pattern | Taxonomy ID | Description |
-|--------------|-------------|-------------|
-| {Entity}s.php | {Entity}List | Plural = list |
-| {Entity}.php | {Entity} | Singular = detail (simple form) |
-| Index.php | Home | Top page |
-
-**Taxonomy ID rules for singular resources:**
-- Basic: `User.php` -> `User` (simple)
-- Use `UserDetail` only when explicit distinction is needed
-- Recommended pairing for list and detail: `UserList` / `User`
-- Avoid `{Entity}Detail` as it is redundant
-
-### JsonSchema -> Ontology
-
-| JsonSchema Type | ALPS | schema.org |
-|----------------|------|------------|
-| "type": "string", "format": "email" | email | schema.org/email |
-| "type": "string", "format": "date-time" | dateCreated | schema.org/dateCreated |
-| "type": "integer" | count, quantity | schema.org/Integer |
-| "type": "boolean" | isActive | schema.org/Boolean |
+See `references/naming-conventions.md` for complete mapping tables:
+- HTTP Method -> ALPS Type
+- Resource Class -> Taxonomy
+- JsonSchema -> Ontology
 
 ## Error Handling
 
 ### When No Resource Classes Are Found
 
-```
+```text
 Warning: No resource classes found in src/Resource/App/
 
 Actions:
@@ -368,7 +145,7 @@ Actions:
 
 ### Circular Reference Detection
 
-```
+```text
 Warning: Circular reference detected
   UserList -> goUser -> UserDetail -> goUserList -> UserList
 
@@ -378,7 +155,7 @@ This is acceptable in ALPS. Verify that the state transition diagram has a cycle
 
 ### Orphaned Taxonomy
 
-```
+```text
 Warning: No transitions defined to the following Taxonomy
   - OrphanPage
 
@@ -455,23 +232,6 @@ composer require bear/api-doc (already added or needs to be added)
 1. Review the updated resources
 2. Run tests: composer test
 3. Review the state transition diagram: open docs/alps.html
-```
-
-## Advanced: Consistency Check with Existing #[Alps]
-
-When #[Alps] attributes already exist, check consistency with the generated ALPS:
-
-```
-Consistency check results:
-
-- Users.php #[Alps('UserList')] - OK
-- User.php #[Alps('User')] - OK
-- Product.php #[Alps('ProductDetail')] - Recommended: 'Product'
-  Reason: Singular resources should use the simple '{Entity}' form
-
-Confirm: Do you want to proceed as is?
-  - Yes, proceed as is
-  - No, update to recommended values
 ```
 
 ## References
