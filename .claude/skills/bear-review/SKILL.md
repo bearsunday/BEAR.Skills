@@ -210,6 +210,7 @@ Evaluate each item below. See `references/code-quality-checklist.md` for detaile
 - **Composition over inheritance**: Prefer DI over traits or parent class methods
 - **Provider usage**: Use `toConstructor` for simple bindings; Provider only for complex creation logic
 - **Global references**: No `define` constants or direct static method calls
+- **Entrypoint/context separation**: Entrypoints choose Bootstrap/default context; `APP_CONTEXT` is only an override; modules keep Fake, diagnostics, and presentation separate
 
 #### HTTP and REST Patterns
 

@@ -181,6 +181,17 @@ Next steps: run migration, run tests, fix coding standards.
 - **CQRS**: Separate Query (read) and Command (write) interfaces
 - **DIP**: Interfaces define contracts, SQL files are implementation details
 
+## Entrypoint / Bootstrap / Context
+
+For BEAR.Sunday applications, keep request execution and DI mode separate:
+
+- Thin entrypoints (`bin/app.php`, `bin/page.php`, `public/index.php`) call `Bootstrap` with a fixed default context.
+- `APP_CONTEXT` is an escape hatch for temporary override, not the primary user-facing API.
+- `Bootstrap` owns request execution: method, path/query parsing, router match, resource invocation, and response transfer.
+- Context names should describe DI composition only (for example HAL API vs Page/HTML, fake/test/prod bindings), not method/path/query.
+- Human-facing CLI input should stay request-shaped, e.g. `php bin/app.php get '/article?id=1'` or `composer app -- get '/article?id=1'`.
+- Do not mix Fake, Dev diagnostics, and Page/HTML concerns in one module: keep FakeQuery bindings, diagnostics/logging, and renderer/session presentation as separate modules that contexts compose.
+
 ## Troubleshooting
 
 - If namespace detection fails, ask user for vendor and project name
