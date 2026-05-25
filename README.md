@@ -64,6 +64,8 @@ cp -r BEAR.Skills/skills/ /path/to/your/project/.claude/skills/
 
 ```text
 /bear-review
+/bear-clean-style-consultant
+/bear-clean-style
 ```
 
 Or describe your task naturally - Claude will automatically select the appropriate skill.
@@ -94,6 +96,8 @@ Or describe your task naturally - Claude will automatically select the appropria
 
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
+| `bear-clean-style-consultant` | Plan clean-style and semantic-refactor batches | "Should this project apply BEAR clean style?" |
+| `bear-clean-style` | Apply BEAR clean-style refactors | "Apply Level 1 clean-style cleanup" |
 | `bear-refactor` | Refactoring tools | "Convert Named to Qualifier" |
 
 ### Documentation
@@ -129,6 +133,8 @@ BEAR.Skills/
 ├── .claude/skills/      # Development
 ├── skills/              # Distribution (plugin)
 │   ├── bear-cacheable/
+│   ├── bear-clean-style/
+│   ├── bear-clean-style-consultant/
 │   ├── bear-documenter/
 │   ├── bear-from-alps/
 │   ├── bear-hypermedia/
