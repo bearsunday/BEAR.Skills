@@ -103,6 +103,48 @@ interface RankingQueryInterface
 }
 ```
 
+
+## Entrypoint / Bootstrap / Context Separation
+
+BEAR.Sunday entrypoints should be thin and explicit. The entrypoint chooses the default context and Bootstrap; request data stays in method/path/query.
+
+```php
+// ✅ Recommended: context is fixed by the entrypoint
+exit((new Bootstrap())('cli-hal-api-app', $GLOBALS, $_SERVER));
+
+// ✅ OK: diagnostics can be a Bootstrap option or another Bootstrap
+exit((new Bootstrap(loggable: true))('cli-dev-hal-api-app', $GLOBALS, $_SERVER));
+```
+
+```bash
+# ✅ Recommended: request-shaped CLI input
+php bin/app.php get '/article?id=1'
+composer app -- get '/article?id=1'
+```
+
+Avoid making `APP_CONTEXT` the normal human-facing command surface. Treat it as an escape hatch for CI, local experiments, or temporary overrides.
+
+```bash
+# ⚠️ Override only, not the usual documented path
+APP_CONTEXT=cli-prod-hal-api-app php bin/app.php get '/article?id=1'
+```
+
+Keep module concerns separate and compose them by context:
+
+| Concern | Module responsibility |
+|---------|-----------------------|
+| Fake data/query backend | FakeQuery / fake external services only |
+| Development diagnostics | logging, tracing, debug instrumentation |
+| Page/HTML presentation | renderer, templates, web session adapters |
+| Production | real SQL, production session/CSRF/infrastructure |
+
+Review warning signs:
+
+- `HtmlModule` installs `FakeModule` directly.
+- `DevModule` means FakeQuery instead of diagnostics.
+- Resource or module code parses method/path/query from `APP_CONTEXT`.
+- Normal README commands require a long `APP_CONTEXT=...` prefix instead of `bin/*.php` or composer scripts.
+
 ## Detecting Unused Embed
 
 When fetching other resources with `$this->resource->get()` and setting them to `$this->body`,

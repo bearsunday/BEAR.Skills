@@ -1,10 +1,23 @@
 ---
 user-invocable: true
 name: bear-review
-description: Evaluate PHP code quality for BEAR.Sunday projects. Assess using PHPMD metrics (CC, NPath, parameter count, field count) and BEAR.Sunday-specific criteria (resource design, DI, type safety). Use when user says "code review", "コードレビュー", "quality check", "品質チェック", "PHPMD", or asks to review code quality.
+description: Evaluate PHP code quality for BEAR.Sunday projects. Assess using PHPMD metrics (CC, NPath, parameter count, field count) and BEAR.Sunday-specific criteria (resource design, DI, type safety). Use when user says "code review", "コードレビュー", "quality check", "品質チェック", "PHPMD", "ignore baseline", "without baseline", "no baseline", "baselineなし", or asks to review code quality.
 ---
 
 # BEAR.Sunday Code Review Skill
+
+## Invocation Modes
+
+This skill runs in one of two modes. Pick the mode that matches the user's request:
+
+| Mode | Trigger | Behavior |
+|------|---------|----------|
+| **With baseline** (default) | "code review", "コードレビュー", "PHPMD", or no mode hint | Use `phpmd.baseline.xml` if present. Reports the currently-actionable violations after suppression. |
+| **Without baseline** | "ignore baseline", "no baseline", "without baseline", "baselineなし", "真の状態", "--ignore-baseline", "--no-baseline" | Temporarily disable `phpmd.baseline.xml` to reveal hidden technical debt. See the rename/restore procedure in §1.1. |
+
+Always state the active mode at the top of the report (see Output Format) so the reader knows whether suppressed warnings are included.
+
+When in "without baseline" mode and `phpmd.baseline.xml` exists, run §1.1's full statistics workflow rather than the single-file command in §1 — the value of disabling the baseline comes from aggregated counts.
 
 ## Evaluation Procedure
 
@@ -15,6 +28,8 @@ Retrieve metrics with the following command:
 ```bash
 ./vendor-bin/tools/vendor/bin/phpmd [file-path] text codesize,design 2>/dev/null | grep -v "^Deprecated"
 ```
+
+This honors `phpmd.baseline.xml` if present. For "without baseline" mode, follow §1.1.
 
 ### 1.1 Automatic Statistics Report Generation (Recommended)
 
@@ -204,12 +219,14 @@ Evaluate each item below. See `references/code-quality-checklist.md` for detaile
 - **Debug code**: No `error_log()`, `var_dump()`, `print_r()`; use LoggerInterface
 - **File size**: Under 200 lines good; over 400 lines excessive
 - **Method arguments**: Use explicit scalar arguments or `#[Input]` + DTO, not `array<string, mixed>`
+- **Trivial getters**: Avoid methods that only return a stored field (`return $this->x;`). Prefer public readonly properties for value/context/BDR objects; keep methods only for behaviour, framework contracts, validation, lazy creation, transformation, I/O, or throws.
 - **Web context**: No superglobal access; use `#[QueryParam]`, `#[CookieParam]` attributes
 - **ResourceParam**: Use `#[ResourceParam]` for inter-resource dependencies instead of procedural fetching
 - **File upload**: Use `#[UploadFiles]` instead of `$_FILES`
 - **Composition over inheritance**: Prefer DI over traits or parent class methods
 - **Provider usage**: Use `toConstructor` for simple bindings; Provider only for complex creation logic
 - **Global references**: No `define` constants or direct static method calls
+- **Entrypoint/context separation**: Entrypoints choose Bootstrap/default context; `APP_CONTEXT` is only an override; modules keep Fake, diagnostics, and presentation separate
 
 #### HTTP and REST Patterns
 
@@ -232,6 +249,9 @@ Evaluate validation, AOP, caching, and authentication patterns. See `references/
 
 ```text
 ## File Evaluation: [file-path]
+
+**Mode:** With baseline | Without baseline
+**Baseline status:** present (N violations suppressed) | absent | disabled for this run
 
 ### PHPMD Metrics
 
