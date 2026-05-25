@@ -1,14 +1,14 @@
 ---
 user-invocable: true
 name: bear-refactor
-description: Refactoring tool for BEAR.Sunday projects. Provides ResourceObject to static conversion and Named to Qualifier conversion. Use when user says "戻り値をstaticに", "NamedをQualifierに", "modernize return types", "type-safe DI", or asks to refactor resource return types or DI bindings.
+description: Refactoring tool for BEAR.Sunday projects. Provides ResourceObject to static conversion, Named to Qualifier conversion, and trivial getter removal. Use when user says "戻り値をstaticに", "NamedをQualifierに", "getterを外す", "modernize return types", "type-safe DI", or asks to refactor resource return types, value objects, BDR objects, or DI bindings.
 ---
 
 # BEAR.Sunday Refactoring Skill
 
 ## Overview
 
-A refactoring tool that converts BEAR.Sunday project code to modern syntax. Provides the following two operations.
+A refactoring tool that converts BEAR.Sunday project code to modern syntax. Provides the following operations.
 
 ## 1. ResourceObject to static Bulk Conversion
 
@@ -237,3 +237,72 @@ src/Annotation/
 - [ ] Update NamedModule configuration
 - [ ] Format code with `composer cs-fix`
 - [ ] Run tests to verify functionality
+
+## 3. Remove Trivial Getter Methods
+
+In BEAR/Be code, a method should represent behaviour or a boundary operation.
+A method that only returns a stored value is not behaviour:
+
+```php
+// Avoid
+public function adminId(): string|null
+{
+    return $this->adminId;
+}
+```
+
+Prefer a readonly value/context object with public properties:
+
+```php
+abstract readonly class AdminSession
+{
+    /** @param non-empty-string|null $adminId */
+    public function __construct(
+        public string|null $adminId,
+    ) {
+    }
+}
+```
+
+Use methods only when there is behaviour or a framework contract:
+
+- ✅ `isValid($token)`, `assertUnique()`, `changedCount()` when it computes, checks, throws, or expresses a domain operation.
+- ✅ `ProviderInterface::get()` because the interface requires it.
+- ❌ `exists()`, `value()`, `adminId()`, `customerId()`, `getToken()` when they just return a field.
+
+### PHP Version Note
+
+If the project supports PHP 8.3, do not model this as an interface property.
+Use a concrete or abstract readonly value/context class instead. PHP interface
+properties are a PHP 8.4+ feature and are not safe for PHP 8.3 projects.
+
+### Detection
+
+Before finishing a refactor, scan for trivial getters:
+
+```bash
+python3 - <<'PY'
+import re
+from pathlib import Path
+
+pat = re.compile(
+    r'public function (\w+)\s*\([^)]*\)\s*:\s*[^{]+\{\s*return \$this->(\w+);\s*\}',
+    re.S,
+)
+
+for base in ['src', 'be/src', 'tests/Fake']:
+    root = Path(base)
+    if not root.exists():
+        continue
+    for file in root.rglob('*.php'):
+        text = file.read_text()
+        for match in pat.finditer(text):
+            print(f'{file}: {match.group(1)} -> {match.group(2)}')
+PY
+```
+
+Any output needs an explicit reason to remain. Acceptable reasons are:
+
+- It implements a third-party/framework interface.
+- It performs validation, lazy creation, transformation, I/O, or throws.
+- It preserves a public API that cannot be changed in the current task.

@@ -219,6 +219,7 @@ Evaluate each item below. See `references/code-quality-checklist.md` for detaile
 - **Debug code**: No `error_log()`, `var_dump()`, `print_r()`; use LoggerInterface
 - **File size**: Under 200 lines good; over 400 lines excessive
 - **Method arguments**: Use explicit scalar arguments or `#[Input]` + DTO, not `array<string, mixed>`
+- **Trivial getters**: Avoid methods that only return a stored field (`return $this->x;`). Prefer public readonly properties for value/context/BDR objects; keep methods only for behaviour, framework contracts, validation, lazy creation, transformation, I/O, or throws.
 - **Web context**: No superglobal access; use `#[QueryParam]`, `#[CookieParam]` attributes
 - **ResourceParam**: Use `#[ResourceParam]` for inter-resource dependencies instead of procedural fetching
 - **File upload**: Use `#[UploadFiles]` instead of `$_FILES`
