@@ -35,9 +35,18 @@ Use `bear-clean-style-consultant` first when the user is still deciding whether 
    - Detect namespace, resource layout, SQL layout, test layout, composer scripts, and existing uncommitted changes.
    - Determine requested level. If unclear, default to the narrowest level that satisfies the user’s explicit request.
 
-2. **Load the rule catalogue**
-   - Read `references/clean-style-conventions.md` for conventions and examples.
-   - Prefer project-local conventions when they intentionally conflict with this style. Surface conflicts rather than silently overriding them.
+2. **Load only the rule files you need (progressive disclosure)**
+   - Start with `references/clean-style-conventions.md` — the index. It defines Levels and architecture; do not read other files until classification picks them.
+   - Then load topic files matching the change. The index lists them; common pairings:
+     - Renaming methods/files/properties → `naming.md`
+     - `on*` handler bodies, status codes, exceptions, pagination, named args → `resource-patterns.md`
+     - `#[Embed]`/`#[Link]` or workflow tests → `hypermedia.md`
+     - `#[Cacheable]` decisions → `cache.md`
+     - Insert paths, SQL projections, entity constructors → `data-contract.md`
+     - POST/PUT signature design, `#[Validate]` → `input-validation.md`
+     - Loop-local domain branching in templates → `template-projection.md`
+     - Test layers and quality gates → `tests.md`
+   - Prefer project-local conventions when they intentionally conflict with this style. Surface conflicts rather than silently overriding them (see "Conflict reporting" below).
 
 3. **Scan and classify candidates**
    - Optional broad scan from the target project root:
@@ -62,38 +71,30 @@ Use `bear-clean-style-consultant` first when the user is still deciding whether 
    - Run the narrowest meaningful project checks first: targeted PHPUnit, smoke tests, composer scripts, static analysis, or syntax checks.
    - If checks cannot run, report why and what remains unverified.
 
-## Template Projection Lift
+## Conflict reporting
 
-Use this Level 3 refactor when Qiq/Twig/PHP templates contain loop-local domain branching or display computations that belong to a read-side projection.
+This style is opinionated and not universal. When project-local guidance (`AGENTS.md`, `CLAUDE.md`, `docs/conventions.md`, coding-standard files, or in-code comments marked as deliberate decisions) contradicts a clean-style rule, **defer to the project** and report the conflict — do not silently override it.
 
-Good candidates:
+Surface every conflict explicitly in the final report:
 
-- `foreach` over entities with repeated `if ($article->isPublished())`, `summary()`, `publishedAtLabel()`, URL/date/relative-time calculations, or `continue`-style filters.
-- The same card/feed/list item display logic duplicated across multiple templates.
-- Template loops that can read better as `foreach ($articles->published() as $article)` or `foreach ($articles->feed($now) as $item)`.
+```markdown
+## 規約衝突 (Convention conflicts)
 
-Preferred shape:
-
-```php
-interface ArticleSelectionQueryInterface
-{
-    #[DbQuery('article_selection_list', factory: ArticleFactory::class)]
-    public function list(string|null $status = null): ArticleSelection;
-}
+| Project rule | Clean-style rule | Source | Resolution | Action |
+|---|---|---|---|---|
+| Resource handlers may return `ResourceObject` for legacy types | Use `static` return type | `docs/conventions.md:42` | Followed project rule | Not applied |
+| Generic `RuntimeException` accepted in `src/Boot` | Domain-named subclass under `Exception\` | `AGENTS.md:118` | Followed project rule | Not applied for `src/Boot`; applied elsewhere |
 ```
 
-```php
-final readonly class ArticleSelection implements IteratorAggregate, Countable
-{
-    /** @return Generator<int, Article> */
-    public function published(): Generator { /* yield filtered rows */ }
+Rules:
 
-    /** @return Generator<int, ArticleFeedItem> */
-    public function feed(DateTimeImmutable|null $now = null): Generator { /* yield read models */ }
-}
-```
+- One row per distinct conflict, with the project source cited as `path:line`.
+- "Resolution" is always **Followed project rule** unless the user explicitly overrode it in the current request.
+- "Action" names the candidates that were left unchanged because of the conflict.
+- If a conflict scope is partial (e.g. project rule only covers `src/Boot`), the action row says exactly where the project rule wins and where the clean style was still applied.
+- Do not edit project-local docs to align them with this style. Surface, defer, move on.
 
-Do not remove every template `if`. Keep presentation-local conditions such as empty-list messages, selected form options, validation error display, layout/auth toggles, and Page not-found guards in the template when they are clearer there.
+If no conflicts were found, omit the section.
 
 ## Output format for report-only or dry-run requests
 
@@ -109,8 +110,10 @@ Do not remove every template `if`. Keep presentation-local conditions such as em
 2. Level 2 contract/test hardening
 3. Level 3 semantic refactor slice
 
+## 規約衝突
+(see Conflict reporting — omit when empty)
+
 ## Notes
-- Project-local convention conflicts: ...
 - Checks not run: ...
 ```
 
@@ -119,4 +122,5 @@ Do not remove every template `if`. Keep presentation-local conditions such as em
 - Summarize changed files by level/category.
 - Mention behaviour-preserving assumptions.
 - Report exact verification commands and results.
+- Include the **規約衝突** section when any candidate was skipped because of a project-local conflict.
 - Do not commit, release, bump versions, push, or open PRs unless explicitly requested.

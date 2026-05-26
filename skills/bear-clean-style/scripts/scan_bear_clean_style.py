@@ -74,6 +74,195 @@ def find_resource_patterns(root: Path) -> list[Finding]:
     return findings
 
 
+
+_CODE_NOT_FOUND_PATTERN = re.compile(
+    r"\$this->code\s*=\s*(?:"
+    r"404\b"
+    r"|(?:\\?[A-Za-z_][A-Za-z0-9_]*\\)*Code::NOT_FOUND\b"
+    r"|(?:\\?[A-Za-z_][A-Za-z0-9_]*\\)*StatusCode::NOT_FOUND\b"
+    r")"
+)
+
+
+def _template_prefix_before_html(text: str, max_lines: int = 30) -> str:
+    """Return the initial PHP-only template prefix before visible output."""
+    lines = text.splitlines(keepends=True)[:max_lines]
+    prefix: list[str] = []
+    in_php = False
+    for line in lines:
+        stripped = line.strip()
+        if not in_php:
+            if stripped == "":
+                prefix.append(line)
+                continue
+            if stripped.startswith("<?php"):
+                in_php = True
+                prefix.append(line)
+                if "?>" in line and line.split("?>", 1)[1].strip():
+                    break
+                continue
+            break
+
+        prefix.append(line)
+        if "?>" in line:
+            break
+    return "".join(prefix)
+
+
+def find_page_template_not_found_guard(root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    page_dir = root / "src" / "Resource" / "Page"
+    if not page_dir.exists():
+        return findings
+
+    for path in sorted(page_dir.glob("*.php")):
+        text = path.read_text(errors="ignore")
+        if not _CODE_NOT_FOUND_PATTERN.search(text):
+            continue
+
+        entity = path.stem
+        template_path = root / "templates" / "Page" / f"{entity}.php"
+        if not template_path.exists():
+            continue
+
+        exception = f"{entity}NotFoundException"
+        guard_pattern = re.compile(
+            r"throw\s+new\s+(?:\\?[A-Za-z_][A-Za-z0-9_]*\\)*" + re.escape(exception) + r"\b"
+        )
+        prefix = _template_prefix_before_html(template_path.read_text(errors="ignore"))
+        if guard_pattern.search(prefix):
+            continue
+
+        findings.append(Finding(
+            "P2", rel(root, template_path), None,
+            f"NOT_FOUND Page template lacks a top-of-file {exception} guard.",
+            f"Throw {exception} before template HTML output when the Page resource sets a 404 status (literal 404 or Code::NOT_FOUND).",
+        ))
+    return findings
+
+
+_COMMAND_INTERFACE_PARAM = re.compile(
+    r"\bprivate\s+(?:readonly\s+)?(?:\?\s*)?"
+    r"(?P<type>(?:\\?[A-Za-z_][A-Za-z0-9_]*\\)*[A-Za-z_][A-Za-z0-9_]*CommandInterface)"
+    r"\s+\$(?P<name>[A-Za-z_][A-Za-z0-9_]*)"
+)
+_GENERIC_COMMAND_PROPERTY_NAMES = {"cmd", "command", "commands"}
+
+
+def _method_parameter_span(text: str, method_name: str) -> tuple[int, int] | None:
+    m = re.search(r"\bfunction\s+" + re.escape(method_name) + r"\s*\(", text)
+    if not m:
+        return None
+
+    start = text.find("(", m.start())
+    depth = 0
+    quote: str | None = None
+    escape = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if quote is not None:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == quote:
+                quote = None
+            continue
+        if ch in {"'", '"'}:
+            quote = ch
+            continue
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return start + 1, i
+    return None
+
+
+def find_command_interface_property_names(root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    for path in php_files(root, "src", "Resource"):
+        text = path.read_text(errors="ignore")
+        span = _method_parameter_span(text, "__construct")
+        if span is None:
+            continue
+        params_start, params_end = span
+        params = text[params_start:params_end]
+        for m in _COMMAND_INTERFACE_PARAM.finditer(params):
+            name = m.group("name")
+            if name.endswith("Cmd") or name in _GENERIC_COMMAND_PROPERTY_NAMES:
+                continue
+            type_base = m.group("type").lstrip("\\").split("\\")[-1]
+            entity = type_base.removesuffix("CommandInterface")
+            expected = f"{entity[:1].lower()}{entity[1:]}Cmd"
+            findings.append(Finding(
+                "P2", rel(root, path), line_no(text, params_start + m.start()),
+                f"Constructor-promoted {type_base} property '${name}' does not use the Cmd suffix.",
+                f"Rename the Resource property to ${expected} (or <entity><Role>Cmd for link-table writes) per Resource property naming.",
+            ))
+    return findings
+
+
+def _class_body_span(text: str) -> tuple[int, int] | None:
+    m = re.search(r"\bclass\s+\w+", text)
+    if not m:
+        return None
+    start = text.find("{", m.end())
+    if start < 0:
+        return None
+
+    depth = 0
+    quote: str | None = None
+    escape = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if quote is not None:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == quote:
+                quote = None
+            continue
+        if ch in {"'", '"'}:
+            quote = ch
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return start + 1, i
+    return None
+
+
+def find_private_method_order(root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    private_pattern = re.compile(r"^\s*private\s+(?:static\s+)?function\s+\w+\s*\(", re.M)
+    public_pattern = re.compile(r"^\s*public\s+(?:static\s+)?function\s+(\w+)\s*\(", re.M)
+    for path in php_files(root, "src", "Resource"):
+        text = path.read_text(errors="ignore")
+        span = _class_body_span(text)
+        if span is None:
+            continue
+        body_start, body_end = span
+        body = text[body_start:body_end]
+        private_methods = list(private_pattern.finditer(body))
+        public_methods = [m for m in public_pattern.finditer(body) if m.group(1) != "__construct"]
+        if not private_methods or not public_methods:
+            continue
+        first_private = private_methods[0]
+        last_public = public_methods[-1]
+        if first_private.start() >= last_public.start():
+            continue
+        findings.append(Finding(
+            "P3", rel(root, path), line_no(text, body_start + first_private.start()),
+            "Private helper method appears before a later public method.",
+            "Move private helpers after all public resource methods, keeping __construct before handlers.",
+        ))
+    return findings
+
 def find_entity_patterns(root: Path) -> list[Finding]:
     findings: list[Finding] = []
     for path in php_files(root, "src", "Entity"):
@@ -462,7 +651,10 @@ def main() -> int:
 
     findings: list[Finding] = []
     findings.extend(find_resource_patterns(root))
+    findings.extend(find_page_template_not_found_guard(root))
     findings.extend(find_resource_method_order(root))
+    findings.extend(find_command_interface_property_names(root))
+    findings.extend(find_private_method_order(root))
     findings.extend(find_entity_patterns(root))
     findings.extend(find_query_patterns(root))
     findings.extend(find_sql_patterns(root))
