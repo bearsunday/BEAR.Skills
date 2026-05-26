@@ -1,7 +1,18 @@
 ---
 user-invocable: true
 name: bear-clean-style
-description: Apply opinionated BEAR.Sunday clean-style refactors derived from MyVendor.Cms (Level 1 mechanical cleanup, Level 2 contract/test hardening, Level 3 semantic refactors: BDR/Ray.MediaQuery, Query/Command split, Result Generator projections, Input DTOs, JsonSchema, ALPS/HAL Link/Embed, smoke tests, SQLQuality, PHPMD, FileUpload, ResourceObject body/status, #[Cacheable] Shape A/B, #[Pager] pagination, #[Validate] application validation, hypermedia workflow tests). Use when user says "clean style", "clean-style", "クリーンスタイル", "MyVendor.Cms style", "apply clean style", "Level 1/2/3 cleanup", "BDR refactor", "Template Projection Lift", or asks to align an existing BEAR.Sunday project with the clean-style conventions. Treat as project style, not framework law.
+description: >-
+  Apply opinionated BEAR.Sunday clean-style refactors derived from MyVendor.Cms
+  (Level 1 mechanical cleanup, Level 2 contract/test hardening, Level 3 semantic
+  refactors — BDR/Ray.MediaQuery, Query/Command split, Result Generator
+  projections, Input DTOs, JsonSchema, ALPS/HAL Link/Embed, smoke tests,
+  SQLQuality, PHPMD, FileUpload, ResourceObject body/status, Cacheable Shape
+  A/B, Pager pagination, Validate application validation, hypermedia workflow
+  tests). Use when user says "clean style", "clean-style", "クリーンスタイル",
+  "MyVendor.Cms style", "apply clean style", "Level 1/2/3 cleanup", "BDR
+  refactor", "Template Projection Lift", or asks to align an existing
+  BEAR.Sunday project with the clean-style conventions. Treat as project style,
+  not framework law.
 ---
 
 # BEAR Clean Style
