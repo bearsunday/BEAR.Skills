@@ -390,7 +390,7 @@ def _outer_select_clause(sql: str) -> str | None:
             depth += 1
         elif ch == ")":
             depth -= 1
-        elif depth == 0 and text[i:i + 4].upper() == "FROM" and (i + 4 == n or not text[i + 4].isalnum() and text[i + 4] != "_"):
+        elif depth == 0 and text[i:i + 4].upper() == "FROM" and (i + 4 == n or (not text[i + 4].isalnum() and text[i + 4] != "_")):
             return text[sel.end():i]
         i += 1
     return None

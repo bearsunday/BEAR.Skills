@@ -15,7 +15,7 @@ Same vocabulary across attribute, signature, SQL filename, and property name. `#
 | Primary-key item | `item(int $id)` | `<entity>_item` / `<entity>_item.sql` |
 | Natural key item | `bySlug`, `byEmail`, `byFilename` | `<entity>_by_slug.sql` etc. |
 | Collection | `list()` | `<entity>_list.sql` |
-| Filtered collection | `listBy<Article|Author|...>()` | `<entity>_list_by_<x>.sql` |
+| Filtered collection | `listBy<Article\|Author\|...>()` | `<entity>_list_by_<x>.sql` |
 
 `item` (canonical PK lookup) and `by<NaturalKey>` (alternate access path) are intentionally distinct shapes: PK is the technical identity handle, natural keys (`slug`, `email`, `filename`) are domain-meaningful alternates. `item` ↔ `list` form a lexical pair that mirrors BEAR's resource shapes (`Article` item ↔ `Articles` collection).
 
