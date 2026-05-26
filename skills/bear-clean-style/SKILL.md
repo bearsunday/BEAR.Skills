@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-clean-style
-description: Opinionated BEAR.Sunday clean-style refactoring skill. Use when asked to apply, implement, clean up, modernize, refactor, migrate, or align BEAR.Sunday PHP code with MyVendor.Cms-derived conventions such as Level 1 mechanical cleanup, Level 2 contract/test hardening, Level 3 semantic refactors, BDR/Ray.MediaQuery, Query/Command split, Result Generator projections, Input DTOs, JsonSchema, ALPS/HAL Link/Embed, smoke tests, SQLQuality, PHPMD, FileUpload, and ResourceObject body/status patterns. Treat this as a project style, not an absolute framework rule.
+description: Apply opinionated BEAR.Sunday clean-style refactors derived from MyVendor.Cms (Level 1 mechanical cleanup, Level 2 contract/test hardening, Level 3 semantic refactors: BDR/Ray.MediaQuery, Query/Command split, Result Generator projections, Input DTOs, JsonSchema, ALPS/HAL Link/Embed, smoke tests, SQLQuality, PHPMD, FileUpload, ResourceObject body/status, #[Cacheable] Shape A/B, #[Pager] pagination, #[Validate] application validation, hypermedia workflow tests). Use when user says "clean style", "clean-style", "クリーンスタイル", "MyVendor.Cms style", "apply clean style", "Level 1/2/3 cleanup", "BDR refactor", "Template Projection Lift", or asks to align an existing BEAR.Sunday project with the clean-style conventions. Treat as project style, not framework law.
 ---
 
 # BEAR Clean Style
@@ -24,9 +24,9 @@ Use `bear-clean-style-consultant` first when the user is still deciding whether 
 
 | Level | Name | Apply when | Typical changes |
 |---|---|---|---|
-| 1 | Surface cleanup | User asks for safe cleanup or “名前だけ/returnだけ” | `ResourceObject` return type to `static`, literal `$this->body`, method order, dependency property naming, Query/Command/SQL naming alignment |
-| 2 | Contract and QA hardening | User asks for schemas, docs, tests, or confidence before migration | JsonSchema in/out, body array-shape PHPDoc, ALPS IDs, `#[Link]`/`#[Embed]` rel cleanup, ApiDoc/OpenAPI output, hypermedia tests, SQL smoke, Resource smoke, SQLQuality, PHPMD complexity gates |
-| 3 | Semantic refactor | User asks for BDR, architecture, projection, or “semantic” migration | BDR/Ray.MediaQuery adoption, Query/Command split, `src/Result/*`, typed SELECT results, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert |
+| 1 | Surface cleanup | User asks for safe cleanup or “名前だけ/returnだけ” | `ResourceObject` return type to `static`, literal `$this->body`, method order, dependency property naming, Query/Command/SQL naming alignment, removing generic `LogicException`/`RuntimeException` in favour of domain exceptions |
+| 2 | Contract and QA hardening | User asks for schemas, docs, tests, or confidence before migration | JsonSchema in/out, body array-shape PHPDoc, ALPS IDs, `#[Link]`/`#[Embed]` rel cleanup, ApiDoc/OpenAPI output, hypermedia workflow + HAL contract tests, SQL smoke, Resource smoke, SQLQuality, PHPMD complexity gates, `#[Validate]` for stateful invariants, Page not-found template guard |
+| 3 | Semantic refactor | User asks for BDR, architecture, projection, or “semantic” migration | BDR/Ray.MediaQuery adoption, Query/Command split, `src/Result/*`, typed SELECT results, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert, `#[Pager]`/`PagesInterface` pagination, `#[Cacheable]` Shape A/B normalization |
 
 ## Workflow
 

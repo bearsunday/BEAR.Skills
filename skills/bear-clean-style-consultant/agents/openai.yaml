@@ -1,4 +1,0 @@
-interface:
-  display_name: "BEAR Clean Style Consultant"
-  short_description: "BEAR.Sunday clean style適用方針を相談"
-  default_prompt: "Use $bear-clean-style-consultant to evaluate which BEAR clean-style or semantic-refactor level should be applied and propose safe batches without editing code."

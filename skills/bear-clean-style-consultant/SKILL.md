@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-clean-style-consultant
-description: Consultation and migration-planning skill for BEAR.Sunday clean style and semantic refactors. Use when asked whether to apply BEAR clean style, how to split Level 1-3 changes, whether a ResourceClient call should become GET Embed, whether template loop/if logic should move to Result Generator projections, whether to use BDR, Input DTOs, AffectedRows, JsonSchema, ALPS/HAL, smoke tests, SQLQuality, PHPMD, or which BEAR execution skill should be used next. This skill does not edit code.
+description: Plan BEAR.Sunday clean-style and semantic-refactor batches without editing code. Decide whether to apply BEAR clean style, how to split Level 1/2/3 changes, whether a ResourceClient call should become a GET #[Embed], whether template loops should become Result Generator projections, when to adopt BDR/Input DTOs/AffectedRows/JsonSchema/ALPS-HAL/smoke tests/SQLQuality/PHPMD, and which execution skill should run next. Use when user says "should we apply clean style", "clean style consultant", "クリーンスタイル相談", "migration plan", "リファクタ方針", "どのレベルか", "Embedにすべきか", "Level判定", or asks for advice before implementation. Read-only skill — does not edit files.
 ---
 
 # BEAR Clean Style Consultant

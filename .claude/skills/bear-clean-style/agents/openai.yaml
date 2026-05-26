@@ -1,4 +1,0 @@
-interface:
-  display_name: "BEAR Clean Style"
-  short_description: "BEAR.Sundayコードをclean styleへ実行リファクタ"
-  default_prompt: "Use $bear-clean-style to apply focused BEAR.Sunday clean-style refactors to this project."
