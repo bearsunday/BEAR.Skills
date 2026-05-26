@@ -1,6 +1,11 @@
 ---
 name: bear-to-alps
-description: Generate ALPS profiles from existing BEAR.Sunday projects. Reads #[Alps] attributes or infers from resource structure to create ALPS profiles. Optionally adds #[Alps] attributes to resources. Use when user says "generate ALPS", "ALPSプロファイル生成", "resource to ALPS", "API documentation", or asks to create an ALPS profile from existing resources.
+description: >-
+  Generate ALPS profiles from existing BEAR.Sunday projects. Reads #[Alps]
+  attributes or infers from resource structure to create ALPS profiles.
+  Optionally adds #[Alps] attributes to resources. Use when user says
+  "generate ALPS", "ALPSプロファイル生成", "resource to ALPS", "API
+  documentation", or asks to create an ALPS profile from existing resources.
 user-invocable: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-smoke-test
-description: Generate a 4-layer smoke test suite for BEAR.Sunday projects. Covers SQL, Query/Command, Resource, and Workflow layers.
+description: Generate a 4-layer smoke test suite for BEAR.Sunday projects covering SQL, Query/Command, Resource, and Workflow layers. Use when user says "smoke test", "スモークテスト", "smoke tests", "wiring test", "generate smoke tests", "全体テスト", or asks for end-to-end wiring/coverage tests across the resource stack.
 ---
 
 # BEAR.Sunday Smoke Test Generation Skill
