@@ -1,7 +1,7 @@
 {
   "name": "bear-skills",
   "description": "Claude Skills for BEAR.Sunday resource-oriented framework. Includes resource generation, code review, security setup, and more.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "BEAR.Sunday",
     "email": "akihito.koriyama@gmail.com"
