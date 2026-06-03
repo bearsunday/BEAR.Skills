@@ -153,6 +153,7 @@ The three levels are stacked by risk — go top-down on a legacy project, not bo
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
 | `bear-documenter` | PHPDoc auto-generation | "Document this class" |
+| `bear-audit-fix` | Fix BEAR.ApiDoc audit gaps | "Fix the documentation audit findings" |
 
 ### Resource Enhancement
 
@@ -180,6 +181,7 @@ The three levels are stacked by risk — go top-down on a legacy project, not bo
 BEAR.Skills/
 ├── .claude/skills/      # Development
 ├── skills/              # Distribution (plugin)
+│   ├── bear-audit-fix/
 │   ├── bear-cacheable/
 │   ├── bear-clean-style/
 │   ├── bear-clean-style-consultant/
