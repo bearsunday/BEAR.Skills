@@ -13,7 +13,9 @@ description: >-
 
 Add `#[Link]` to resource classes to declare navigable actions.
 
-For workflow tests based on hypermedia links, use `/bear-smoke-test`.
+Workflow tests are selected from ALPS tags and implemented as hypermedia
+stories. Smoke tests check endpoint liveness; hypermedia tests execute a user
+story across linked resources.
 
 ## Procedure
 
@@ -37,6 +39,26 @@ use BEAR\Resource\Annotation\Link;
 #[Link(rel: 'comments', href: '/article/{id}/comments')]
 public function onGet(int $id): static
 ```
+
+## ALPS Tags Before Workflow Tests
+
+Before designing hypermedia workflow tests, inspect the ALPS profile. If the
+project has `docs/tag.md`, read it first and follow that tag taxonomy.
+
+- Add or verify `tag` on State (Taxonomy) descriptors and Transition
+  (Choreography) descriptors.
+- Do not add workflow-selection tags to atomic Ontology descriptors such as
+  `id`, `title`, or `email`.
+- Keep `tag` as an ASD-compatible space-delimited string, not a JSON array.
+- Use `flow-*` tags for user journeys, such as `flow-browse` or
+  `flow-publish`.
+- Use `actor-*` tags for the user role, such as `actor-reader` or
+  `actor-editor`.
+- Treat `flow-browse actor-reader` as a reader story candidate and
+  `flow-publish actor-editor` as an editor story candidate.
+
+If the tags are missing or unclear, update and validate the ALPS profile with
+the `/alps` skill before adding workflow tests.
 
 ## Generate ALPS from Resource Classes
 
