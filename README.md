@@ -161,6 +161,7 @@ The three levels are stacked by risk — go top-down on a legacy project, not bo
 |-------|---------|----------------|
 | `bear-hypermedia` | Add #[Link] attributes | "Add hypermedia links to resources" |
 | `bear-cacheable` | Apply cache attributes | "Analyze and add cache attributes" |
+| `bear-web-form` | Web-form request policy across 3 architectures (server form-object / schema-decomposed / client SPA): typing, validation, CSRF, errors, tests | "Form submit returns 400" / "which form architecture?" |
 
 ### Testing
 
@@ -194,7 +195,8 @@ BEAR.Skills/
 │   ├── bear-review/
 │   ├── bear-security-setup/
 │   ├── bear-smoke-test/
-│   └── bear-to-alps/
+│   ├── bear-to-alps/
+│   └── bear-web-form/
 └── .claude-plugin/      # Plugin manifest
 ```
 
