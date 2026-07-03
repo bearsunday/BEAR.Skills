@@ -40,6 +40,17 @@ Use `bear-clean-style` after the user chooses an implementation batch.
 
 ## Decision guide
 
+### Reachability (premise)
+
+Before deciding Embed, decide **where the information lives**. The prior axis is 到達可能性 (reachability): information must be operable in the App context.
+
+- Domain information that should exist on the App surface is defined as an App resource (`app://`). The Page **references** it, does not own it.
+- Being an App resource means the information is reachable from ALL of: HAL API, CLI (`#[Cli]`), `#[Embed]`, `#[Link]`, `#[Cacheable]`, JSON Schema, ALPS. The context is one-directional: Page → App may reference; App → Page does not exist.
+- Ask one question: **"should this information exist on the App surface?"** Yes → App; No → Page.
+- **Failure (hole, severe):** only the Page assembles information that has no corresponding `app://`. It is trapped on the HTML island and invisible from API/CLI/Embed — a reachability hole in the API surface. Forbidden. Even at 1:1, prefer Page reads App to keep the information resident in the App context.
+- **Failure (duplication, minor):** the Page re-assembles information that already exists in App. Hurts DRY but preserves reachability; lean toward referencing.
+- Only pure presentation derivatives may be Page-owned: `bodyHtml`, CSRF token, form display state, empty-list messages, auth toggles, not-found guards — things with no meaning on the API surface.
+
 ### Embed
 
 - `#[Embed]` is only for GET representation composition.

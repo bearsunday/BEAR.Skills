@@ -77,6 +77,8 @@ Use `bear-clean-style-consultant` first when the user is still deciding whether 
    - `#[Embed]` is for GET representation composition. Do not discuss POST/PUT/DELETE as Embed candidates.
    - Prefer `#[Embed]` when an `onGet` response embeds related resource representations and the rel is a taxonomy noun.
    - Keep ResourceClient/resource calls when the fetched data is transient orchestration, validation, authorization, branching, or write workflow data rather than part of the final GET representation.
+   - First decide **reachability**: domain information that should exist on the App surface belongs in an `app://` resource (reachable from HAL API, CLI, `#[Embed]`, `#[Link]`, `#[Cacheable]`, JSON Schema, ALPS); the Page references it, never owns it. Page-owning such information is a reachability hole. See [hypermedia.md](references/hypermedia.md).
+   - Choose the embed kind by intent: **show the child as-is → normal embed** (child enters under a `{rel}` namespace, keeping a DTO-like unit of meaning); **fuse several children into one Page-laid-out view → self embed** (`rel: _self`, flatten child body into the parent top-level). A resource embedded as `_self` MUST be `#[Cacheable]` (value cache): `#[CacheableResponse]`/`#[DonutCache]` restore only the view on a cache hit, not the body, so `linkSelf` (which reads body) breaks — the framework enforces this with a domain exception.
 
 6. **Verify**
    - Run the narrowest meaningful project checks first: targeted PHPUnit, smoke tests, composer scripts, static analysis, or syntax checks.
