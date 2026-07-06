@@ -83,6 +83,8 @@ interface {Entity}CommandInterface
 {
     #[DbQuery('{entity_snake}_add')]
     public function add({parameters}): void;
+    // Timestamp example (PHP 8.4-safe explicit nullable; auto-injected when omitted):
+    //   public function add(string $id, string $title, DateTimeInterface|null $dateCreated = null): void;
 
     #[DbQuery('{entity_snake}_update')]
     public function update({parameters}): void;
@@ -167,6 +169,24 @@ class {Entity}
 - Database: `date_created` (snake_case)
 - Entity constructor param: `string $date_created`
 - Entity property: `public readonly string $dateCreated` (camelCase)
+
+**Datetime normalisation:** databases store `datetime` as a naive `Y-m-d H:i:s` string, but the response JSON Schema uses `"format": "date-time"` (ISO-8601). Normalise in the constructor so the JSON output validates:
+
+```php
+public readonly string $dateCreated;
+
+public function __construct(
+    public readonly string $id,
+    public readonly string $title,
+    bool|int $completed,   // SQLite returns booleans as int — cast in the body
+    string $date_created
+) {
+    $this->completed = (bool) $completed;
+    $this->dateCreated = (new \DateTimeImmutable($date_created))->format(\DateTimeInterface::ATOM);
+}
+```
+
+Declare any non-promoted `readonly` properties (e.g. `$completed`, `$dateCreated`) at class level to avoid the PHP 8.4 dynamic-property deprecation.
 
 ## Resource Class
 

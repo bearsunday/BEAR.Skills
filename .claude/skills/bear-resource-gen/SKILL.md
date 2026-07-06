@@ -83,7 +83,9 @@ Reference: [Database Media documentation](https://bearsunday.github.io/manuals/1
 
 #### 1. DateTimeInterface Auto-Injection
 
-Use `DateTimeInterface $fieldName = null` for timestamp fields. The null default enables auto-injection by DI. Resource callers omit these parameters -- current time is injected automatically. This makes timestamps testable.
+Use `DateTimeInterface|null $fieldName = null` (explicit nullable, PHP 8.4-safe) for timestamp fields. The null default enables auto-injection by DI: when a caller OMITS the parameter, Ray.MediaQuery injects the bound current time. This makes timestamps testable.
+
+**Important:** auto-injection fires only when the argument is *omitted*. Passing `null` explicitly inserts `NULL` into the column — it does not trigger injection. Resource callers therefore omit the parameter; smoke tests pass a real `DateTimeImmutable` (see `bear-smoke-test`).
 
 #### 2. Exclude Auto-Generated and Default Value Fields
 

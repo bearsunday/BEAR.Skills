@@ -264,7 +264,14 @@ class WorkflowTest extends TestCase
 | `float` | `1.0` |
 | `array` | `[]` |
 | `?type` (nullable) | `null` |
-| `DateTimeInterface` | `null` |
+| `DateTimeInterface` | `new DateTimeImmutable('now')` |
+
+**Why not `null` for `DateTimeInterface`?** For `#[DbQuery]` methods declared as
+`DateTimeInterface|null $x = null`, passing `null` explicitly *bypasses*
+Ray.MediaQuery auto-injection (which fires only when the argument is omitted)
+and inserts `NULL` into the column. Pass a real `DateTimeImmutable('now')` so the
+row is concrete and downstream reads (and the Entity) do not break on a null
+timestamp. Omit the argument only when testing the auto-injection path itself.
 
 ### HTTP Status Code Mapping
 
