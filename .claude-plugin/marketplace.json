@@ -10,6 +10,14 @@
       "source": "./",
       "description": "Claude Skills for BEAR.Sunday resource-oriented framework",
       "version": "1.1.0"
+    },
+    {
+      "name": "bear-kata",
+      "source": {
+        "source": "github",
+        "repo": "bearsunday/BEAR.Kata"
+      },
+      "description": "Route a BEAR.Sunday implementation intent to a canonical Kata (source, tests, mastery checklist) in the BEAR.Kata reference CMS"
     }
   ]
 }
