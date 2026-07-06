@@ -250,7 +250,7 @@ public function onGet(int $id): static
 #[Cacheable(expirySecond: 300)]
 public function onGet(): static
 
-// Good: If not cacheable, state explicitly with #[NoCache] or a comment
+// Good: If not cacheable, state the reason in a comment (there is no #[NoCache] attribute)
 /** @note Not cacheable: Depends on user session */
 public function onGet(): static
 ```
@@ -311,6 +311,28 @@ Not cacheable
 ### Write APIs (Not cacheable)
 - src/Resource/App/Article.php (onPost, onPut, onDelete)
 ```
+
+## Cross-resource Cache Dependencies
+
+When a `#[Cacheable]` resource aggregates other resources, the dependency set
+must be expressed in one of two shapes. **Never mix them on the same response.**
+
+| Shape | When | How |
+|-------|------|-----|
+| **A — `#[Embed]` only** | The parent composes exactly the children it depends on via `#[Embed]` | Just `#[Cacheable]`; `QueryRepository::setCacheDependency` auto-merges child Surrogate-Key tags. No manual `Header::SURROGATE_KEY`. |
+| **B — explicit `fromAssoc`** | The dependency set is N URIs whose count/parameters come from the database (not `#[Embed]`-expressible) | Read rows, map via `UriTagInterface::fromAssoc('<template>', $assocList)`, assign to `Header::SURROGATE_KEY`. Leave unset when the list is empty. |
+
+### Anti-patterns
+
+- Writing the self URI into `Header::SURROGATE_KEY` (the framework already does this).
+- Calling `DonutRepositoryInterface::invalidateTags()` from `onPut`/`onDelete`
+  (`CommandInterceptor` + `RefreshSameCommand` already purge the self URI tag).
+- Mixing `#[Embed]` and `fromAssoc()` on the same response — assigning
+  `Header::SURROGATE_KEY` manually short-circuits the body-walk auto-merge and
+  silently drops embed child tags. Pick A **or** B, never both.
+
+For the full clean-style cache conventions (Shape A/B, anti-pattern scanner
+checks), see `bear-clean-style/references/cache.md`.
 
 ## References
 

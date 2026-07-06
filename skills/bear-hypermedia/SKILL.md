@@ -58,7 +58,7 @@ project has `docs/tag.md`, read it first and follow that tag taxonomy.
   `flow-publish actor-editor` as an editor story candidate.
 
 If the tags are missing or unclear, update and validate the ALPS profile with
-the `/alps` skill before adding workflow tests.
+the `bear-to-alps` skill before adding workflow tests.
 
 ## Generate ALPS from Resource Classes
 
@@ -75,6 +75,7 @@ Analyze resource classes to generate ALPS profiles.
 | onGet | safe transition |
 | onPost | unsafe transition |
 | onPut/onDelete | idempotent transition |
+| onPatch | idempotent transition |
 
 ### Generation Steps
 
@@ -114,7 +115,7 @@ Generated:
 
 ### Integration with ALPS Skill
 
-After generation, use the `/alps` skill to:
+After generation, use the `bear-to-alps` skill to:
 - Validate: `asd --validate profile.json`
 - Generate diagrams: `asd profile.json`
 - Get improvement suggestions
@@ -123,4 +124,4 @@ After generation, use the `/alps` skill to:
 
 - [BEAR.Sunday Resource](https://bearsunday.github.io/manuals/1.0/en/resource.html)
 - [BEAR.Sunday Testing](https://bearsunday.github.io/manuals/1.0/en/test.html)
-- [ALPS Specification](http://alps.io/spec/)
+- [ALPS Specification](https://alps-io.github.io/spec/)

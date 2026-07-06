@@ -15,12 +15,12 @@ public function onPost(array $data): static
 }
 
 // ✅ Recommended: Declare with JsonSchema
-#[JsonSchema(schema: 'article.post.json')]
+#[JsonSchema(params: 'article.post.json')]
 public function onPost(string $title, string $body): static
 ```
 
 ```json
-// var/json_schema/article.post.json
+// var/json_validate/article.post.json
 {
   "type": "object",
   "required": ["title", "body"],
