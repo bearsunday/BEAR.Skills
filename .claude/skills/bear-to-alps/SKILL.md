@@ -22,7 +22,7 @@ A skill that scans existing BEAR.Sunday projects to generate ALPS profiles.
 
 ## Prerequisites
 
-- PHP 8.1 or higher
+- PHP 8.3 or higher
 - An existing BEAR.Sunday project
 - asd (app-state-diagram) command - Used for ALPS validation and HTML generation
 

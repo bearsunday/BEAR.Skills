@@ -23,10 +23,22 @@ When in "without baseline" mode and `phpmd.baseline.xml` exists, run §1.1's ful
 
 ### 1. Quantitative Evaluation with PHPMD
 
+PHPMD lives at `./vendor/bin/phpmd` in standard projects, or
+`./vendor-bin/tools/vendor/bin/phpmd` in monorepo (bamarni/composer-bin)
+setups. Resolve it once:
+
+```bash
+if [ -x ./vendor-bin/tools/vendor/bin/phpmd ]; then
+  PHPMD=./vendor-bin/tools/vendor/bin/phpmd
+else
+  PHPMD=./vendor/bin/phpmd
+fi
+```
+
 Retrieve metrics with the following command:
 
 ```bash
-./vendor-bin/tools/vendor/bin/phpmd [file-path] text codesize,design 2>/dev/null | grep -v "^Deprecated"
+$PHPMD [file-path] text codesize,design 2>/dev/null | grep -v "^Deprecated"
 ```
 
 This honors `phpmd.baseline.xml` if present. For "without baseline" mode, follow §1.1.
@@ -44,7 +56,7 @@ If `phpmd.baseline.xml` exists, temporarily disable it to understand the true qu
 mv phpmd.baseline.xml phpmd.baseline.xml.bak
 
 # 2. Run PHPMD against all resource directories
-./vendor-bin/tools/vendor/bin/phpmd src/Resource text phpmd.xml 2>&1 > phpmd_output.txt
+$PHPMD src/Resource text phpmd.xml 2>&1 > phpmd_output.txt
 
 # 3. Restore
 mv phpmd.baseline.xml.bak phpmd.baseline.xml
@@ -121,7 +133,7 @@ Visualize the number of issues hidden by the baseline:
 baseline_off=$(cat phpmd_output.txt | wc -l)
 
 # Violation count with baseline (normal execution)
-baseline_on=$(./vendor-bin/tools/vendor/bin/phpmd src/Resource text phpmd.xml 2>&1 | wc -l)
+baseline_on=$($PHPMD src/Resource text phpmd.xml 2>&1 | wc -l)
 
 echo "=== Baseline Comparison ==="
 echo "With baseline:    ${baseline_on} violations"

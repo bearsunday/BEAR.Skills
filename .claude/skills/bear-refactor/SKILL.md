@@ -42,8 +42,20 @@ grep -r "): ResourceObject" src/Resource --include="*.php" | wc -l
 
 #### 2. Run Bulk Conversion
 
+The in-place edit syntax differs by platform. Use the form matching your OS:
+
 ```bash
+# macOS (BSD sed)
 find src/Resource -name "*.php" -exec sed -i '' 's/): ResourceObject/): static/g' {} +
+
+# Linux (GNU sed)
+find src/Resource -name "*.php" -exec sed -i 's/): ResourceObject/): static/g' {} +
+```
+
+Or use a single portable command with perl:
+
+```bash
+find src/Resource -name "*.php" -exec perl -i -pe 's/\): ResourceObject/): static/g' {} +
 ```
 
 #### 3. Remove Unnecessary use Statements
