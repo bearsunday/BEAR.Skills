@@ -26,11 +26,11 @@ Prefer Level 1 before Level 3 in large legacy projects. Level 3 changes move res
 | App resource | `src/Resource/App/<Resource>.php` for API/domain resource surface |
 | Page resource | `src/Resource/Page/*` for HTML page orchestration |
 | Variation resources | `src/Resource/App/Variations/*` for comparison-only resources (different data shape, abstraction level, or framework axis). Not registered in the ALPS profile and must not change the canonical resource path. Use sparingly |
-| SQL | `var/db/sql/<entity>_<verb>.sql` |
+| SQL | `var/sql/<entity>_<verb>.sql` |
 | Response JSON Schema | `var/json_schema/<entity>.json` (flat, no subdirs) |
 | Input JSON Schema | `var/json_validate/<entity>_<verb>.json`, kept in sync with `#[JsonSchema(params: ...)]` |
-| Fake data | `var/fake/<entity>.json` (deterministic seed such as `mt_srand(42)`) |
-| ALPS profile | `var/alps/profile.json` as the single source of truth for semantics |
+| Fake data | `var/fake/<entity>.json` (deterministic seed such as `mt_srand(42)`). Project-local convention; not specified by the BEAR.Sunday manual |
+| ALPS profile | `docs/alps.json` as the single source of truth for semantics (BEAR.ApiDoc `docDir`/`alps`) |
 | Fake/test runtime | `tests/Fake/*`, `fake-` and `test-` contexts, smoke tests |
 
 Read and Write stay split even though both interfaces live under `src/Query/`. The suffix (`QueryInterface` vs `CommandInterface`) carries the CQRS distinction and lets MediaQuery scan one directory.

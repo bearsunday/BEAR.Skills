@@ -128,7 +128,7 @@ For advanced patterns (#[Embed], #[ResourceParam]), see `references/advanced-pat
 
 ### Step 8: Generate JsonSchema Files
 
-Create response schema in `var/schema/response/{entity}.json` and request schemas in `var/schema/request/{entity}-post.json`, `{entity}-put.json`.
+Create response schema in `var/json_schema/{entity}.json` and request schemas in `var/json_validate/{entity}-post.json`, `{entity}-put.json`.
 
 See `references/jsonschema-templates.md` for the templates.
 
@@ -148,8 +148,8 @@ mkdir -p src/Entity
 mkdir -p src/Resource/App
 mkdir -p var/sql
 mkdir -p var/phinx/migrations
-mkdir -p var/schema/request
-mkdir -p var/schema/response
+mkdir -p var/json_validate
+mkdir -p var/json_schema
 mkdir -p tests/Resource/App
 mkdir -p tests/Entity
 ```
@@ -166,7 +166,7 @@ Generated Files:
 - SQL Files: var/sql/{entity}_*.sql (5 files)
 - Entity: src/Entity/{Entity}.php
 - Resource: src/Resource/App/{Entity}.php
-- JsonSchema: var/schema/response/{entity}.json, var/schema/request/{entity}-*.json (3 files)
+- JsonSchema: var/json_schema/{entity}.json, var/json_validate/{entity}-*.json (3 files)
 - Tests: tests/Resource/App/{Entity}Test.php, tests/Entity/{Entity}Test.php
 ```
 

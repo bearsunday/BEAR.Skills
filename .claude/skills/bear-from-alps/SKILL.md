@@ -246,8 +246,8 @@ class AppModule extends AbstractAppModule
 
         // JsonSchema validation
         $this->install(new JsonSchemaModule(
-            $this->appMeta->appDir . '/var/schema/response',
-            $this->appMeta->appDir . '/var/schema/request'
+            $this->appMeta->appDir . '/var/json_schema',
+            $this->appMeta->appDir . '/var/json_validate'
         ));
 
         // Aura Router (only when selected)
@@ -272,8 +272,8 @@ mkdir -p var/sql
 mkdir -p var/db
 mkdir -p var/phinx/migrations
 mkdir -p var/phinx/seeds
-mkdir -p var/schema/request
-mkdir -p var/schema/response
+mkdir -p var/json_validate
+mkdir -p var/json_schema
 mkdir -p var/conf
 mkdir -p docs
 mkdir -p tests/Resource/App
