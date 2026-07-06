@@ -2,7 +2,7 @@
 
 ## Response Schema
 
-File: `var/schema/response/{entity}.json`
+File: `var/json_schema/{entity}.json`
 
 ```json
 {
@@ -23,7 +23,7 @@ File: `var/schema/response/{entity}.json`
 
 ## Request Schema (POST)
 
-File: `var/schema/request/{entity}-post.json`
+File: `var/json_validate/{entity}-post.json`
 
 ```json
 {
@@ -42,7 +42,7 @@ File: `var/schema/request/{entity}-post.json`
 
 ## Request Schema (PUT)
 
-File: `var/schema/request/{entity}-put.json`
+File: `var/json_validate/{entity}-put.json`
 
 ```json
 {

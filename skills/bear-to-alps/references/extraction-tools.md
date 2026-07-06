@@ -66,7 +66,7 @@ public function onGet(): static { }
 public function onGet(): static { }
 ```
 
-Extract property definitions from the corresponding JsonSchema file (`var/schema/response/users.json`).
+Extract property definitions from the corresponding JsonSchema file (`var/json_schema/users.json`).
 
 ## Reading Method Parameters
 
