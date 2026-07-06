@@ -162,6 +162,12 @@ The three levels are stacked by risk — go top-down on a legacy project, not bo
 | `bear-hypermedia` | Add #[Link] attributes | "Add hypermedia links to resources" |
 | `bear-cacheable` | Apply cache attributes | "Analyze and add cache attributes" |
 
+### Migration
+
+| Skill | Purpose | Example Prompt |
+|-------|---------|----------------|
+| `bear-migration` | Migrate legacy PHP apps to BEAR.Sunday | "Migrate this Symfony app to BEAR.Sunday" |
+
 ### Testing
 
 | Skill | Purpose | Example Prompt |
@@ -188,6 +194,7 @@ BEAR.Skills/
 │   ├── bear-documenter/
 │   ├── bear-from-alps/
 │   ├── bear-hypermedia/
+│   ├── bear-migration/
 │   ├── bear-preflight/
 │   ├── bear-refactor/
 │   ├── bear-resource-gen/
