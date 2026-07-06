@@ -29,7 +29,8 @@
 #### Resources (Stub Version)
 ✓ src/Resource/App/*.php (using FakeJsonModule)
 ✓ src/Module/FakeJsonModule.php
-✓ var/schema/**/*.json
+✓ var/json_schema/*.json
+✓ var/json_validate/*.json
 
 #### Tests
 ✓ tests/bootstrap.php
@@ -110,7 +111,8 @@
 ✓ src/Query/*Interface.php
 ✓ src/Resource/App/*.php
 ✓ var/sql/*.sql
-✓ var/schema/**/*.json
+✓ var/json_schema/*.json
+✓ var/json_validate/*.json
 ✓ var/phinx/migrations/*.php
 
 #### Module

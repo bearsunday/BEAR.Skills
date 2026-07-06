@@ -147,8 +147,8 @@ Determine severity based on complexity values:
 
 ```bash
 # Critical: CC>20 or NPath>10000
-critical_cc=$(grep 'CyclomaticComplexity' phpmd_output.txt | grep -oP 'Complexity of \K[0-9]+' | awk '{if($1>20)print}' | wc -l)
-critical_npath=$(grep 'NPathComplexity' phpmd_output.txt | grep -oP 'complexity of \K[0-9]+' | awk '{if($1>10000)print}' | wc -l)
+critical_cc=$(grep 'CyclomaticComplexity' phpmd_output.txt | sed -n 's/.*Complexity of \([0-9][0-9]*\).*/\1/p' | awk '{if($1>20)print}' | wc -l)
+critical_npath=$(grep 'NPathComplexity' phpmd_output.txt | sed -n 's/.*complexity of \([0-9][0-9]*\).*/\1/p' | awk '{if($1>10000)print}' | wc -l)
 
 echo "=== By Severity ==="
 echo "Critical (CC>20 or NPath>10000): $((critical_cc + critical_npath)) violations"

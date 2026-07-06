@@ -82,7 +82,7 @@ class Users extends ResourceObject
     }
 
     #[Alps('doCreateUser')]  // Choreography - unsafe transition
-    #[JsonSchema(schema: 'user-post.json')]
+    #[JsonSchema(params: 'user-post.json')]
     public function onPost(string $userName, string $email): static
     {
         $this->code = 201;
@@ -290,7 +290,7 @@ class Users extends ResourceObject
     }
 
     #[Alps('doCreateUser')]  // Choreography - unsafe transition
-    #[JsonSchema(schema: 'user-post.json')]
+    #[JsonSchema(schema: 'user-created.json', params: 'user-post.json')]
     public function onPost(string $userName, string $email): static
     {
         $id = $this->generateId();

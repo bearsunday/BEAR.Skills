@@ -30,8 +30,8 @@ This skill generates a complete, consistent set of files for BEAR.Sunday resourc
    - Full CRUD methods (onGet, onPost, onPut, onDelete) with proper HTTP status codes
    - 404 error handling for non-existent resources
 6. **JsonSchema** (request and response)
-   - Response: `var/schema/response/{entity}.json`
-   - Request: `var/schema/request/{entity}-post.json`, `{entity}-put.json`
+   - Response: `var/json_schema/{entity}.json`
+   - Request: `var/json_validate/{entity}-post.json`, `{entity}-put.json`
    - JSON Schema Draft 07 format
 7. **Tests** (unit and integration)
    - Resource integration tests with all HTTP methods

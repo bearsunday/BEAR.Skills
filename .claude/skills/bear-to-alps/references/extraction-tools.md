@@ -16,7 +16,7 @@ cat composer.json | grep -A5 '"autoload"'
 When extracting ALPS information, use sources in this priority order:
 
 1. **BEAR.ApiDoc HTML** (most complete) - Generated HTML contains semantic markup with full state transition data. Parse if available at `docs/alps.html` or similar location.
-2. **var/schema/ JsonSchema files** (Ontology + Taxonomy) - Response schemas define properties and types. Request schemas define input parameters.
+2. **`var/json_schema/` and `var/json_validate/` JsonSchema files** (Ontology + Taxonomy) - Response schemas in `var/json_schema/` define properties and types. Request schemas in `var/json_validate/` define input parameters. Legacy projects may still use `var/schema/response/` and `var/schema/request/`; read those only when canonical paths are absent.
 3. **PHP source extraction** (Choreography from on* methods, #[Link], templates) - Scan resource classes for methods, parameters, Link attributes, and JsonSchema attributes.
 
 **Note:** This skill performs lightweight extraction from existing files. No `composer install` or dependency installation is required.

@@ -176,15 +176,18 @@ private function generateId(): string
 ### Pattern 2: Timestamp Fields
 
 ```php
-// In Command interface
+// In Command interface — explicit nullable; auto-injection fires only when omitted
 public function add(
     string $id,
     string $title,
-    DateTimeInterface $dateCreated
+    DateTimeInterface|null $dateCreated = null
 ): void;
 
-// In Resource onPost
-$this->command->add($id, $title, new DateTimeImmutable());
+// In Resource onPost — omit the timestamp so Ray.MediaQuery injects the current time
+$this->command->add($id, $title);
+
+// In smoke tests — pass a real DateTimeImmutable (passing null bypasses auto-injection)
+$this->command->add($id, $title, new DateTimeImmutable('now'));
 ```
 
 ### Pattern 3: 404 Handling

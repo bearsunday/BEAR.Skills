@@ -170,7 +170,7 @@ Verify required environment variables exist:
 
 ```bash
 # Compare .env.example with actual settings
-diff <(grep -oP '^[A-Z_]+=' .env.example | sort) <(grep -oP '^[A-Z_]+=' .env | sort)
+diff <(grep -E '^[A-Z_]+=' .env.example | cut -d= -f1 | sort) <(grep -E '^[A-Z_]+=' .env | cut -d= -f1 | sort)
 ```
 
 ## Output Format
