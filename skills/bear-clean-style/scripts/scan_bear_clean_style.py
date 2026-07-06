@@ -296,7 +296,7 @@ def method_names(text: str) -> list[tuple[str, int]]:
 def find_query_patterns(root: Path) -> list[Finding]:
     findings: list[Finding] = []
     query_dir = root / "src" / "Query"
-    sql_dir = root / "var" / "db" / "sql"
+    sql_dir = root / "var" / "sql"
     if not query_dir.exists():
         return findings
 
@@ -321,7 +321,7 @@ def find_query_patterns(root: Path) -> list[Finding]:
             if sql_dir.exists() and not expected.exists():
                 findings.append(Finding(
                     "P1", rel(root, path), lineno,
-                    f"#[DbQuery('{sql_id}')] has no matching var/db/sql/{sql_id}.sql file.",
+                    f"#[DbQuery('{sql_id}')] has no matching var/sql/{sql_id}.sql file.",
                     "Keep DbQuery id and SQL filename in lock-step.",
                 ))
             if not re.fullmatch(r"[a-z][a-z0-9]*(?:_[a-z0-9]+)*", sql_id):
@@ -350,7 +350,7 @@ def find_query_patterns(root: Path) -> list[Finding]:
 
 def find_sql_patterns(root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    sql_dir = root / "var" / "db" / "sql"
+    sql_dir = root / "var" / "sql"
     if not sql_dir.exists():
         return findings
     for path in sorted(sql_dir.glob("*.sql")):
@@ -469,7 +469,7 @@ _FETCH_FUNC_STEM = re.compile(r"^([a-z][a-z0-9_]*?)_(?:item|list|by_[a-z0-9_]+)$
 
 def find_select_entity_column_order(root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    sql_dir = root / "var" / "db" / "sql"
+    sql_dir = root / "var" / "sql"
     entity_dir = root / "src" / "Entity"
     if not sql_dir.exists() or not entity_dir.exists():
         return findings

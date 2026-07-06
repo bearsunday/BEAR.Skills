@@ -27,7 +27,7 @@ Imperative verbs: `add`, `update`, `delete`. Link-table commands may use `clear`
 
 ## SQL filenames
 
-- Pattern: `<entity>_<verb>.sql` in `var/db/sql/`
+- Pattern: `<entity>_<verb>.sql` in `var/sql/`
 - Verbs match the method names above
 - Examples: `article_item.sql`, `article_by_slug.sql`, `article_list.sql`, `article_add.sql`, `article_update.sql`, `article_delete.sql`, `article_tag_clear.sql`, `article_tag_link.sql`
 
