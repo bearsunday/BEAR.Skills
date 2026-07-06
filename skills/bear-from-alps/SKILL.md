@@ -16,7 +16,7 @@ A skill that generates an entire BEAR.Sunday project from an ALPS profile.
 
 ## Prerequisites
 
-- PHP 8.3 or higher
+- PHP 8.1 or higher (BEAR.Sunday framework baseline; 8.3+ recommended, 8.1 reached EOL 2025-12)
 - Composer
 - asd (app-state-diagram) command - used for ALPS validation
 

@@ -30,7 +30,7 @@ Prefer Level 1 before Level 3 in large legacy projects. Level 3 changes move res
 | Response JSON Schema | `var/json_schema/<entity>.json` (flat, no subdirs) |
 | Input JSON Schema | `var/json_validate/<entity>_<verb>.json`, kept in sync with `#[JsonSchema(params: ...)]` |
 | Fake data | `var/fake/<entity>.json` (deterministic seed such as `mt_srand(42)`). Project-local convention; not specified by the BEAR.Sunday manual |
-| ALPS profile | `docs/alps.json` as the single source of truth for semantics (BEAR.ApiDoc `docDir`/`alps`) |
+| ALPS profile | `docs/alps.json` as the single source of truth for semantics (BEAR.ApiDoc reads `<alps>alps.json</alps>` relative to `docDir`) |
 | Fake/test runtime | `tests/Fake/*`, `fake-` and `test-` contexts, smoke tests |
 
 Read and Write stay split even though both interfaces live under `src/Query/`. The suffix (`QueryInterface` vs `CommandInterface`) carries the CQRS distinction and lets MediaQuery scan one directory.
