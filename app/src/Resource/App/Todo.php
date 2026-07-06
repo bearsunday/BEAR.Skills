@@ -27,7 +27,7 @@ class Todo extends ResourceObject
         return $this;
     }
 
-    #[JsonSchema(schema: 'todo-post.json')]
+    #[JsonSchema(params: 'todo-post.json')]
     public function onPost(string $title): static
     {
         $id = $this->generateId();
