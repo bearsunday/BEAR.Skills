@@ -20,3 +20,6 @@ phpunit.xml
 /.phpcs-cache
 /vendor-bin/**/vendor/
 
+
+# sqlite databases
+var/db/*.sqlite3
