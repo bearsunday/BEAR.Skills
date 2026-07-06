@@ -30,8 +30,8 @@ token (bound to the `audit.xml` report profile). That token is the dispatch key.
 |---|---|---|---|
 | `class-summary` | Missing resource class summary. | Add a class-level PHPDoc summary | **bear-documenter** |
 | `operation-summary` | Missing operation summary. | Add a method-level PHPDoc summary on `on{Get,Post,…}` | **bear-documenter** |
-| `response-schema` | Missing response schema. | Create response JSON Schema + `#[JsonSchema(schema:)]` | **fake-json-to-schema** (from `var/fake/`) |
-| `request-schema` | Missing request schema for non-path body input. | Create request param JSON Schema + `#[JsonSchema(params:)]` | **fake-json-to-schema** / hand-author from the method's input params |
+| `response-schema` | Missing response schema. | Create response JSON Schema + `#[JsonSchema(schema:)]` | Hand-author from the actual `var/fake/` response shape (format: `bear-resource-gen/references/jsonschema-templates.md`) |
+| `request-schema` | Missing request schema for non-path body input. | Create request param JSON Schema + `#[JsonSchema(params:)]` | Hand-author from the method's input params (format: `bear-resource-gen/references/jsonschema-templates.md`) |
 | `alps` | Missing ALPS attribute. | Add `#[Alps]` to the class or method | **bear-to-alps** |
 
 If a sibling skill is unavailable in the current environment, fall back to editing by hand following that skill's conventions — never invent schemas or semantics (see Safety).
@@ -84,8 +84,10 @@ are non-auto-fixable. Report:
 This skill follows the same discipline as `bear-documenter`:
 
 - **No fabrication.** Summaries are inferred from the class/method/params with a
-  confidence level; schemas come from *actual* fake responses (`var/fake/`), not
-  invented shapes. ALPS ids reuse existing semantics where they exist.
+  confidence level; response schemas are derived from *actual* `var/fake/`
+  responses (when present), never invented shapes. If no fake response exists,
+  author the schema from the resource's actual output and mark it
+  `@todo 要確認`. ALPS ids reuse existing semantics where they exist.
 - **Confidence markers.** Low-confidence edits carry `@todo 要確認(確信度X):` so a
   human reviews them. A clean audit is necessary but not sufficient — coverage is
   not correctness.
@@ -108,5 +110,5 @@ Defined by the BEAR.ApiDoc audit profile (`docs/alps/audit.xml`):
 
 - **bear-documenter** — PHPDoc generation (summaries).
 - **bear-to-alps** — ALPS profile / `#[Alps]` attributes.
-- **fake-json-to-schema** — JSON Schema from `var/fake/` responses.
+- **bear-resource-gen** — JsonSchema file format (`references/jsonschema-templates.md`) for hand-authoring response/request schemas.
 - BEAR.ApiDoc — generates the audit this skill consumes.
