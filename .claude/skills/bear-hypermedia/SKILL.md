@@ -62,63 +62,15 @@ the `bear-to-alps` skill before adding workflow tests.
 
 ## Generate ALPS from Resource Classes
 
-Analyze resource classes to generate ALPS profiles.
+Generating an ALPS profile from resource classes (mapping resource → state,
+`#[Link]`/`#[Embed]` → transitions/embedded references, method arguments →
+semantic descriptors, with `go*`/`do*` choreography ID inference) is owned by
+the **`bear-to-alps`** skill. Use `bear-to-alps` for the full extraction,
+validation (`asd --validate`), and diagram generation (`asd`), and to add
+`#[Alps]` attributes to the resources.
 
-### Mapping
-
-| BEAR.Sunday | ALPS |
-|-------------|------|
-| Resource class | State |
-| `#[Link(rel, href)]` | Transition |
-| `#[Embed(rel, src)]` | Embedded state |
-| Method arguments | Semantic descriptor |
-| onGet | safe transition |
-| onPost | unsafe transition |
-| onPut/onDelete | idempotent transition |
-| onPatch | idempotent transition |
-
-### Generation Steps
-
-1. Read the resource class
-2. Class name -> State ID
-3. `#[Link]` -> Transition (determine go/do from rel)
-4. `#[Embed]` -> Embedded reference
-5. Arguments -> Semantic descriptor
-6. Generate and validate with the ALPS skill
-
-### Example: ALPS from Article Resource
-
-```php
-// Resource
-#[Link(rel: 'edit', href: '/article/{id}/edit')]
-#[Link(rel: 'delete', href: '/article/{id}', method: 'delete')]
-#[Embed(rel: 'author', src: 'app://self/user{?id}')]
-#[Embed(rel: 'comments', src: 'app://self/article/{id}/comments')]
-public function onGet(int $id): static
-```
-
-Generated:
-
-```json
-{
-  "id": "ArticleDetail",
-  "title": "Article Detail",
-  "descriptor": [
-    {"href": "#articleId"},
-    {"href": "#Author"},
-    {"href": "#Comments"},
-    {"href": "#goEdit"},
-    {"href": "#doDelete"}
-  ]
-}
-```
-
-### Integration with ALPS Skill
-
-After generation, use the `bear-to-alps` skill to:
-- Validate: `asd --validate profile.json`
-- Generate diagrams: `asd profile.json`
-- Get improvement suggestions
+This skill focuses on adding `#[Link]` attributes and the hypermedia workflow
+tests that follow them.
 
 ## References
 
