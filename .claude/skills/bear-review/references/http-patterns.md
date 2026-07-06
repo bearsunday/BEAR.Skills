@@ -1,5 +1,10 @@
 # HTTP and REST Patterns
 
+> The canonical HTTP status / REST convention (including 201 + Location, 409
+> unique-key conflict, 422 validation, action-style POST = 200) lives in
+> `bear-clean-style/references/resource-patterns.md`. This file focuses on the
+> **review** angle: how to detect status-code and Location-header issues.
+
 ## HTTP Status Codes
 
 Return appropriate status codes.

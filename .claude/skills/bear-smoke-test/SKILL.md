@@ -276,6 +276,10 @@ class WorkflowTest extends TestCase
 | `onPatch` | `200` |
 | `onDelete` | `204` |
 
+These are the smoke-test default codes. The full convention (201 + Location,
+409 unique-key conflict, 422 validation, action-style POST = 200) is in
+`bear-clean-style/references/resource-patterns.md`.
+
 ## Output
 
 After generation, provide a summary:

@@ -32,6 +32,11 @@ Use `bear-clean-style` after the user chooses an implementation batch.
 
 ## Consultation levels
 
+The canonical Level definitions (with the architecture and topic-file index)
+are in `bear-clean-style/references/clean-style-conventions.md`. The table
+below reframes them for consultation (the question to ask, the recommendation
+to give).
+
 | Level | Name | Consultant question | Typical recommendation |
 |---|---|---|---|
 | 1 | Surface cleanup | “安全に直せるか？” | return `static`, body literal, method order, naming/SQL alignment in small batches |

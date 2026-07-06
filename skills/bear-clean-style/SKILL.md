@@ -33,6 +33,10 @@ Use `bear-clean-style-consultant` first when the user is still deciding whether 
 
 ## Levels
 
+Canonical definitions and the topic-file index live in
+`references/clean-style-conventions.md`; load only the topic files a change
+touches (see Workflow step 2). The table below is the quick reference.
+
 | Level | Name | Apply when | Typical changes |
 |---|---|---|---|
 | 1 | Surface cleanup | User asks for safe cleanup or “名前だけ/returnだけ” | `ResourceObject` return type to `static`, literal `$this->body`, method order, dependency property naming, Query/Command/SQL naming alignment, removing generic `LogicException`/`RuntimeException` in favour of domain exceptions |

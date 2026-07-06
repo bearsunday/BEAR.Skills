@@ -122,6 +122,10 @@ HTTP Status Codes:
 - DELETE: 204 No Content / 404 Not Found
 - 400 Bad Request: Automatically handled by JsonSchema validation
 
+For the full HTTP status convention (201 + Location, 409 unique-key conflict,
+422 validation failure, action-style POST = 200), see
+`bear-clean-style/references/resource-patterns.md`.
+
 See `references/templates.md` for the template.
 
 For advanced patterns (#[Embed], #[ResourceParam]), see `references/advanced-patterns.md`.
