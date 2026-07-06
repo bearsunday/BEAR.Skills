@@ -119,3 +119,5 @@ class Article extends ResourceObject
     }
 }
 ```
+
+For the full cache strategy selection (Content vs Computation API, TTL guidance, no-cache criteria, and cross-resource Shape A/B), see the `bear-cacheable` skill.
