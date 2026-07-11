@@ -21,6 +21,35 @@ File: `var/json_schema/{entity}.json`
 }
 ```
 
+## Response Schema (List)
+
+File: `var/json_schema/{entity}-list.json` (see `app/var/json_schema/todo-list.json`)
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "{Entity} List Response",
+  "type": "object",
+  "required": ["{entity_plural}"],
+  "properties": {
+    "{entity_plural}": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["{required_fields}"],
+        "properties": {
+          "id": {
+            "description": "The unique identifier for a {entity}",
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      }
+    }
+  }
+}
+```
+
 ## Request Schema (POST)
 
 File: `var/json_validate/{entity}-post.json`

@@ -102,8 +102,8 @@ All SQL files go in `var/sql/` with flat structure using `{entity}_{operation}.s
 
 ```sql
 /* {entity} add */
-INSERT INTO {entity} ({columns})
-VALUES ({:params});
+INSERT INTO {entity_snake} ({columns})
+VALUES ({named_placeholders})
 ```
 
 ### `var/sql/{entity}_item.sql`
@@ -111,7 +111,7 @@ VALUES ({:params});
 ```sql
 /* {entity} item */
 SELECT {columns}
-  FROM {entity}
+  FROM {entity_snake}
  WHERE id = :id
 ```
 
@@ -120,7 +120,7 @@ SELECT {columns}
 ```sql
 /* {entity} list */
 SELECT {columns}
-  FROM {entity}
+  FROM {entity_snake}
  ORDER BY date_created DESC
 ```
 
@@ -128,7 +128,7 @@ SELECT {columns}
 
 ```sql
 /* {entity} update */
-UPDATE {entity}
+UPDATE {entity_snake}
    SET {column_assignments}
  WHERE id = :id
 ```
@@ -137,7 +137,7 @@ UPDATE {entity}
 
 ```sql
 /* {entity} delete */
-DELETE FROM {entity}
+DELETE FROM {entity_snake}
  WHERE id = :id
 ```
 
@@ -273,6 +273,24 @@ class {Entity} extends ResourceObject
 }
 ```
 
+### List Operation (keyed onGet)
+
+When the spec includes a list (GET) operation, serve the collection with a keyed body validated by `{entity}-list.json` (mirrors `app/src/Resource/App/Todo.php`; schema template in `references/jsonschema-templates.md`):
+
+```php
+#[JsonSchema(schema: '{entity}-list.json')]
+public function onGet(): static
+{
+    $this->body = [
+        '{entity_plural}' => $this->query->list(),
+    ];
+
+    return $this;
+}
+```
+
+A ResourceObject has one `onGet` per URI. When both list and item GET are required, keep the item `onGet(string $id)` in `{Entity}.php` and put the list `onGet()` in a collection resource (e.g. `src/Resource/App/{Entity}s.php`) so each method keeps its own `#[JsonSchema]`.
+
 ## Resource Test
 
 File: `tests/Resource/App/{Entity}Test.php`
@@ -284,6 +302,7 @@ declare(strict_types=1);
 namespace {Namespace}\Resource\App;
 
 use BEAR\Resource\ResourceInterface;
+use {Namespace}\Injector;
 use PHPUnit\Framework\TestCase;
 
 class {Entity}Test extends TestCase
@@ -292,7 +311,8 @@ class {Entity}Test extends TestCase
 
     protected function setUp(): void
     {
-        // Setup injector and resource client
+        $injector = Injector::getInstance('app');
+        $this->resource = $injector->getInstance(ResourceInterface::class);
     }
 
     public function testOnGet(): void

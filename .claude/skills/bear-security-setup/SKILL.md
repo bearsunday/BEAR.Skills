@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-security-setup
-description: Set up bear/security for BEAR.Sunday projects. Configures installation, psalm.xml taint plugin, composer scripts, and GitHub Actions workflow. Use when user says "security setup", "セキュリティ設定", "Psalm taint", "bear/security", or asks to configure security analysis.
+description: Set up and run bear/security for BEAR.Sunday projects. Configures installation, psalm.xml taint plugin, composer scripts, and GitHub Actions workflow, then runs scans and triages findings. Use when user says "security setup", "セキュリティ設定", "Psalm taint", "bear/security", "run security scan", "セキュリティスキャン", "脆弱性スキャン", "fix security findings", or asks to configure security analysis.
 ---
 
 # BEAR.Security Setup Skill
@@ -36,7 +36,7 @@ composer require --dev bear/security
 
 ### 2. Configure psalm.xml
 
-Add taint plugin and stubs to existing `psalm.xml`.
+Merge the following fragments into the existing `psalm.xml`. Do not change `errorLevel` or remove existing plugins/issueHandlers.
 
 #### Target configuration (based on user selection)
 
@@ -44,29 +44,20 @@ Add taint plugin and stubs to existing `psalm.xml`.
 - `App`: For `api` context serving APIs
 
 ```xml
-<?xml version="1.0"?>
-<psalm
-    xmlns="https://getpsalm.org/schema/config"
-    errorLevel="1"
->
-    <projectFiles>
-        <directory name="src"/>
-    </projectFiles>
-    <stubs>
-        <file name="vendor/bear/security/stubs/AuraSql.phpstub"/>
-        <file name="vendor/bear/security/stubs/PDO.phpstub"/>
-        <file name="vendor/bear/security/stubs/Qiq.phpstub"/>
-    </stubs>
-    <plugins>
-        <pluginClass class="BEAR\Security\Psalm\ResourceTaintPlugin">
-            <targets>
-                <!-- Configure based on user selection -->
-                <target>Page</target>
-                <target>App</target>
-            </targets>
-        </pluginClass>
-    </plugins>
-</psalm>
+<stubs>
+    <file name="vendor/bear/security/stubs/AuraSql.phpstub"/>
+    <file name="vendor/bear/security/stubs/PDO.phpstub"/>
+    <file name="vendor/bear/security/stubs/Qiq.phpstub"/>
+</stubs>
+<plugins>
+    <pluginClass class="BEAR\Security\Psalm\ResourceTaintPlugin">
+        <targets>
+            <!-- Configure based on user selection -->
+            <target>Page</target>
+            <target>App</target>
+        </targets>
+    </pluginClass>
+</plugins>
 ```
 
 ### 3. Add composer.json Scripts
@@ -75,7 +66,7 @@ Add taint plugin and stubs to existing `psalm.xml`.
 {
     "scripts": {
         "security": "./vendor/bin/bear.security-scan src",
-        "taint": "./vendor/bin/psalm --taint-analysis 2>&1 | grep -E 'Tainted' || true"
+        "taint": "./vendor/bin/psalm --taint-analysis"
     },
     "scripts-descriptions": {
         "security": "Run SAST security scan",
@@ -116,7 +107,6 @@ After setup, provide these commands:
 |---------|-------------|
 | `composer security` | Run SAST (static analysis) |
 | `composer taint` | Run taint analysis |
-| `./vendor/bin/bear-security-dast` | Run DAST (dynamic testing) |
 | `./vendor/bin/bear-security-audit src` | Run AI audit |
 
 ## Stub Reference
@@ -153,13 +143,15 @@ For each finding:
 - **False positive**: Add `@security-ignore` comment on the same line:
 
 ```php
-$code; // @security-ignore <issue-type>: <reason>
+$code; // @security-ignore <RULE_ID>: <reason>
 ```
 
 Example:
 ```php
-$path = $this->buildPath($id); // @security-ignore path-traversal: $id is validated integer from router
+$path = $this->buildPath($id); // @security-ignore PATH_TRAVERSAL_FILE_OPS: $id is validated integer from router
 ```
+
+The type must exactly match the rule ID reported by the scan (e.g. `PATH_TRAVERSAL_FILE_OPS`, `XSS_DIRECT_OUTPUT`). `@security-ignore` suppresses `bear.security-scan` findings only; for Psalm taint findings (`TaintedSql`, `TaintedHtml`), use `@psalm-suppress` instead.
 
 ### 3. Run AI Auditor
 
@@ -181,7 +173,7 @@ Detects business logic issues that pattern matching cannot find:
 
 ## Important Guidelines
 
-- **@security-ignore format**: `// @security-ignore <issue-type>: <reason>`
+- **@security-ignore format**: `// @security-ignore <RULE_ID>: <reason>`
 - **Always provide a reason**: Explain why this is a false positive
 - **Re-scan after fixes**: Confirm vulnerabilities are resolved
 - **Review existing ignores**: Check if previously ignored issues are still valid
@@ -202,12 +194,12 @@ After completing the security workflow, provide a summary report:
 ### Analysis Results
 | Finding | File:Line | Assessment | Action |
 |---------|-----------|------------|--------|
-| TaintedSql | User.php:42 | False positive | @security-ignore added |
-| TaintedHtml | Index.php:15 | Real vulnerability | Fixed |
+| SQL_INJECTION_STRING_CONCAT | User.php:42 | False positive | @security-ignore added |
+| XSS_DIRECT_OUTPUT | Index.php:15 | Real vulnerability | Fixed |
 
 ### @security-ignore Added
-- `src/Resource/App/User.php:42` - path-traversal: $id is validated integer from router
-- `src/Resource/Page/Index.php:28` - tainted-html: Output is escaped by Qiq template
+- `src/Resource/App/User.php:42` - SQL_INJECTION_STRING_CONCAT: $id is validated integer from router
+- `src/Resource/Page/Index.php:28` - XSS_DIRECT_OUTPUT: Output is escaped by Qiq template
 
 ### AI Auditor Results
 - Business logic issues: X found

@@ -160,7 +160,7 @@ Operations:
 - No POST/PUT/DELETE operations
 - Only `category_list.sql` and `category_item.sql`
 - No migration (assume pre-existing table)
-- Only request schemas for GET operations
+- Only response schemas (no request schemas, since there are no POST/PUT operations)
 
 ## Common Patterns
 

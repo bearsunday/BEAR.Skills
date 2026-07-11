@@ -56,6 +56,8 @@ interface ArticleQueryInterface
 - Path traversal
 - Other OWASP Top 10
 
+If `bear.security-scan` is not installed, delegate to the `bear-security-setup` skill.
+
 #### Sensitive Information Detection
 
 ```bash
@@ -69,17 +71,16 @@ grep -r "secret" src/ --include="*.php"
 
 | Item | Production Setting |
 |------|--------------------|
-| APP_DEBUG | false |
-| APP_ENV | production |
-| Error display | Disabled |
+| Context in public/index.php and CLI entry points (bin/*.php) | `prod-*` (e.g. `prod-hal-app`) |
+| display_errors / display_startup_errors (INI) | Off |
 
 ### 3. Performance Check
 
 #### Cache Configuration
 
 ```bash
-# Detect resources without cache attributes
-grep -rL "#\[Cacheable\]" src/Resource/App/ --include="*.php"
+# Detect read resources without any cache attribute
+grep -rl "function onGet" src/Resource | xargs grep -LE "Cacheable|DonutCache|HttpCache"
 ```
 
 | Resource Type | Recommended Cache |
@@ -88,11 +89,14 @@ grep -rL "#\[Cacheable\]" src/Resource/App/ --include="*.php"
 | Write | No cache |
 | Static content | Long TTL |
 
+To remediate missing cache attributes, delegate to the `bear-cacheable` skill.
+
 #### SQL Performance
 
 ```bash
 # EXPLAIN analysis with Koriym.SqlQuality (requires koriym/sql-quality)
-./vendor/bin/sql-quality var/sql/
+# --params is required: a PHP file returning the parameter array per SQL file
+./vendor/bin/sql-quality analyze --sql-dir=var/sql --params=tests/sql_params.php
 ```
 
 If `sql-quality` is not installed, fall back to the EXPLAIN-based SQL smoke
@@ -106,7 +110,12 @@ SQL file and flags full table scans.
 
 #### N+1 Detection
 
-Detect in-loop queries from Embed resources.
+Detect in-loop queries from Embed resources:
+
+```bash
+# Candidate N+1: resource-client / query calls inside foreach/for
+grep -rn -A 5 -E 'foreach|for \(' src/Resource --include="*.php" | grep -E '\$this->resource->|Query(Interface)?->'
+```
 
 ### 4. Quality Check
 
@@ -117,6 +126,10 @@ Detect in-loop queries from Embed resources.
 ./vendor/bin/psalm
 ./vendor/bin/phpmd src text codesize,design
 ```
+
+Prefer the project's composer scripts (`composer cs` / `composer sa` / `composer test`) when defined; fall back to the vendor/bin commands above.
+
+For detailed quality assessment (metrics grading, baseline mode), delegate to the `bear-review` skill.
 
 #### Tests
 
@@ -159,9 +172,9 @@ composer audit
 
 #### Context Verification
 
-```php
-// Verify production context
-// prod-app, prod-html-app, etc.
+```bash
+# Verify entry points select a prod- context (prod-app, prod-hal-app, etc.)
+grep -H "prod-" public/index.php bin/*.php
 ```
 
 #### Environment Variables
@@ -169,8 +182,8 @@ composer audit
 Verify required environment variables exist:
 
 ```bash
-# Compare .env.example with actual settings
-diff <(grep -E '^[A-Z_]+=' .env.example | cut -d= -f1 | sort) <(grep -E '^[A-Z_]+=' .env | cut -d= -f1 | sort)
+# Compare .env.dist with actual settings
+diff <(grep -E '^[A-Z_]+=' .env.dist | cut -d= -f1 | sort) <(grep -E '^[A-Z_]+=' .env | cut -d= -f1 | sort)
 ```
 
 ## Output Format
@@ -204,7 +217,7 @@ Context: prod-app
 
 ### Security
 ✅ SAST: 0 vulnerabilities
-⚠️ .env: APP_DEBUG=true (should be false)
+⚠️ display_errors=On in production INI (should be Off)
 ⚠️ Hardcoded credential found: src/Module/ApiModule.php:42
 
 ### Performance
@@ -229,7 +242,7 @@ Context: prod-app
 
 ## Action Items
 
-1. [ ] Set APP_DEBUG=false in production .env
+1. [ ] Turn off display_errors in the production INI
 2. [ ] Remove hardcoded credential in ApiModule.php
 3. [ ] Change LOG_LEVEL to warning or error
 
@@ -260,22 +273,3 @@ Address 3 warnings before deployment.
 - Resources without cache configuration
 - Debug settings enabled
 - Performance warnings
-
-## When to Run
-
-- Pre-deployment (manual)
-- CI/CD pipeline (automated)
-- Periodic audit (weekly/monthly)
-
-## CI/CD Integration Example
-
-```yaml
-# GitHub Actions
-- name: Preflight Check
-  run: |
-    composer install --no-dev
-    ./vendor/bin/bear.compile 'App\Name' prod-app ./
-    ./vendor/bin/phpunit
-    ./vendor/bin/bear.security-scan src
-    composer audit
-```

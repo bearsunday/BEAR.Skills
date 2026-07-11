@@ -20,7 +20,7 @@ token (bound to the `audit.xml` report profile). That token is the dispatch key.
 
 ## When to Use This Skill
 
-- You ran a BEAR.ApiDoc audit (`format=audit`, e.g. `composer docs-audit`) and want the gaps fixed, not just listed.
+- You ran a BEAR.ApiDoc audit (`<format>` including `audit`) and want the gaps fixed, not just listed.
 - The user points at `docs/audit.html` / `docs/audit.md` and asks to act on it.
 - You want documentation coverage (summaries, schemas, ALPS) brought up across a project.
 
@@ -34,18 +34,26 @@ token (bound to the `audit.xml` report profile). That token is the dispatch key.
 | `request-schema` | Missing request schema for non-path body input. | Create request param JSON Schema + `#[JsonSchema(params:)]` | Hand-author from the method's input params (format: `bear-resource-gen/references/jsonschema-templates.md`) |
 | `alps` | Missing ALPS attribute. | Add `#[Alps]` to the class or method | **bear-to-alps** |
 
+The `findingType` vocabulary is defined by BEAR.ApiDoc's audit report profile (`docs/alps/audit.xml`); `alps` findings are only reported when an ALPS profile is configured.
+
 If a sibling skill is unavailable in the current environment, fall back to editing by hand following that skill's conventions — never invent schemas or semantics (see Safety).
 
 ## Execution Flow
 
 ### Step 1: Obtain the audit
 
-Prefer an existing `docs/audit.html`. If absent or stale, regenerate it:
+Prefer an existing `docs/audit.html`. If absent or stale, locate the project's
+audit entry point — script and config names vary per project:
 
 ```bash
-# uses the project's audit apidoc.xml (format=audit)
-php vendor/bin/apidoc -c apidoc.audit.xml   # or: composer docs-audit
+grep -n "apidoc" composer.json        # composer script wrapping vendor/bin/apidoc, if any
+grep -l "audit" apidoc*.xml           # config whose <format> lists audit
 ```
+
+Then regenerate, e.g. `php vendor/bin/apidoc` (reads `./apidoc.xml`; for a
+differently named config attach the value: `-capidoc.audit.xml` — a space after
+`-c` is silently ignored) or the composer script found above. If no config lists
+`audit`, add it to `<format>` (comma-separated, e.g. `html,audit`).
 
 ### Step 2: Parse findings
 
@@ -76,7 +84,7 @@ Regenerate the audit and diff. Repeat until findings are empty or the remainder
 are non-auto-fixable. Report:
 
 - **Fixed** — gap closed and verified by re-audit.
-- **Needs review** — applied with low confidence (left with a `@todo 要確認` marker).
+- **Needs review** — applied with low confidence (left with a `@todo needs-review` marker).
 - **Skipped** — not auto-fixable, with the reason.
 
 ## Safety
@@ -87,28 +95,11 @@ This skill follows the same discipline as `bear-documenter`:
   confidence level; response schemas are derived from *actual* `var/fake/`
   responses (when present), never invented shapes. If no fake response exists,
   author the schema from the resource's actual output and mark it
-  `@todo 要確認`. ALPS ids reuse existing semantics where they exist.
-- **Confidence markers.** Low-confidence edits carry `@todo 要確認(確信度X):` so a
-  human reviews them. A clean audit is necessary but not sufficient — coverage is
-  not correctness.
+  `@todo needs-review`. ALPS ids reuse existing semantics where they exist.
+- **Confidence markers.** Low-confidence edits carry `@todo needs-review(confidence X):`
+  (bear-documenter's marker — one grep-able convention) so a human reviews them.
+  A clean audit is necessary but not sufficient — coverage is not correctness.
 - **Verify, don't assume.** Each fix is confirmed by re-running the audit; report
   failures honestly rather than claiming the gap is closed.
 - **Scope.** One target per fix; never bulk-edit beyond the operations the audit
   named.
-
-## findingType reference
-
-Defined by the BEAR.ApiDoc audit profile (`docs/alps/audit.xml`):
-
-- `response-schema` — the operation declares no response JSON Schema.
-- `request-schema` — a non-path body input exists but no request JSON Schema validates it.
-- `class-summary` — the resource class has no PHPDoc summary.
-- `operation-summary` — the `on*` handler has no PHPDoc summary.
-- `alps` — the class/method carries no `#[Alps]` attribute (only reported when an ALPS profile is configured).
-
-## Related
-
-- **bear-documenter** — PHPDoc generation (summaries).
-- **bear-to-alps** — ALPS profile / `#[Alps]` attributes.
-- **bear-resource-gen** — JsonSchema file format (`references/jsonschema-templates.md`) for hand-authoring response/request schemas.
-- BEAR.ApiDoc — generates the audit this skill consumes.

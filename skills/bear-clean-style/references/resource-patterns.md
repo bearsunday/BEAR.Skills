@@ -65,7 +65,7 @@ Reading top-to-bottom should mirror the public surface first, the implementation
 
 ## Exceptions
 
-- No generic `LogicException` / `RuntimeException` in `src/`. Define a domain-named subclass under `<Vendor>\<Project>\Exception\<DomainName>Exception` for any thrown exception.
+- No generic `LogicException` / `RuntimeException` / `InvalidArgumentException` in `src/`. Define a domain-named subclass under `<Vendor>\<Project>\Exception\<DomainName>Exception` for any thrown exception.
 - Read misses use `$this->code = Code::NOT_FOUND`, not a thrown exception. Page templates re-raise the per-entity `*NotFoundException` to reach the error template.
 
 ## Pagination

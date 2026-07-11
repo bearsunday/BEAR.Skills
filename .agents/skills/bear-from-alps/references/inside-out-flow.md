@@ -9,12 +9,10 @@ Generate FakeJson files for each Taxonomy in the ALPS profile.
 **Directory structure:**
 ```
 var/fake/
-├── App/
-│   ├── Users.json      # List resource
-│   ├── User.json       # Individual resource
-│   └── ...
-└── Page/
-    └── Index.json      # Home page
+└── App/
+    ├── Users.json      # List resource
+    ├── User.json       # Individual resource
+    └── ...
 ```
 
 **Example: var/fake/App/Users.json**
@@ -92,31 +90,9 @@ class Users extends ResourceObject
 }
 ```
 
-## Step 6C: Configure FakeJsonModule
+## Step 6C: Configure FakeModule
 
-**src/Module/FakeJsonModule.php:**
-```php
-<?php
-declare(strict_types=1);
-
-namespace {Vendor}\{Package}\Module;
-
-use BEAR\FakeJson\FakeJsonModule as BaseFakeJsonModule;
-use Ray\Di\AbstractModule;
-
-class FakeJsonModule extends AbstractModule
-{
-    protected function configure(): void
-    {
-        $fakeDir = dirname(__DIR__, 2) . '/var/fake';
-        $this->install(new BaseFakeJsonModule($fakeDir));
-    }
-}
-```
-
-**Module switching by context:**
-
-FakeJsonModule is used in a dedicated context Module, not in AppModule:
+Create a module for the `fake` context that installs BEAR.FakeJson directly (per the BEAR.FakeJson README). No env var and no bootstrap.php changes are needed.
 
 **src/Module/FakeModule.php** (for Phase 1):
 ```php
@@ -125,33 +101,29 @@ declare(strict_types=1);
 
 namespace {Vendor}\{Package}\Module;
 
+use BEAR\FakeJson\FakeJsonModule;
 use Ray\Di\AbstractModule;
 
 class FakeModule extends AbstractModule
 {
     protected function configure(): void
     {
-        $this->install(new AppModule());
-        $this->install(new FakeJsonModule());
+        $this->install(new FakeJsonModule(dirname(__DIR__, 2) . '/var/fake'));
     }
 }
 ```
 
-**Usage:**
-```bash
-# Phase 1: Using FakeJson (API design phase)
-export APP_CONTEXT=fake
-php -S localhost:8080 -t public
+**Usage - composed `fake-app` context:**
 
-# Phase 2 onward: Using production DB
-export APP_CONTEXT=app
-php -S localhost:8080 -t public
-```
+The context word `fake` resolves to FakeModule; compose it with the app context and pass the string to Bootstrap/Injector:
 
-**Context loading in bootstrap.php:**
 ```php
-$context = getenv('APP_CONTEXT') ?: 'app';
-$injector = Injector::getInstance($context);
+// Tests (Phase 1)
+$injector = Injector::getInstance('fake-app');
+
+// Dev server: during Phase 1, prefix `fake-` to the context passed
+// to Bootstrap in the entry script, e.g. 'fake-hal-api-app'.
+// In Phase 2, drop the `fake-` prefix to use the production DB.
 ```
 
 ## Step 6D: Create Tests
@@ -175,7 +147,7 @@ class UsersTest extends TestCase
 
     protected function setUp(): void
     {
-        $injector = Injector::getInstance('fake');
+        $injector = Injector::getInstance('fake-app');
         $this->resource = $injector->getInstance(ResourceInterface::class);
     }
 
@@ -253,12 +225,12 @@ Use AskUserQuestion tool to ask:
    - Generate migration files
 
 2. **Update Resource classes to production implementation**
-   - Switch from FakeJsonModule to MediaQueryModule
+   - Switch from FakeJson to MediaQuerySqlModule
    - Inject Query/Command interfaces
 
-3. **Remove FakeJsonModule**
-   - Delete src/Module/FakeJsonModule.php
-   - Remove FakeJsonModule install from AppModule
+3. **Remove the fake context**
+   - Delete src/Module/FakeModule.php (and its FakeJsonModule wrapper if one was created)
+   - Remove the `fake-` context prefix from any invocation (tests, entry scripts)
 
 4. **Update tests**
    - Change to use test DB

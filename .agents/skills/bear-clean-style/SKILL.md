@@ -39,7 +39,7 @@ touches (see Workflow step 2). The table below is the quick reference.
 
 | Level | Name | Apply when | Typical changes |
 |---|---|---|---|
-| 1 | Surface cleanup | User asks for safe cleanup or “名前だけ/returnだけ” | `ResourceObject` return type to `static`, literal `$this->body`, method order, dependency property naming, Query/Command/SQL naming alignment, removing generic `LogicException`/`RuntimeException` in favour of domain exceptions |
+| 1 | Surface cleanup | User asks for safe cleanup or “名前だけ/returnだけ” | `ResourceObject` return type to `static`, literal `$this->body`, method order, dependency property naming, Query/Command/SQL naming alignment, removing generic `LogicException`/`RuntimeException`/`InvalidArgumentException` in favour of domain exceptions |
 | 2 | Contract and QA hardening | User asks for schemas, docs, tests, or confidence before migration | JsonSchema in/out, body array-shape PHPDoc, ALPS IDs, `#[Link]`/`#[Embed]` rel cleanup, ApiDoc/OpenAPI output, hypermedia workflow + HAL contract tests, SQL smoke, Resource smoke, SQLQuality, PHPMD complexity gates, `#[Validate]` for stateful invariants, Page not-found template guard |
 | 3 | Semantic refactor | User asks for BDR, architecture, projection, or “semantic” migration | BDR/Ray.MediaQuery adoption, Query/Command split, `src/Result/*`, typed SELECT results, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert, `#[Pager]`/`PagesInterface` pagination, `#[Cacheable]` Shape A/B normalization |
 
@@ -78,11 +78,9 @@ touches (see Workflow step 2). The table below is the quick reference.
    - Rename in lock-step: PHP symbols, SQL IDs, SQL filenames, tests, schemas, ALPS/OpenAPI references, and docs.
 
 5. **Handle Embed correctly**
-   - `#[Embed]` is for GET representation composition. Do not discuss POST/PUT/DELETE as Embed candidates.
-   - Prefer `#[Embed]` when an `onGet` response embeds related resource representations and the rel is a taxonomy noun.
-   - Keep ResourceClient/resource calls when the fetched data is transient orchestration, validation, authorization, branching, or write workflow data rather than part of the final GET representation.
-   - First decide **reachability**: domain information that should exist on the App surface belongs in an `app://` resource (reachable from HAL API, CLI, `#[Embed]`, `#[Link]`, `#[Cacheable]`, JSON Schema, ALPS); the Page references it, never owns it. Page-owning such information is a reachability hole. See [hypermedia.md](references/hypermedia.md).
-   - Choose the embed kind by intent: **show the child as-is → normal embed** (child enters under a `{rel}` namespace, keeping a DTO-like unit of meaning); **fuse several children into one Page-laid-out view → self embed** (`rel: _self`, flatten child body into the parent top-level). A resource embedded as `_self` MUST be `#[Cacheable]` (value cache): `#[CacheableResponse]`/`#[DonutCache]` restore only the view on a cache hit, not the body, so `linkSelf` (which reads body) breaks — the framework enforces this with a domain exception.
+   - `#[Embed]` is GET-only representation composition with taxonomy-noun rels; do not discuss POST/PUT/DELETE as Embed candidates.
+   - Decide reachability first: does the information belong in an `app://` resource, with the Page referencing it?
+   - For the reachability premise, the embed-kind choice (normal vs `_self`), and the `_self`-requires-`#[Cacheable]` rule, see [hypermedia.md](references/hypermedia.md).
 
 6. **Verify**
    - Run the narrowest meaningful project checks first: targeted PHPUnit, smoke tests, composer scripts, static analysis, or syntax checks.

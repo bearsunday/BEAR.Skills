@@ -47,7 +47,6 @@ class Users extends ResourceObject
 {
     #[Alps('goUserList')]
     #[Link(rel: 'goUser', href: '/user{?id}')]
-    #[Link(rel: 'doCreateUser', href: '/users')]
     public function onGet(): static
     {
         // ...
@@ -63,10 +62,11 @@ class Users extends ResourceObject
 
 ## Notes When Adding Attributes
 
-1. Add use statement: `use BEAR\ApiDoc\Annotation\Alps;`
-2. Add #[Alps] attribute to the class (Taxonomy)
-3. Add #[Alps] attribute to each on* method (Choreography)
-4. Update #[Link] rel to ALPS ID (for consistency)
+1. Verify `bear/api-doc` is in composer.json (it provides `BEAR\ApiDoc\Annotation\Alps`); if absent, run `composer require bear/api-doc` first
+2. Add use statement: `use BEAR\ApiDoc\Annotation\Alps;`
+3. Add #[Alps] attribute to the class (Taxonomy)
+4. Add #[Alps] attribute to each on* method (Choreography)
+5. Update #[Link] rel to ALPS ID (for consistency)
 
 ## Updating #[Link] rel
 

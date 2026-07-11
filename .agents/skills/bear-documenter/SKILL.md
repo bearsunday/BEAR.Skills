@@ -71,7 +71,7 @@ Auto-generate PHPDoc comments for constant classes. Infer intent from constant n
 
 declare(strict_types=1);
 
-namespace App\Constants;
+namespace MyVendor\MyProject\Constants;
 
 /**
  * @todo needs-review(confidence high): Constants for HTML meta tags
@@ -81,7 +81,7 @@ namespace App\Constants;
 final class MetaTag
 {
     /** @todo needs-review(confidence high): Common title suffix for all pages */
-    public const TITLE_DEFAULT_SUFFIX = '｜Web eclat（ウェブエクラ）';
+    public const TITLE_DEFAULT_SUFFIX = '｜Example Store（エグザンプルストア）';
 
     /** @todo needs-review(confidence high): OGP (Open Graph Protocol) property identifier */
     public const PROPERTY_OGP = 'ogp';
@@ -102,7 +102,7 @@ final class MetaTag
 final class MetaTag
 {
     /** Common title suffix for all pages */
-    public const TITLE_DEFAULT_SUFFIX = '｜Web eclat（ウェブエクラ）';
+    public const TITLE_DEFAULT_SUFFIX = '｜Example Store（エグザンプルストア）';
 }
 ```
 
@@ -122,7 +122,7 @@ final class MetaTag
 #### Confidence: Medium
 
 - Domain-specific terms but inferable from context
-  - `HANAGUMI`, `JMADAM` (site-specific but purpose is clear)
+  - `EXAMPLE_SITE_A`, `EXAMPLE_SITE_B` (site-specific but purpose is clear)
 - Abbreviations but common
   - `API_URL`, `DB_HOST`
 - Intent is readable from array structure
@@ -183,7 +183,7 @@ Auto-generate PHPDoc comments for resource classes. Infer intent from class name
 
 declare(strict_types=1);
 
-namespace App\Resource\App;
+namespace MyVendor\MyProject\Resource\App;
 
 use BEAR\Resource\ResourceObject;
 
@@ -248,7 +248,7 @@ class Article extends ResourceObject
 #### Confidence: Medium
 
 - Class name is domain-specific
-  - `Hanagumi`, `Flagshop`
+  - `ExampleSiteA`, `ExampleSiteB`
 - Compound operations
   - `onPost` also performs updates
 - Many parameters (5 or more)
@@ -325,5 +325,6 @@ grep -r "confidence low" src/Resource/
 2. Choose whether to add @todo markers (present the explanation above)
 3. Analyze code and generate comments
 4. Determine and assign confidence levels
-5. Apply to files
-6. Format with `composer cs-fix`
+5. Run a sample on one file, show the result, and confirm the style with the user before applying to the remaining files
+6. Apply to files
+7. Format with `composer cs-fix`

@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-refactor
-description: Refactoring tool for BEAR.Sunday projects. Provides ResourceObject to static conversion, Named to Qualifier conversion, and trivial getter removal. Use when user says "戻り値をstaticに", "NamedをQualifierに", "getterを外す", "modernize return types", "type-safe DI", or asks to refactor resource return types, value objects, BDR objects, or DI bindings.
+description: Refactoring tool for BEAR.Sunday projects. Provides ResourceObject to static conversion, Named to Qualifier conversion, and trivial getter removal. Use when user says "戻り値をstaticに", "NamedをQualifierに", "getterを外す", "modernize return types", "type-safe DI", or asks to refactor resource return types, value objects, or DI bindings.
 ---
 
 # BEAR.Sunday Refactoring Skill
@@ -64,7 +64,7 @@ After conversion, remove `use BEAR\Resource\ResourceObject;` if it was only used
 
 ```bash
 # Check (files where ResourceObject is not used elsewhere)
-grep -l "use BEAR\\\\Resource\\\\ResourceObject;" src/Resource --include="*.php" | while read f; do
+grep -rl "use BEAR\\\\Resource\\\\ResourceObject;" src/Resource --include="*.php" | while read f; do
   if ! grep -q "extends ResourceObject" "$f"; then
     echo "$f"
   fi
@@ -137,9 +137,12 @@ namespace {Project}\Annotation;
 use Attribute;
 use Ray\Di\Di\Qualifier;
 
+/**
+ * {Description}
+ */
 #[Attribute(Attribute::TARGET_PARAMETER)]
 #[Qualifier]
-final class ApiEndpoint
+final class {ClassName}
 {
 }
 ```
@@ -186,28 +189,6 @@ composer cs-fix
 
 Use statement additions, removals, and reordering are handled automatically.
 
-### Qualifier Attribute Template
-
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace {Project}\Annotation;
-
-use Attribute;
-use Ray\Di\Di\Qualifier;
-
-/**
- * {Description}
- */
-#[Attribute(Attribute::TARGET_PARAMETER)]
-#[Qualifier]
-final class {ClassName}
-{
-}
-```
-
 ### Grouping Guidelines
 
 Group related Qualifiers in the same directory:
@@ -241,18 +222,9 @@ src/Annotation/
 - Features planned for removal in the near future
 - Domain invariant values (should be converted to enum)
 
-### Checklist
-
-- [ ] Create a list of Named strings
-- [ ] Create Qualifier attribute classes for each key
-- [ ] Replace `#[Named('key')]` with `#[QualifierClass]`
-- [ ] Update NamedModule configuration
-- [ ] Format code with `composer cs-fix`
-- [ ] Run tests to verify functionality
-
 ## 3. Remove Trivial Getter Methods
 
-In BEAR/Be code, a method should represent behaviour or a boundary operation.
+In BEAR.Sunday code, a method should represent behaviour or a boundary operation.
 A method that only returns a stored value is not behaviour:
 
 ```php
@@ -302,7 +274,7 @@ pat = re.compile(
     re.S,
 )
 
-for base in ['src', 'be/src', 'tests/Fake']:
+for base in ['src', 'tests/Fake']:
     root = Path(base)
     if not root.exists():
         continue

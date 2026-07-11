@@ -56,7 +56,7 @@ If `phpmd.baseline.xml` exists, temporarily disable it to understand the true qu
 mv phpmd.baseline.xml phpmd.baseline.xml.bak
 
 # 2. Run PHPMD against all resource directories
-$PHPMD src/Resource text phpmd.xml 2>&1 > phpmd_output.txt
+$PHPMD src/Resource text phpmd.xml 2>/dev/null | grep -v "^Deprecated" > phpmd_output.txt
 
 # 3. Restore
 mv phpmd.baseline.xml.bak phpmd.baseline.xml
@@ -70,47 +70,11 @@ Automatically generate statistics from PHPMD output:
 # Total violations
 cat phpmd_output.txt | wc -l
 
-# Count by category
-echo "=== Category Statistics ==="
-echo "LongVariable:           $(grep -c 'LongVariable' phpmd_output.txt) violations"
-echo "CouplingBetweenObjects: $(grep -c 'CouplingBetweenObjects' phpmd_output.txt) violations"
-echo "StaticAccess:           $(grep -c 'StaticAccess' phpmd_output.txt) violations"
-echo "ElseExpression:         $(grep -c 'ElseExpression' phpmd_output.txt) violations"
-echo "UnusedFormalParameter:  $(grep -c 'UnusedFormalParameter' phpmd_output.txt) violations"
-
-# Complexity violations (high priority)
-echo ""
-echo "=== Complexity Violations (High Priority) ==="
-echo "CyclomaticComplexity:   $(grep -c 'CyclomaticComplexity' phpmd_output.txt) violations"
-echo "NPathComplexity:        $(grep -c 'NPathComplexity' phpmd_output.txt) violations"
-echo "ExcessiveMethodLength:  $(grep -c 'ExcessiveMethodLength' phpmd_output.txt) violations"
-echo "ExcessiveClassLength:   $(grep -c 'ExcessiveClassLength' phpmd_output.txt) violations"
-echo "TooManyFields:          $(grep -c 'TooManyFields' phpmd_output.txt) violations"
+# Count by rule, descending (rule name is the 2nd column of PHPMD text output)
+awk '{print $2}' phpmd_output.txt | sort | uniq -c | sort -rn
 ```
 
-#### Statistics Report Example
-
-Example of execution results:
-
-```text
-=== PHPMD Statistics Report ===
-Total violations: 259
-
-[By Category]
-- LongVariable:            92 (35.5%)
-- CouplingBetweenObjects:  28 (10.8%)
-- StaticAccess:            24 (9.3%)
-- ElseExpression:          20 (7.7%)
-- UnusedFormalParameter:   18 (7.0%)
-...
-
-[Complexity Violations (High Priority)]
-- CyclomaticComplexity:     5
-- NPathComplexity:          5
-- ExcessiveMethodLength:    7
-- ExcessiveClassLength:     1
-- TooManyFields:            0
-```
+Treat complexity rules (CyclomaticComplexity, NPathComplexity, ExcessiveMethodLength, ExcessiveClassLength, TooManyFields) as high priority.
 
 #### Identifying the Most Problematic Files
 
@@ -133,7 +97,7 @@ Visualize the number of issues hidden by the baseline:
 baseline_off=$(cat phpmd_output.txt | wc -l)
 
 # Violation count with baseline (normal execution)
-baseline_on=$($PHPMD src/Resource text phpmd.xml 2>&1 | wc -l)
+baseline_on=$($PHPMD src/Resource text phpmd.xml 2>/dev/null | grep -v "^Deprecated" | wc -l)
 
 echo "=== Baseline Comparison ==="
 echo "With baseline:    ${baseline_on} violations"
@@ -146,20 +110,13 @@ echo "Suppressed:       $((baseline_off - baseline_on)) violations"
 Determine severity based on complexity values:
 
 ```bash
-# Critical: CC>20 or NPath>10000
-critical_cc=$(grep 'CyclomaticComplexity' phpmd_output.txt | sed -n 's/.*Complexity of \([0-9][0-9]*\).*/\1/p' | awk '{if($1>20)print}' | wc -l)
-critical_npath=$(grep 'NPathComplexity' phpmd_output.txt | sed -n 's/.*complexity of \([0-9][0-9]*\).*/\1/p' | awk '{if($1>10000)print}' | wc -l)
+# Critical (Failing grade): CC>30 or NPath>1000
+critical_cc=$(grep 'CyclomaticComplexity' phpmd_output.txt | sed -n 's/.*Complexity of \([0-9][0-9]*\).*/\1/p' | awk '{if($1>30)print}' | wc -l)
+critical_npath=$(grep 'NPathComplexity' phpmd_output.txt | sed -n 's/.*complexity of \([0-9][0-9]*\).*/\1/p' | awk '{if($1>1000)print}' | wc -l)
 
 echo "=== By Severity ==="
-echo "Critical (CC>20 or NPath>10000): $((critical_cc + critical_npath)) violations"
+echo "Critical (CC>30 or NPath>1000): $((critical_cc + critical_npath)) violations"
 ```
-
-#### How to Use the Statistics
-
-1. **Visualize technical debt**: Understand the total number of issues hidden by the baseline
-2. **Prioritize**: Address complexity violations first
-3. **Improvement plan**: Create a phased improvement plan based on per-category counts
-4. **Trend analysis**: Run periodically to monitor improvement progress
 
 ### 2. Evaluation Criteria
 
@@ -231,7 +188,7 @@ Evaluate each item below. See `references/code-quality-checklist.md` for detaile
 - **Debug code**: No `error_log()`, `var_dump()`, `print_r()`; use LoggerInterface
 - **File size**: Under 200 lines good; over 400 lines excessive
 - **Method arguments**: Use explicit scalar arguments or `#[Input]` + DTO, not `array<string, mixed>`
-- **Trivial getters**: Avoid methods that only return a stored field (`return $this->x;`). Prefer public readonly properties for value/context/BDR objects; keep methods only for behaviour, framework contracts, validation, lazy creation, transformation, I/O, or throws.
+- **Trivial getters**: Replace methods that only return a stored field with public readonly properties
 - **Web context**: No superglobal access; use `#[QueryParam]`, `#[CookieParam]` attributes
 - **ResourceParam**: Use `#[ResourceParam]` for inter-resource dependencies instead of procedural fetching
 - **File upload**: Use `#[UploadFiles]` instead of `$_FILES`
