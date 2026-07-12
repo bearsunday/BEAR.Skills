@@ -2,25 +2,14 @@
 
 ## Resource Class -> Taxonomy Inference
 
-| Resource Class | ALPS Taxonomy ID |
-|--------------|-----------------|
-| Users.php | UserList |
-| User.php | UserDetail or User |
-| Products.php | ProductList |
-| Product.php | Product |
-
-### Taxonomy ID Rules for Singular Resources
-
-| Class Pattern | Taxonomy ID | Description |
-|--------------|-------------|-------------|
-| {Entity}s.php | {Entity}List | Plural = list |
-| {Entity}.php | {Entity} | Singular = detail (simple form) |
+| Class Pattern | Taxonomy ID | Example |
+|--------------|-------------|---------|
+| {Entity}s.php | {Entity}List | Users.php -> UserList |
+| {Entity}.php | {Entity} | User.php -> User |
 | Index.php | Home | Top page |
 
-- Basic: `User.php` -> `User` (simple)
-- Use `UserDetail` only when explicit distinction is needed
-- Recommended pairing for list and detail: `UserList` / `User`
-- Avoid `{Entity}Detail` as it is redundant
+- Basic: `User.php` -> `User`, paired with `UserList` for the list
+- Avoid `{Entity}Detail` (redundant); use a `Detail` suffix only when a name collision makes the distinction unavoidable
 
 ## Method -> Choreography Inference
 
@@ -46,7 +35,7 @@
 
 ```php
 #[Link(rel: 'goUser', href: '/user{?id}')]
-// -> ALPS: {"id": "goUser", "type": "safe", "rt": "#UserDetail"}
+// -> ALPS: {"id": "goUser", "type": "safe", "rt": "#User"}
 ```
 
 ### rt (Return Type) Resolution Logic

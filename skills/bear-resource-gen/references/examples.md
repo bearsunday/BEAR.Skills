@@ -160,7 +160,7 @@ Operations:
 - No POST/PUT/DELETE operations
 - Only `category_list.sql` and `category_item.sql`
 - No migration (assume pre-existing table)
-- Only request schemas for GET operations
+- Only response schemas — request schemas are omitted here because these read operations take no input parameters beyond the id; a GET with query parameters still needs `#[JsonSchema(params: ...)]` validation
 
 ## Common Patterns
 

@@ -46,6 +46,8 @@ Operations:
 
 Provide an ALPS JSON profile with semantic definitions.
 
+For worked input/output examples of both formats, see `references/examples.md`.
+
 ## Step-by-Step Implementation Process
 
 ### Step 1: Analyze Input

@@ -13,14 +13,14 @@
 }
 ```
 
-## 4.2 Generate Environment Variable Files (Koriym.EnvJson)
+## 4.2 Environment Variable Files (Koriym.EnvJson)
 
-**env.schema.json** - Schema definition:
+bear/skeleton already ships `env.schema.json` and `env.dist.json` (and koriym/env-json). Do not regenerate them — add the DB_* properties to the existing files.
+
+**env.schema.json** - add to `required` and `properties`:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
   "required": ["TZ", "DB_DSN"],
   "properties": {
     "TZ": {
@@ -114,41 +114,7 @@ echo "env.json" >> .gitignore
 echo "var/db/*.sqlite3" >> .gitignore
 ```
 
-## 4.5 Update bin/app.php (EnvJson Loading)
-
-Load EnvJson at the application entry point:
-
-**bin/app.php:**
-```php
-<?php
-declare(strict_types=1);
-
-use Koriym\EnvJson\EnvJson;
-
-require dirname(__DIR__) . '/vendor/autoload.php';
-
-// Load environment variables
-(new EnvJson())->load(dirname(__DIR__));
-
-exit((require dirname(__DIR__) . '/bootstrap.php')($argv));
-```
-
-**public/index.php:**
-```php
-<?php
-declare(strict_types=1);
-
-use Koriym\EnvJson\EnvJson;
-
-require dirname(__DIR__) . '/vendor/autoload.php';
-
-// Load environment variables
-(new EnvJson())->load(dirname(__DIR__));
-
-exit((require dirname(__DIR__) . '/bootstrap.php')());
-```
-
-## 4.6 Configure tests/bootstrap.php
+## 4.5 Configure tests/bootstrap.php
 
 ```php
 <?php
@@ -158,8 +124,16 @@ use Koriym\EnvJson\EnvJson;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-// Load test environment variables (prefer env.test.json if it exists)
+// EnvJson::load() keeps already-valid process env vars and reads the JSON file
+// only as a fallback, so an inherited DB_DSN (developer shell, CI) would silently
+// send tests to a non-test database. Force the test values into the process
+// environment first, then load for validation.
 $envFile = file_exists(dirname(__DIR__) . '/env.test.json') ? 'env.test.json' : 'env.json';
+$env = json_decode(file_get_contents(dirname(__DIR__) . '/' . $envFile), true, 512, JSON_THROW_ON_ERROR);
+unset($env['$schema']);
+foreach ($env as $name => $value) {
+    putenv("{$name}={$value}");
+}
 (new EnvJson())->load(dirname(__DIR__), $envFile);
 ```
 
@@ -175,7 +149,9 @@ $envFile = file_exists(dirname(__DIR__) . '/env.test.json') ? 'env.test.json' : 
 }
 ```
 
-## 4.7 Place the ALPS Profile
+Wire it into PHPUnit: set `bootstrap="tests/bootstrap.php"` in phpunit.xml.dist (the skeleton default is `vendor/autoload.php`).
+
+## 4.6 Place the ALPS Profile
 
 ```bash
 mkdir -p docs

@@ -8,7 +8,7 @@ Topic files live alongside this index. Load only what the current task needs.
 
 | Level | Category | Examples |
 |---|---|---|
-| 1 | Surface cleanup | `ResourceObject` return type to `static`, literal response body assignment, method order, resource dependency property names, Query/Command/SQL naming, removing generic `LogicException`/`RuntimeException` |
+| 1 | Surface cleanup | `ResourceObject` return type to `static`, literal response body assignment, method order, resource dependency property names, Query/Command/SQL naming, removing generic `LogicException`/`RuntimeException` (exception swaps change the thrown contract — verify no caller/test/error handler catches the generic type first; if any does, treat as Level 3) |
 | 2 | Contract and QA hardening | JsonSchema response/request validation, body array-shape PHPDoc, ALPS IDs, `#[Link]`, `#[Embed]`, ApiDoc/OpenAPI, hypermedia workflow + HAL contract tests, SQL smoke, Resource smoke, SQLQuality, PHPMD complexity checks, `#[Validate]` for stateful invariants, Page not-found template guard |
 | 3 | Semantic refactor | BDR/Ray.MediaQuery, Read/Write split, typed Result classes, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert, `#[Pager]`/`PagesInterface` pagination, `#[Cacheable]` Shape A/B normalization |
 

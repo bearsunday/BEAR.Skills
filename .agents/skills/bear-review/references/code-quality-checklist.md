@@ -478,6 +478,29 @@ public function onPost(UserInput $user): static
 - Contains nested structures or arrays
 - Same parameter set is used across multiple resources
 
+## Trivial Getters
+
+A method that only returns a stored field (`return $this->x;`) is not behaviour. Prefer public readonly properties for value/context/BDR objects.
+
+```php
+// ❌ Problem: Method that only returns a field
+public function adminId(): string|null
+{
+    return $this->adminId;
+}
+
+// ✅ Recommended: Readonly value/context object with public properties
+readonly class AdminSession
+{
+    public function __construct(
+        public string|null $adminId,
+    ) {
+    }
+}
+```
+
+Keep a method only when it has a reason to exist: behaviour (computation, validation, throws), a framework/interface contract, lazy creation, transformation, or I/O.
+
 ## Web Context Retrieval
 
 Direct access to superglobals is prohibited. Use attributes to retrieve them.
@@ -521,19 +544,6 @@ $file = $_FILES['image'];
 
 // ✅ Recommended
 public function onPost(#[UploadFiles] array $files): static
-```
-
-## Page Resource Restrictions
-
-Page resources should only use `onGet` and `onPost`.
-
-```php
-// ❌ Problem: onPut/onDelete in Page
-class UserPage extends ResourceObject {
-    public function onDelete(int $id): static  // NG
-}
-
-// ✅ Recommended: CRUD in App resource, Page uses GET/POST only
 ```
 
 ## Composition Over Inheritance

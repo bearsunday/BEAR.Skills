@@ -6,99 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 BEAR.Skills is a collection of Claude Skills designed for BEAR.Sunday, a PHP resource-oriented framework. The primary goal is to provide automated code generation for BEAR.Sunday's ROA (Resource Oriented Architecture) components.
 
-### Core Skill: BEAR.Sunday Resource Generator
-
-**Location:** `.claude/skills/bear-resource-gen/`
-
-This skill generates a complete, consistent set of files for BEAR.Sunday resources leveraging Ray.MediaQuery:
-
-1. **Phinx Migration** - Database schema with proper types and indexes
-2. **Query/Command Interfaces** (CQRS pattern)
-   - QueryInterface: Read operations with `#[DbQuery]` attributes
-   - CommandInterface: Write operations (add/update/delete)
-3. **SQL Files** (flat structure in `var/sql/`)
-   - Naming convention: `{entity}_{operation}.sql`
-   - Operations: `add`, `list`, `item`, `update`, `delete`
-   - Example: `ticket_add.sql`, `ticket_item.sql`
-4. **Entity Classes** (readonly properties)
-   - snake_case (DB) → camelCase (JSON) conversion
-   - Readonly properties for immutability
-   - Constructor-based initialization
-5. **Resource Classes** (extends ResourceObject)
-   - Constructor injection of QueryInterface and CommandInterface
-   - `#[JsonSchema]` attribute for validation
-   - Full CRUD methods (onGet, onPost, onPut, onDelete) with proper HTTP status codes
-   - 404 error handling for non-existent resources
-6. **JsonSchema** (request and response)
-   - Response: `var/json_schema/{entity}.json`
-   - Request: `var/json_validate/{entity}-post.json`, `{entity}-put.json`
-   - JSON Schema Draft 07 format
-7. **Tests** (unit and integration)
-   - Resource integration tests with all HTTP methods
-   - Entity unit tests
-   - 404 error handling tests
-
-### Using the Skill
-
-Invoke the skill and provide a specification:
-
-```markdown
-Entity: Ticket (id: string, title: string, content: string, dateCreated: datetime)
-
-Operations:
-- List tickets (GET)
-- Get ticket detail (GET)
-- Create ticket (POST)
-- Update ticket (PUT)
-- Delete ticket (DELETE)
-```
-
-Or provide an ALPS profile for more comprehensive generation with semantic definitions.
-
-The skill will generate all necessary files and provide a summary with next steps.
-
-## Architecture Principles
-
-### Ray.MediaQuery Pattern
-
-Ray.MediaQuery binds PHP interfaces directly to SQL execution:
-```php
-interface TicketQueryInterface
-{
-    #[DbQuery('ticket_item')]
-    public function item(string $id): Ticket|null;
-
-    /** @return array<Ticket> */
-    #[DbQuery('ticket_list')]
-    public function list(): array;
-}
-```
-
-No implementation class needed - DI auto-generates SQL execution objects.
-
-### Clean Architecture & DIP
-
-- **Domain Layer**: Interfaces define business logic contracts
-- **Infrastructure Layer**: SQL files contain implementation details
-- **Dependency Inversion**: Resources depend on abstractions (interfaces), not concrete SQL
-
-### SQL File Organization
-
-**Flat structure (recommended):**
-```
-var/sql/
-├── ticket_add.sql
-├── ticket_list.sql
-├── ticket_item.sql
-├── ticket_update.sql
-└── ticket_delete.sql
-```
-
-**Benefits:**
-- Simple and predictable: "ticket list" → `ticket_list.sql`
-- Easy discovery: `ls var/sql/ticket_*`
-- Clear ownership: Each resource has self-contained SQL
-- Change impact is isolated
+The core skill is **bear-resource-gen**, which generates a complete resource set (Phinx migration, Query/Command interfaces, SQL files, Entity, ResourceObject, JsonSchema, tests) from a simple specification or an ALPS profile using the Ray.MediaQuery pattern. Its conventions (flat `var/sql/`, `var/json_schema/` + `var/json_validate/`, readonly entities, CQRS interface split) are documented in [skills/bear-resource-gen/SKILL.md](skills/bear-resource-gen/SKILL.md) — that file is the single source of truth; do not restate its details here.
 
 ## Development Commands
 
@@ -150,21 +58,14 @@ composer build         # Run clean + cs + sa + pcov + compile + metrics
 
 ### Directory Structure
 
-Skills are located in `.claude/skills/` (development) and `skills/` (distribution):
-```text
-.claude/skills/
-├── bear-cacheable/
-├── bear-documenter/
-├── bear-from-alps/          # Generate project from ALPS profile
-├── bear-hypermedia/
-├── bear-preflight/
-├── bear-refactor/
-├── bear-resource-gen/
-├── bear-review/
-├── bear-security-setup/
-├── bear-smoke-test/         # Generate 4-layer smoke test suite
-└── bear-to-alps/            # Extract ALPS profile from project
+The same skill set is checked in three times: `skills/` (distribution, canonical), `.claude/skills/` (loaded in local Claude Code sessions), and `.agents/skills/`. **Edit `skills/` only**, then mirror the change into the other two trees before committing:
+
+```bash
+rsync -a --delete skills/ .claude/skills/
+rsync -a --delete skills/ .agents/skills/
 ```
+
+CI (`.github/workflows/skills-sync.yml`) fails if the trees differ. For the current skill inventory, run `ls skills/` or see the Available Skills tables in README.md — do not maintain a copy of the list here.
 
 ## Xdebug Integration
 

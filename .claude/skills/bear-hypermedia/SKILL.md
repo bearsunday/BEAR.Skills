@@ -3,8 +3,9 @@ user-invocable: true
 name: bear-hypermedia
 description: >-
   Add #[Link] attributes to resource classes. Use when user says "add links",
-  "ハイパーメディア", "HATEOAS", "API transitions", or asks to add hypermedia
-  links or improve API design.
+  "ハイパーメディア", "HATEOAS", "API transitions", "workflow test",
+  "ワークフローテスト", "hypermedia story", "flow tags", or asks to add
+  hypermedia links or add state transitions to responses.
 ---
 
 # BEAR.Sunday Hypermedia Implementation Skill
@@ -24,10 +25,12 @@ story across linked resources.
 Read the resource and identify possible actions:
 
 - Can be edited -> `rel: 'edit'`
-- Can be deleted -> `rel: 'delete'`
 - Has details -> `rel: 'item'`
 - Can return to list -> `rel: 'collection'`
 - Has next/previous -> `rel: 'next'` / `rel: 'prev'`
+
+Plain, generic rel names — use these unless the project follows the
+clean-style/ALPS convention below.
 
 ### 2. Add #[Link]
 
@@ -35,10 +38,17 @@ Read the resource and identify possible actions:
 use BEAR\Resource\Annotation\Link;
 
 #[Link(rel: 'edit', href: '/article/{id}/edit')]
-#[Link(rel: 'delete', href: '/article/{id}', method: 'delete')]
 #[Link(rel: 'comments', href: '/article/{id}/comments')]
 public function onGet(int $id): static
 ```
+
+**Rel naming on clean-style / ALPS projects:** name safe (GET) transitions
+with `go*` choreography IDs (`goEdit`, `goComments`) instead of the plain
+rels above; `bear-to-alps` "Add Attributes" mode renames plain rels to
+these IDs. PUT/DELETE are unsafe transitions invoked directly by HTTP
+method on the resource's own URI — they are not advertised as `_links`
+rels at all, so no `do*` rel-naming decision applies to them (see
+`bear-clean-style/references/hypermedia.md` rule 8).
 
 ## ALPS Tags Before Workflow Tests
 
@@ -59,6 +69,53 @@ project has `docs/tag.md`, read it first and follow that tag taxonomy.
 
 If the tags are missing or unclear, update and validate the ALPS profile with
 the `bear-to-alps` skill before adding workflow tests.
+
+## Write Workflow Tests
+
+Implement each selected story (one per `flow-*` tag) as one test class in
+`tests/Hypermedia/`. Chain the steps with `#[Depends]`: each step fetches a
+resource, asserts the expected `_links` rel exists, and follows its `href` to
+the next step. Smoke tests (`bear-smoke-test`) remain the liveness layer;
+these tests verify the story, not each endpoint.
+
+```php
+namespace MyVendor\MyProject\Hypermedia;
+
+use BEAR\Resource\ResourceInterface;
+use BEAR\Resource\ResourceObject;
+use MyVendor\MyProject\Injector;
+use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\TestCase;
+
+class BrowseWorkflowTest extends TestCase // one class per flow-* story
+{
+    private ResourceInterface $resource;
+
+    protected function setUp(): void
+    {
+        $this->resource = Injector::getInstance('app')->getInstance(ResourceInterface::class);
+    }
+
+    public function testIndex(): ResourceObject
+    {
+        $index = $this->resource->get('/index');
+        $this->assertSame(200, $index->code);
+
+        return $index;
+    }
+
+    #[Depends('testIndex')]
+    public function testFollowArticles(ResourceObject $response): ResourceObject
+    {
+        $links = json_decode((string) $response)->_links;
+        $this->assertTrue(isset($links->articles));
+        $articles = $this->resource->get($links->articles->href);
+        $this->assertSame(200, $articles->code);
+
+        return $articles;
+    }
+}
+```
 
 ## Generate ALPS from Resource Classes
 

@@ -5,7 +5,8 @@ description: >-
   Plan BEAR.Sunday clean-style and semantic-refactor batches without editing
   code. Decide whether to apply BEAR clean style, how to split Level 1/2/3
   changes, whether a ResourceClient call should become a GET Embed, whether
-  template loops should become Result Generator projections, when to adopt
+  information belongs in an app:// resource or the Page (到達可能性/reachability),
+  whether template loops should become Result Generator projections, when to adopt
   BDR/Input DTOs/AffectedRows/JsonSchema/ALPS-HAL/smoke tests/SQLQuality/PHPMD,
   and which execution skill should run next. Use when user says "should we
   apply clean style", "clean style consultant", "クリーンスタイル相談",
@@ -97,7 +98,7 @@ Recommend SQLQuality for query-plan/performance confidence. Recommend PHPMD comp
 ```markdown
 ## 判定
 
-この相談は Level X です。
+この相談の中心は Level X です（候補ごとの Level は下表を参照）。
 
 ## 推奨
 

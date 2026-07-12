@@ -58,7 +58,7 @@ ALPS has two distinct layers and HAL has two distinct collections (`_links` and 
 
 | Where | Source layer | Examples |
 |---|---|---|
-| `#[Link]` rel | ALPS **Choreography** (transition verbs) | `goArticleList`, `goAuthor`, `doCreateArticle`, `doDeleteTag` |
+| `#[Link]` rel | ALPS **Choreography** (transition verbs) | `goArticleList`, `goAuthor`, `doCreateArticle` |
 | `#[Embed]` rel | ALPS **Taxonomy** (entity nouns) | `author`, `category`, `tagList` |
 
 Do not mix: `#[Embed(rel: 'goAuthor', ...)]` is wrong because `go*` is a Choreography (client-followable transition), while embed is a server-included taxonomy instance. The HAL envelope shape is pinned in a contract test (see [tests.md](tests.md)) so slips fail one isolated test.
