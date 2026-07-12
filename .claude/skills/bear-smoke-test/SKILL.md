@@ -150,8 +150,10 @@ class QueryTest extends TestCase
         match ($expectedType) {
             'void' => $this->addToAssertionCount(1),
             'array' => $this->assertIsArray($result),
-            // nullable return (Entity|null) - accept null for default args
-            default => $this->assertTrue($result === null || is_object($result) || is_array($result)),
+            // entity return: assert the concrete type; null allowed for nullable (Entity|null) contracts
+            default => $result === null
+                ? $this->addToAssertionCount(1)
+                : $this->assertInstanceOf($expectedType, $result),
         };
     }
 
@@ -245,8 +247,8 @@ class WorkflowTest extends TestCase
         // Create
         $post = $this->resource->post('app://self/todo', ['title' => 'Workflow Test']);
         $this->assertSame(201, $post->code);
-        $id = $post->body['id'];
-        $this->assertIsString($id);
+        $this->assertArrayHasKey('id', $post->body);
+        $id = $post->body['id']; // string or int — keep the schema-declared ID type
 
         // Read (list) and verify the created item exists
         $list = $this->resource->get('app://self/todo');
@@ -254,7 +256,7 @@ class WorkflowTest extends TestCase
 
         $found = false;
         foreach ($list->body['todos'] as $todo) {
-            if ($todo->id === $id) {
+            if ((string) $todo->id === (string) $id) { // normalized compare: drivers may return int PKs
                 $found = true;
                 break;
             }

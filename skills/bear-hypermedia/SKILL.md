@@ -25,10 +25,12 @@ story across linked resources.
 Read the resource and identify possible actions:
 
 - Can be edited -> `rel: 'edit'`
-- Can be deleted -> `rel: 'delete'`
 - Has details -> `rel: 'item'`
 - Can return to list -> `rel: 'collection'`
 - Has next/previous -> `rel: 'next'` / `rel: 'prev'`
+
+Plain, generic rel names — use these unless the project follows the
+clean-style/ALPS convention below.
 
 ### 2. Add #[Link]
 
@@ -36,16 +38,17 @@ Read the resource and identify possible actions:
 use BEAR\Resource\Annotation\Link;
 
 #[Link(rel: 'edit', href: '/article/{id}/edit')]
-#[Link(rel: 'delete', href: '/article/{id}', method: 'delete')]
 #[Link(rel: 'comments', href: '/article/{id}/comments')]
 public function onGet(int $id): static
 ```
 
-**Rel naming on clean-style / ALPS projects:** name rels with `go*`/`do*`
-choreography IDs (`goEdit`, `doDelete`) instead of the plain rels above;
-`bear-to-alps` "Add Attributes" mode renames plain rels to these IDs. Also,
-on clean-style projects PUT/DELETE transitions are usually invoked directly
-by HTTP method rather than advertised as `_links`.
+**Rel naming on clean-style / ALPS projects:** name safe (GET) transitions
+with `go*` choreography IDs (`goEdit`, `goComments`) instead of the plain
+rels above; `bear-to-alps` "Add Attributes" mode renames plain rels to
+these IDs. PUT/DELETE are unsafe transitions invoked directly by HTTP
+method on the resource's own URI — they are not advertised as `_links`
+rels at all, so no `do*` rel-naming decision applies to them (see
+`bear-clean-style/references/hypermedia.md` rule 8).
 
 ## ALPS Tags Before Workflow Tests
 

@@ -43,6 +43,8 @@ Merge the following fragments into the existing `psalm.xml`. Do not change `erro
 - `Page`: For `html` context serving web pages
 - `App`: For `api` context serving APIs
 
+Emit ONLY the `<target>` entries matching the user's selection in Pre-Setup Q3 — a Page-only or App-only setup must not include the other target:
+
 ```xml
 <stubs>
     <file name="vendor/bear/security/stubs/AuraSql.phpstub"/>
@@ -52,9 +54,8 @@ Merge the following fragments into the existing `psalm.xml`. Do not change `erro
 <plugins>
     <pluginClass class="BEAR\Security\Psalm\ResourceTaintPlugin">
         <targets>
-            <!-- Configure based on user selection -->
-            <target>Page</target>
-            <target>App</target>
+            <target>Page</target>  <!-- only when Page or Both selected -->
+            <target>App</target>   <!-- only when App or Both selected -->
         </targets>
     </pluginClass>
 </plugins>
@@ -108,6 +109,7 @@ After setup, provide these commands:
 | `composer security` | Run SAST (static analysis) |
 | `composer taint` | Run taint analysis |
 | `./vendor/bin/bear-security-audit src` | Run AI audit |
+| `php vendor/bear/security/bin/bear-security-dast <AppName> <context> <appDir>` | Run DAST (dynamic testing) — not exported to vendor/bin; run via the package path |
 
 ## Stub Reference
 
@@ -194,12 +196,11 @@ After completing the security workflow, provide a summary report:
 ### Analysis Results
 | Finding | File:Line | Assessment | Action |
 |---------|-----------|------------|--------|
-| SQL_INJECTION_STRING_CONCAT | User.php:42 | False positive | @security-ignore added |
-| XSS_DIRECT_OUTPUT | Index.php:15 | Real vulnerability | Fixed |
+| SQL_INJECTION_STRING_CONCAT | src/Resource/App/User.php:42 | False positive | @security-ignore added |
+| XSS_DIRECT_OUTPUT | src/Resource/Page/Index.php:15 | Real vulnerability | Fixed |
 
 ### @security-ignore Added
 - `src/Resource/App/User.php:42` - SQL_INJECTION_STRING_CONCAT: $id is validated integer from router
-- `src/Resource/Page/Index.php:28` - XSS_DIRECT_OUTPUT: Output is escaped by Qiq template
 
 ### AI Auditor Results
 - Business logic issues: X found

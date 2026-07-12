@@ -124,8 +124,16 @@ use Koriym\EnvJson\EnvJson;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-// Load test environment variables (prefer env.test.json if it exists)
+// EnvJson::load() keeps already-valid process env vars and reads the JSON file
+// only as a fallback, so an inherited DB_DSN (developer shell, CI) would silently
+// send tests to a non-test database. Force the test values into the process
+// environment first, then load for validation.
 $envFile = file_exists(dirname(__DIR__) . '/env.test.json') ? 'env.test.json' : 'env.json';
+$env = json_decode(file_get_contents(dirname(__DIR__) . '/' . $envFile), true, 512, JSON_THROW_ON_ERROR);
+unset($env['$schema']);
+foreach ($env as $name => $value) {
+    putenv("{$name}={$value}");
+}
 (new EnvJson())->load(dirname(__DIR__), $envFile);
 ```
 

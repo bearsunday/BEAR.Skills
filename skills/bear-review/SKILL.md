@@ -38,10 +38,10 @@ fi
 Retrieve metrics with the following command:
 
 ```bash
-$PHPMD [file-path] text codesize,design 2>/dev/null | grep -v "^Deprecated"
+$PHPMD [file-path] text codesize,design 2>&1 | grep -v "^Deprecated"
 ```
 
-This honors `phpmd.baseline.xml` if present. For "without baseline" mode, follow §1.1.
+`2>&1` keeps real PHPMD failures (bad ruleset, missing config) visible instead of silently discarding them as `2>/dev/null` would — only the expected `Deprecated` noise is filtered. This honors `phpmd.baseline.xml` if present. For "without baseline" mode, follow §1.1.
 
 ### 1.1 Automatic Statistics Report Generation (Recommended)
 
@@ -55,8 +55,8 @@ If `phpmd.baseline.xml` exists, temporarily disable it to understand the true qu
 # 1. Temporarily rename baseline
 mv phpmd.baseline.xml phpmd.baseline.xml.bak
 
-# 2. Run PHPMD against all resource directories
-$PHPMD src/Resource text phpmd.xml 2>/dev/null | grep -v "^Deprecated" > phpmd_output.txt
+# 2. Run PHPMD against all resource directories (2>&1 keeps real failures visible; only "Deprecated" noise is filtered)
+$PHPMD src/Resource text phpmd.xml 2>&1 | grep -v "^Deprecated" > phpmd_output.txt
 
 # 3. Restore
 mv phpmd.baseline.xml.bak phpmd.baseline.xml
@@ -97,7 +97,7 @@ Visualize the number of issues hidden by the baseline:
 baseline_off=$(cat phpmd_output.txt | wc -l)
 
 # Violation count with baseline (normal execution)
-baseline_on=$($PHPMD src/Resource text phpmd.xml 2>/dev/null | grep -v "^Deprecated" | wc -l)
+baseline_on=$($PHPMD src/Resource text phpmd.xml 2>&1 | grep -v "^Deprecated" | wc -l)
 
 echo "=== Baseline Comparison ==="
 echo "With baseline:    ${baseline_on} violations"
@@ -115,7 +115,8 @@ critical_cc=$(grep 'CyclomaticComplexity' phpmd_output.txt | sed -n 's/.*Complex
 critical_npath=$(grep 'NPathComplexity' phpmd_output.txt | sed -n 's/.*complexity of \([0-9][0-9]*\).*/\1/p' | awk '{if($1>1000)print}' | wc -l)
 
 echo "=== By Severity ==="
-echo "Critical (CC>30 or NPath>1000): $((critical_cc + critical_npath)) violations"
+# Report separately — summing would double-count a method that exceeds both thresholds
+echo "Critical CC (>30): ${critical_cc} violations / Critical NPath (>1000): ${critical_npath} violations"
 ```
 
 ### 2. Evaluation Criteria
@@ -203,7 +204,7 @@ Evaluate HTTP status codes, Location headers, and page resource restrictions. Se
 
 - **Status codes**: Return appropriate codes (201 for creation, 204 for deletion, etc.)
 - **201 + Location**: `onPost` creating resources must set `$this->code = 201` and `Location` header
-- **Page resources**: Should only use `onGet` and `onPost`
+- **Page resources**: Conventionally use only `onGet` and `onPost` (the framework allows others — flag as a question, not an error)
 
 #### Advanced Patterns
 

@@ -16,7 +16,7 @@ Detect resources without cache declarations and add appropriate cache attributes
 
 ```bash
 # Find files that have onGet but no cache attribute
-grep -rl "function onGet" src/Resource | xargs grep -LE "Cacheable|DonutCache|HttpCache"
+grep -rl "function onGet" src/Resource | xargs grep -LE "Cacheable|CacheableResponse|DonutCache|HttpCache"
 ```
 
 ### 2. Classify Each Resource
@@ -41,6 +41,10 @@ use BEAR\RepositoryModule\Annotation\Cacheable;
 class Article extends ResourceObject
 {
     public function onGet(int $id): static
+    {
+        // ...
+        return $this;
+    }
 }
 
 // Computation API: known update frequency
@@ -48,11 +52,22 @@ class Article extends ResourceObject
 class Ranking extends ResourceObject
 {
     public function onGet(): static
+    {
+        // ...
+        return $this;
+    }
 }
 
 // Not cacheable: state the reason in a comment (there is no #[NoCache] attribute)
-/** @note Not cacheable: Depends on user session */
-public function onGet(): static
+class Cart extends ResourceObject
+{
+    /** @note Not cacheable: Depends on user session */
+    public function onGet(): static
+    {
+        // ...
+        return $this;
+    }
+}
 ```
 
 ## Decision Flow
@@ -85,6 +100,10 @@ class Article extends ResourceObject
 {
     #[Embed(rel: 'author', src: 'app://self/user{?id}')]
     public function onGet(int $id): static
+    {
+        // ...
+        return $this;
+    }
 }
 ```
 
@@ -98,6 +117,10 @@ Most of the page is cacheable, but a part is dynamic (user menu, etc.).
 #[Embed(rel: 'sidebar', src: 'app://self/sidebar')]         // cached
 #[Embed(rel: 'user_menu', src: 'app://self/user/menu')]     // dynamic (hole)
 public function onGet(int $id): static
+{
+    // ...
+    return $this;
+}
 ```
 
 ### `#[HttpCache]` — CDN/browser cache
@@ -105,9 +128,16 @@ public function onGet(int $id): static
 Builds the `Cache-Control` header (instructs CDN and browsers). Class-level.
 
 ```php
+// Emits: Cache-Control: max-age=3600, s-maxage=86400
 #[HttpCache(maxAge: 3600, sMaxAge: 86400)]
 class Article extends ResourceObject
-// Cache-Control: max-age=3600, s-maxage=86400
+{
+    public function onGet(int $id): static
+    {
+        // ...
+        return $this;
+    }
+}
 ```
 
 ### `#[CacheableResponse]` — event-driven full-response cache
@@ -135,8 +165,15 @@ Even computation APIs can be cached if the update frequency is known.
 No attribute, with a comment stating the reason:
 
 ```php
-/** @note Not cacheable: real-time chat data */
-public function onGet(): static
+class Chat extends ResourceObject
+{
+    /** @note Not cacheable: real-time chat data */
+    public function onGet(): static
+    {
+        // ...
+        return $this;
+    }
+}
 ```
 
 **Conditions for no cache:** depends on user session; real-time data is absolutely required (chat); write operations.
@@ -146,7 +183,7 @@ public function onGet(): static
 Having no cache attribute means "cache consideration was missed." All GET resources should explicitly declare a cache strategy.
 
 **Review checklist:**
-- Does the resource have a cache attribute (class-level `#[Cacheable]`/`#[HttpCache]`, or method-level `#[DonutCache]`)?
+- Does the resource have a cache attribute (class-level `#[Cacheable]`/`#[HttpCache]`/`#[CacheableResponse]`, or method-level `#[DonutCache]`)?
 - If not, is the reason explicitly stated in a comment?
 
 ## Cache Invalidation

@@ -39,7 +39,7 @@ touches (see Workflow step 2). The table below is the quick reference.
 
 | Level | Name | Apply when | Typical changes |
 |---|---|---|---|
-| 1 | Surface cleanup | User asks for safe cleanup or “名前だけ/returnだけ” | `ResourceObject` return type to `static`, literal `$this->body`, method order, dependency property naming, Query/Command/SQL naming alignment, removing generic `LogicException`/`RuntimeException`/`InvalidArgumentException` in favour of domain exceptions |
+| 1 | Surface cleanup | User asks for safe cleanup or “名前だけ/returnだけ” | `ResourceObject` return type to `static`, literal `$this->body`, method order, dependency property naming, Query/Command/SQL naming alignment, removing generic `LogicException`/`RuntimeException`/`InvalidArgumentException` in favour of domain exceptions (exception swaps change the thrown contract — first verify no caller, test, or error handler catches the generic type; if any does, treat as Level 3) |
 | 2 | Contract and QA hardening | User asks for schemas, docs, tests, or confidence before migration | JsonSchema in/out, body array-shape PHPDoc, ALPS IDs, `#[Link]`/`#[Embed]` rel cleanup, ApiDoc/OpenAPI output, hypermedia workflow + HAL contract tests, SQL smoke, Resource smoke, SQLQuality, PHPMD complexity gates, `#[Validate]` for stateful invariants, Page not-found template guard |
 | 3 | Semantic refactor | User asks for BDR, architecture, projection, or “semantic” migration | BDR/Ray.MediaQuery adoption, Query/Command split, `src/Result/*`, typed SELECT results, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert, `#[Pager]`/`PagesInterface` pagination, `#[Cacheable]` Shape A/B normalization |
 

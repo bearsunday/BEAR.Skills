@@ -161,19 +161,14 @@ class UsersTest extends TestCase
         $this->assertArrayHasKey('userId', $ro->body['users'][0]);
         $this->assertArrayHasKey('userName', $ro->body['users'][0]);
     }
-
-    public function testOnPost(): void
-    {
-        $ro = $this->resource->post('app://self/users', [
-            'userName' => 'Charlie',
-            'email' => 'charlie@example.com',
-        ]);
-
-        $this->assertSame(201, $ro->code);
-        $this->assertArrayHasKey('Location', $ro->headers);
-    }
 }
 ```
+
+Do not assert POST status codes or headers in Phase 1: when the fake JSON file
+exists, `FakeJsonInterceptor` replaces the response body **without invoking the
+method**, so the stub `onPost`'s `201`/`Location` lines never run. Write-method
+tests (201, Location, body round-trip) belong to Phase 2 with the production
+module.
 
 ## Step 6E: Generate API Docs and User Confirmation
 
@@ -231,10 +226,12 @@ Use AskUserQuestion tool to ask:
 3. **Remove the fake context**
    - Delete src/Module/FakeModule.php (and its FakeJsonModule wrapper if one was created)
    - Remove the `fake-` context prefix from any invocation (tests, entry scripts)
+   - Remove `bear/fake-json` from require-dev and the `fake-json` vcs repository entry from composer.json
 
 4. **Update tests**
    - Change to use test DB
    - Add migration execution to setUp
+   - Add write-method assertions deferred from Phase 1 (201, `Location` header)
 
 ```php
 // Production resource class (after Phase 2 completion)

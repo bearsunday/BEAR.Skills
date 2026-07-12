@@ -79,8 +79,10 @@ grep -r "secret" src/ --include="*.php"
 #### Cache Configuration
 
 ```bash
-# Detect read resources without any cache attribute
-grep -rl "function onGet" src/Resource | xargs grep -LE "Cacheable|DonutCache|HttpCache"
+# Detect read resources without any cache attribute (heuristic: matches per
+# file, not per method — an attribute elsewhere in the file or in a comment
+# can mask an uncached onGet; confirm hits by reading the class)
+grep -rl "function onGet" src/Resource | xargs grep -LE "Cacheable|CacheableResponse|DonutCache|HttpCache"
 ```
 
 | Resource Type | Recommended Cache |
@@ -116,6 +118,11 @@ Detect in-loop queries from Embed resources:
 # Candidate N+1: resource-client / query calls inside foreach/for
 grep -rn -A 5 -E 'foreach|for \(' src/Resource --include="*.php" | grep -E '\$this->resource->|Query(Interface)?->'
 ```
+
+This grep is candidate-only: the `-A 5` window misses calls deeper in the loop
+body and can match a neighboring construct. Read each hit's loop body before
+classifying it, and never report "no N+1 patterns" from an empty grep alone —
+say "no candidates found by heuristic scan" instead.
 
 ### 4. Quality Check
 
@@ -174,16 +181,28 @@ composer audit
 
 ```bash
 # Verify entry points select a prod- context (prod-app, prod-hal-app, etc.)
-grep -H "prod-" public/index.php bin/*.php
+grep -HoE "'prod-[a-zA-Z-]+'" public/index.php bin/*.php
 ```
+
+A bare match of the substring `prod-` can hide inside a comment or an
+unrelated string; confirm the matched quoted string is the actual context
+argument passed to the `Bootstrap`/entry-point call, not incidental text.
 
 #### Environment Variables
 
-Verify required environment variables exist:
+Verify required environment variables exist. Projects using koriym/env-json
+(the `bear-from-alps`-generated convention) declare variables in
+`env.schema.json` / `env.dist.json` / `env.json`; projects using plain
+dotenv use `.env.dist` / `.env`. Check whichever the project has:
 
 ```bash
-# Compare .env.dist with actual settings
-diff <(grep -E '^[A-Z_]+=' .env.dist | cut -d= -f1 | sort) <(grep -E '^[A-Z_]+=' .env | cut -d= -f1 | sort)
+# koriym/env-json convention (env.dist.json / env.json are flat key-value JSON)
+if [ -f env.dist.json ]; then
+  diff <(jq -r 'keys[] | select(. != "$schema")' env.dist.json | sort) <(jq -r 'keys[] | select(. != "$schema")' env.json | sort)
+# plain dotenv convention
+elif [ -f .env.dist ]; then
+  diff <(grep -E '^[A-Z_]+=' .env.dist | cut -d= -f1 | sort) <(grep -E '^[A-Z_]+=' .env | cut -d= -f1 | sort)
+fi
 ```
 
 ## Output Format

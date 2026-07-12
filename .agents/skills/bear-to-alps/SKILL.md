@@ -221,7 +221,7 @@ Actions:
   - #[Link] rel updated: users -> goUserList, edit -> doUpdateUser
 
 ### Additional Packages
-composer require bear/api-doc
+composer require bear/api-doc  (run only if bear/api-doc is not already in composer.json)
 
 ### Generated Files
 - docs/alps.json
