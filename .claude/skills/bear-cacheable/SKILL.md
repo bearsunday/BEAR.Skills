@@ -10,66 +10,64 @@ description: Scan resource classes and add cache attributes. Detect resources wi
 
 Detect resources without cache declarations and add appropriate cache attributes.
 
-## Execution Steps
+## Procedure
 
 ### 1. Detect Resources Without Cache Declarations
 
 ```bash
-# Find files that have onGet but no Cacheable
-grep -rl "function onGet" src/Resource | xargs grep -L "Cacheable"
+# Find files that have onGet but no cache attribute
+grep -rl "function onGet" src/Resource | xargs grep -LE "Cacheable|CacheableResponse|DonutCache|HttpCache"
 ```
 
 ### 2. Classify Each Resource
 
-Read the resource and determine:
-- Content API — `#[Cacheable]`
-- Computation API — `#[Cacheable(expirySecond: N)]`
-- Not cacheable — State the reason in a comment
+Read each resource and classify it:
 
-### 3. Add Cache Attributes
+| Class | Characteristics | Cache strategy |
+|-------|----------------|----------------|
+| **Content API** | Data retrieval/display; same input → same output (Article, Page, Category, Tag) | `#[Cacheable]` (leaf), `#[DonutCache]` (partially dynamic), `#[HttpCache]` (CDN/browser) |
+| **Computation API** | Real-time, user-specific, aggregation, or known update frequency (Stock, Cart, Analytics, Ranking) | `#[Cacheable(expirySecond: N)]` (short-lived) or no attribute |
+| **Write operation** | POST/PUT/DELETE | Not cacheable |
+
+### 3. Apply Cache Attributes
+
+`#[Cacheable]` is a class-level attribute (`Attribute::TARGET_CLASS`) — put it on the class, not on `onGet`.
 
 ```php
 use BEAR\RepositoryModule\Annotation\Cacheable;
 
+// Content API: clear dependencies, not time-dependent
 #[Cacheable]
-public function onGet(int $id): static
-```
+class Article extends ResourceObject
+{
+    public function onGet(int $id): static
+    {
+        // ...
+        return $this;
+    }
+}
 
-## Resource Classification
+// Computation API: known update frequency
+#[Cacheable(expirySecond: 300)]
+class Ranking extends ResourceObject
+{
+    public function onGet(): static
+    {
+        // ...
+        return $this;
+    }
+}
 
-### Content API (Cacheable)
-
-Primary purpose is data retrieval and display. Same input produces same output.
-
-| Characteristics | Examples |
-|----------------|----------|
-| Articles, pages | Article, Page, Post |
-| List display | Articles, List, Index |
-| Master data | Category, Tag, User |
-| Static content | About, Help, Guide |
-
-**Applicable attributes:**
-```php
-#[Cacheable]
-#[CacheableResponse(maxAge: 3600)]
-#[DonutCache]  // Partial caching
-```
-
-### Computation API (Not cacheable / Short-lived)
-
-Requires real-time data or has side effects.
-
-| Characteristics | Examples |
-|----------------|----------|
-| Real-time data | Stock, Rate, Weather |
-| User-specific | Cart, Session, Preference |
-| Aggregation/calculation | Analytics, Report, Stats |
-| Write operations | POST/PUT/DELETE |
-
-**Applicable attributes:**
-```php
-#[Cacheable(expirySecond: 60)]  // Short-lived cache
-// Or no attribute (no caching)
+// Not cacheable: state the reason in a comment (there is no #[NoCache] attribute)
+class Cart extends ResourceObject
+{
+    /** @note Not cacheable: Depends on user session */
+    public function onGet(): static
+    {
+        // ...
+        return $this;
+    }
+}
 ```
 
 ## Decision Flow
@@ -77,220 +75,147 @@ Requires real-time data or has side effects.
 ```text
 Read the resource class
     |
-onGet only? --No--> Do not cache (write operation)
-    | Yes
-Depends on external API? --Yes--> Short-lived cache or no cache
+Write operation (POST/PUT/DELETE)? --Yes--> Not cacheable
     | No
-User-specific? --Yes--> No cache or Vary: Cookie
+User-specific / session-dependent? --Yes--> Not cacheable
     | No
-Time-dependent? --Yes--> Short-lived cache
-    | No
-Content API --> Apply #[Cacheable]
+Clear dependencies (input params only, not time/external-state)?
+    | --Yes--> #[Cacheable]  (use #[DonutCache] if partially dynamic,
+    |                        #[HttpCache] for CDN/browser)
+    No
+Acceptable staleness is known? --Yes--> #[Cacheable(expirySecond: N)]
+    |
+    No--> Not cacheable (state the reason in a comment)
 ```
 
-## Application Steps
+## Cache Strategies
 
-### 1. Scan and Classify Resources
+### `#[Cacheable]` — clear dependencies (leaf)
 
-```php
-// Classification results
-$contentApis = [
-    'App\Resource\App\Article',      // Article
-    'App\Resource\App\Category',     // Category
-    'App\Resource\Page\Index',       // Top page
-];
-
-$computationApis = [
-    'App\Resource\App\Cart',         // Cart (user-specific)
-    'App\Resource\App\Search',       // Search (diverse parameters)
-    'App\Resource\App\Analytics',    // Analytics (real-time)
-];
-```
-
-### 2. Add Cache Attributes to Content APIs
+For resources whose output depends only on input parameters and is not time- or external-state-dependent. Embed dependencies are auto-tracked.
 
 ```php
-use BEAR\RepositoryModule\Annotation\Cacheable;
-
 #[Cacheable]
 class Article extends ResourceObject
 {
+    #[Embed(rel: 'author', src: 'app://self/user{?id}')]
     public function onGet(int $id): static
+    {
+        // ...
+        return $this;
+    }
 }
 ```
 
-### 3. Short-lived or No Cache for Computation APIs
+### `#[DonutCache]` — partially dynamic pages
+
+Most of the page is cacheable, but a part is dynamic (user menu, etc.).
 
 ```php
-// Short-lived cache (60 seconds)
-#[Cacheable(expirySecond: 60)]
-class Ranking extends ResourceObject
-
-// No cache (no attribute)
-class Cart extends ResourceObject
-```
-
-## Cache Strategy Selection
-
-### #[Cacheable] - Resources with Clear Dependencies
-
-Used for resources with high predictability and obvious dependency relationships.
-
-```php
-// Applicable: Clear dependency (depends only on article ID)
-#[Cacheable]
-public function onGet(int $id): static
-
-// Applicable: Auto-invalidation via ETag
-#[Cacheable]
-#[Embed(rel: 'author', src: 'app://self/user{?id}')]
-public function onGet(int $id): static
-```
-
-**Application conditions:**
-- Depends only on input parameters
-- Not time-dependent
-- Not dependent on external state
-- Embed dependencies are also auto-tracked
-
-### #[DonutCache] - Partially Dynamic Pages
-
-Most of the page is cacheable, but some parts are dynamic (user information, etc.).
-
-```php
-// Page resource: Donut cache the entire page
 #[DonutCache]
-#[Embed(rel: 'article', src: 'app://self/article{?id}')]      // Cached
-#[Embed(rel: 'sidebar', src: 'app://self/sidebar')]           // Cached
-#[Embed(rel: 'user_menu', src: 'app://self/user/menu')]       // Dynamic (hole)
+#[Embed(rel: 'article', src: 'app://self/article{?id}')]   // cached
+#[Embed(rel: 'sidebar', src: 'app://self/sidebar')]         // cached
+#[Embed(rel: 'user_menu', src: 'app://self/user/menu')]     // dynamic (hole)
 public function onGet(int $id): static
+{
+    // ...
+    return $this;
+}
 ```
 
-```text
-+-----------------------------+
-|  Header (cached)            |
-+-----------------------------+
-|  Article body (cached)      |
-|                             |
-|  +---------------------+   |
-|  | User menu            |   |  <-- Donut hole (dynamic)
-|  | (fetched every time) |   |
-|  +---------------------+   |
-|                             |
-|  Sidebar (cached)           |
-+-----------------------------+
-```
+### `#[HttpCache]` — CDN/browser cache
 
-### #[CacheableResponse] - CDN/Browser Cache
-
-Cache at the HTTP response level. Instructs CDN and browsers.
+Builds the `Cache-Control` header (instructs CDN and browsers). Class-level.
 
 ```php
-#[CacheableResponse(maxAge: 3600, sMaxAge: 86400)]
-public function onGet(int $id): static
-// Cache-Control: max-age=3600, s-maxage=86400
+// Emits: Cache-Control: max-age=3600, s-maxage=86400
+#[HttpCache(maxAge: 3600, sMaxAge: 86400)]
+class Article extends ResourceObject
+{
+    public function onGet(int $id): static
+    {
+        // ...
+        return $this;
+    }
+}
 ```
 
-### #[Cacheable(expirySecond: N)] - Computation APIs with Known TTL
+### `#[CacheableResponse]` — event-driven full-response cache
+
+Caches the entire response with tag-based invalidation driven by write methods
+(onPut/onDelete) instead of TTL, and issues an ETag enabling 304 (Not Modified)
+responses. Takes no arguments.
+
+### `#[Cacheable(expirySecond: N)]` — known TTL
 
 Even computation APIs can be cached if the update frequency is known.
 
-```php
-// Ranking: Updating every 5 minutes is sufficient
-#[Cacheable(expirySecond: 300)]
-public function onGet(): static
-
-// Exchange rate: 1 minute is sufficient
-#[Cacheable(expirySecond: 60)]
-public function onGet(string $currency): static
-
-// Weather: 10 minutes is sufficient
-#[Cacheable(expirySecond: 600)]
-public function onGet(string $city): static
-```
-
-**Questions for determining TTL:**
-- How many seconds old can this data be and still be acceptable?
-- How frequently is it updated?
-- Will users notice stale data?
-
-| Resource | Acceptable Delay | TTL Example |
-|----------|-----------------|-------------|
+| Resource | Acceptable delay | TTL |
+|----------|------------------|-----|
 | Ranking | 5 min | 300 |
 | Exchange rate | 1 min | 60 |
 | Weather | 10 min | 600 |
 | Stock count | 30 sec | 30 |
 | News list | 1 min | 60 |
 
-### No Cache - Truly Unpredictable Resources
+**TTL questions:** How many seconds old can this data be and still be acceptable? How frequently is it updated? Will users notice stale data?
+
+### No cache — truly unpredictable
+
+No attribute, with a comment stating the reason:
 
 ```php
-// No cache: User-specific, session-dependent
-public function onGet(): static  // No attribute
+class Chat extends ResourceObject
+{
+    /** @note Not cacheable: real-time chat data */
+    public function onGet(): static
+    {
+        // ...
+        return $this;
+    }
+}
 ```
 
-**Conditions for no cache:**
-- Depends on user session
-- Real-time data is absolutely required (chat, etc.)
-- Write operations (POST/PUT/DELETE)
+**Conditions for no cache:** depends on user session; real-time data is absolutely required (chat); write operations.
 
-### Resources Without Cache Declarations = Problem
+## Resources Without Cache Declarations = Problem
 
 Having no cache attribute means "cache consideration was missed." All GET resources should explicitly declare a cache strategy.
 
-```php
-// Bad: No cache declaration (oversight)
-public function onGet(int $id): static
-
-// Good: Explicitly cached
-#[Cacheable]
-public function onGet(int $id): static
-
-// Good: Explicit TTL
-#[Cacheable(expirySecond: 300)]
-public function onGet(): static
-
-// Good: If not cacheable, state explicitly with #[NoCache] or a comment
-/** @note Not cacheable: Depends on user session */
-public function onGet(): static
-```
-
 **Review checklist:**
-- Does the onGet method have a cache attribute?
-- If not, is the reason explicitly stated?
-
-## Decision Matrix
-
-| Condition | Cache Strategy |
-|-----------|---------------|
-| Clear dependencies + not time-dependent | `#[Cacheable]` |
-| Page is mostly static, partially dynamic | `#[DonutCache]` |
-| Cache at CDN/browser | `#[CacheableResponse]` |
-| Acceptable delay is known | `#[Cacheable(expirySecond: N)]` |
-| User-specific / session-dependent | No cache |
-
-## Strategy Selection Flow
-
-```text
-Analyze the resource
-    |
-Write operation? --Yes--> Not cacheable
-    | No
-User-specific? --Yes--> Not cacheable
-    | No
-Clear dependencies? --Yes--> #[Cacheable]
-    | No
-Acceptable delay? --Yes--> #[Cacheable(expirySecond: N)]
-    | No
-Not cacheable
-```
+- Does the resource have a cache attribute (class-level `#[Cacheable]`/`#[HttpCache]`/`#[CacheableResponse]`, or method-level `#[DonutCache]`)?
+- If not, is the reason explicitly stated in a comment?
 
 ## Cache Invalidation
 
 | Attribute | Timing | Behavior |
 |-----------|--------|----------|
-| `#[Purge]` | On PUT/DELETE | Delete cache |
-| `#[Refresh]` | On PUT | Regenerate and update |
+| `#[Purge(uri: 'app://self/user/friend?user_id={id}')]` | On PUT/DELETE | Delete another resource's cache |
+| `#[Refresh(uri: 'app://self/user/profile?user_id={id}')]` | On PUT | Regenerate another resource's cache |
+
+The `uri` argument is required; use these for cross-resource invalidation. Same-URI purge on `#[Cacheable]` classes is automatic on writes (`RefreshSameCommand`) — no attribute needed.
+
+## Cross-resource Cache Dependencies
+
+When a `#[Cacheable]` resource aggregates other resources, the dependency set
+must be expressed in one of two shapes. **Never mix them on the same response.**
+
+| Shape | When | How |
+|-------|------|-----|
+| **A — `#[Embed]` only** | The parent composes exactly the children it depends on via `#[Embed]` | Just `#[Cacheable]`; `QueryRepository::setCacheDependency` auto-merges child Surrogate-Key tags. No manual `Header::SURROGATE_KEY`. |
+| **B — explicit `fromAssoc`** | The dependency set is N URIs whose count/parameters come from the database (not `#[Embed]`-expressible) | Read rows, map via `UriTagInterface::fromAssoc('<template>', $assocList)`, assign to `Header::SURROGATE_KEY`. Leave unset when the list is empty. |
+
+### Anti-patterns
+
+- Writing the self URI into `Header::SURROGATE_KEY` (the framework already does this).
+- Calling `DonutRepositoryInterface::invalidateTags()` from `onPut`/`onDelete`
+  (`CommandInterceptor` + `RefreshSameCommand` already purge the self URI tag).
+- Mixing `#[Embed]` and `fromAssoc()` on the same response — assigning
+  `Header::SURROGATE_KEY` manually short-circuits the body-walk auto-merge and
+  silently drops embed child tags. Pick A **or** B, never both.
+
+For the full clean-style cache conventions (Shape A/B, anti-pattern scanner
+checks), see `bear-clean-style/references/cache.md`.
 
 ## Output Example
 

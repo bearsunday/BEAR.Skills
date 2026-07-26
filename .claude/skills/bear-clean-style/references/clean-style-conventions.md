@@ -8,7 +8,7 @@ Topic files live alongside this index. Load only what the current task needs.
 
 | Level | Category | Examples |
 |---|---|---|
-| 1 | Surface cleanup | `ResourceObject` return type to `static`, literal response body assignment, method order, resource dependency property names, Query/Command/SQL naming, removing generic `LogicException`/`RuntimeException` |
+| 1 | Surface cleanup | `ResourceObject` return type to `static`, literal response body assignment, method order, resource dependency property names, Query/Command/SQL naming, removing generic `LogicException`/`RuntimeException` (exception swaps change the thrown contract — verify no caller/test/error handler catches the generic type first; if any does, treat as Level 3) |
 | 2 | Contract and QA hardening | JsonSchema response/request validation, body array-shape PHPDoc, ALPS IDs, `#[Link]`, `#[Embed]`, ApiDoc/OpenAPI, hypermedia workflow + HAL contract tests, SQL smoke, Resource smoke, SQLQuality, PHPMD complexity checks, `#[Validate]` for stateful invariants, Page not-found template guard |
 | 3 | Semantic refactor | BDR/Ray.MediaQuery, Read/Write split, typed Result classes, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert, `#[Pager]`/`PagesInterface` pagination, `#[Cacheable]` Shape A/B normalization |
 
@@ -26,11 +26,11 @@ Prefer Level 1 before Level 3 in large legacy projects. Level 3 changes move res
 | App resource | `src/Resource/App/<Resource>.php` for API/domain resource surface |
 | Page resource | `src/Resource/Page/*` for HTML page orchestration |
 | Variation resources | `src/Resource/App/Variations/*` for comparison-only resources (different data shape, abstraction level, or framework axis). Not registered in the ALPS profile and must not change the canonical resource path. Use sparingly |
-| SQL | `var/db/sql/<entity>_<verb>.sql` |
+| SQL | `var/sql/<entity>_<verb>.sql` |
 | Response JSON Schema | `var/json_schema/<entity>.json` (flat, no subdirs) |
 | Input JSON Schema | `var/json_validate/<entity>_<verb>.json`, kept in sync with `#[JsonSchema(params: ...)]` |
-| Fake data | `var/fake/<entity>.json` (deterministic seed such as `mt_srand(42)`) |
-| ALPS profile | `var/alps/profile.json` as the single source of truth for semantics |
+| Fake data | `var/fake/<entity>.json` (deterministic seed such as `mt_srand(42)`). Project-local convention; not specified by the BEAR.Sunday manual |
+| ALPS profile | `docs/alps.json` as the single source of truth for semantics; specify its path in the BEAR.ApiDoc `<alps>` element (independent of `<docDir>`) |
 | Fake/test runtime | `tests/Fake/*`, `fake-` and `test-` contexts, smoke tests |
 
 Read and Write stay split even though both interfaces live under `src/Query/`. The suffix (`QueryInterface` vs `CommandInterface`) carries the CQRS distinction and lets MediaQuery scan one directory.

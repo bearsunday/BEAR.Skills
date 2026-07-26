@@ -2,6 +2,11 @@
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.1/phpunit.xsd" bootstrap="vendor/autoload.php" cacheDirectory=".phpunit.cache">
   <coverage includeUncoveredFiles="false"/>
   <testsuites>
+    <testsuite name="ci">
+      <directory>tests/Resource</directory>
+      <directory>tests/Hypermedia</directory>
+      <directory>tests/Smoke</directory>
+    </testsuite>
     <testsuite name="resource">
       <directory>tests/Resource</directory>
     </testsuite>

@@ -1,7 +1,7 @@
 ---
 user-invocable: true
 name: bear-smoke-test
-description: Generate a 4-layer smoke test suite for BEAR.Sunday projects covering SQL, Query/Command, Resource, and Workflow layers. Use when user says "smoke test", "スモークテスト", "smoke tests", "wiring test", "generate smoke tests", "全体テスト", or asks for end-to-end wiring/coverage tests across the resource stack.
+description: Generate a 4-layer smoke test suite for BEAR.Sunday projects covering SQL, Query/Command, Resource, and Workflow layers. Use when user says "smoke test", "スモークテスト", "smoke tests", "wiring test", "generate smoke tests", "スモークテスト生成", or asks for end-to-end wiring/coverage tests across the resource stack.
 ---
 
 # BEAR.Sunday Smoke Test Generation Skill
@@ -16,6 +16,8 @@ Generate a comprehensive 4-layer smoke test suite that validates each layer of a
 4. **Workflow** - CRUD lifecycle and hypermedia navigation checks
 
 ## Procedure
+
+In every template below, `Injector::getInstance('app')` refers to the project-local Injector (e.g. `MyVendor\MyProject\Injector`), not `BEAR\Package\Injector` — import the project-local one.
 
 ### Layer 1: SQL Smoke Test (`tests/Smoke/SqlTest.php`)
 
@@ -139,30 +141,37 @@ class QueryTest extends TestCase
     /**
      * @dataProvider queryProvider
      */
-    public function testQueryMethod(string $interface, string $method, array $args): void
+    public function testQueryMethod(string $interface, string $method, array $args, string $expectedType): void
     {
         $injector = Injector::getInstance('app');
         $instance = $injector->getInstance($interface);
         $result = $instance->{$method}(...$args);
 
-        $ref = new ReflectionMethod($interface, $method);
-        $returnType = (string) $ref->getReturnType();
-
-        if ($returnType === 'void') {
-            $this->addToAssertionCount(1);
-            return;
-        }
-        if ($returnType === 'array') {
-            $this->assertIsArray($result);
-            return;
-        }
-        // nullable return (Entity|null) - accept null for default args
-        $this->assertTrue($result === null || is_object($result) || is_array($result));
+        match ($expectedType) {
+            'void' => $this->addToAssertionCount(1),
+            'array' => $this->assertIsArray($result),
+            // entity return: assert the concrete type; null allowed for nullable (Entity|null) contracts
+            default => $result === null
+                ? $this->addToAssertionCount(1)
+                : $this->assertInstanceOf($expectedType, $result),
+        };
     }
 
     public static function queryProvider(): iterable
     {
-        // Generate entries for each interface method
+        yield 'TodoQueryInterface::list' => [
+            TodoQueryInterface::class,
+            'list',
+            [],
+            'array',
+        ];
+
+        yield 'TodoCommandInterface::add' => [
+            TodoCommandInterface::class,
+            'add',
+            [bin2hex(random_bytes(16)), 'test', new DateTimeImmutable('now')],
+            'void',
+        ];
     }
 }
 ```
@@ -172,7 +181,8 @@ class QueryTest extends TestCase
 1. Scan `src/Query/*Interface.php`
 2. For each interface, reflect all public methods
 3. Build default arguments from parameter types (see Default Parameter Values table)
-4. Skip methods that require complex arguments not covered by defaults
+4. Reflect each method's return type at generation time and emit it as the `expectedType` provider entry (`'void'`, `'array'`, or the entity type) — do not use reflection inside the test
+5. Skip methods that require complex arguments not covered by defaults
 
 ### Layer 3: Resource Smoke Test (`tests/Smoke/ResourceTest.php`)
 
@@ -237,13 +247,29 @@ class WorkflowTest extends TestCase
         // Create
         $post = $this->resource->post('app://self/todo', ['title' => 'Workflow Test']);
         $this->assertSame(201, $post->code);
+        $this->assertArrayHasKey('id', $post->body);
+        $id = $post->body['id']; // string or int — keep the schema-declared ID type
 
-        // Read (list)
+        // Read (list) and verify the created item exists
         $list = $this->resource->get('app://self/todo');
         $this->assertSame(200, $list->code);
+
+        $found = false;
+        foreach ($list->body['todos'] as $todo) {
+            if ((string) $todo->id === (string) $id) { // normalized compare: drivers may return int PKs
+                $found = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($found, 'Created todo should appear in the list');
     }
 }
 ```
+
+Do not stop at status codes: capture the created id from the POST body and assert it appears in the subsequent GET list body.
+
+Layer 4 checks CRUD wiring only; story-style tests that follow `_links` across resources belong to the hypermedia workflow pattern (`bear-hypermedia`, `tests/Hypermedia/`).
 
 #### Generating Workflow Tests
 
@@ -251,6 +277,16 @@ class WorkflowTest extends TestCase
 2. For each linked resource chain, generate a workflow test
 3. If no `#[Link]` attributes exist, generate basic CRUD cycle tests for resources that have both query and command methods (GET + POST/PUT/DELETE)
 4. Test navigation: Create -> Read -> (Update -> Read ->) Delete
+
+### Register the Test Suite
+
+Register the `smoke` suite in `phpunit.xml.dist` if absent, so `--testsuite smoke` works:
+
+```xml
+<testsuite name="smoke">
+  <directory>tests/Smoke</directory>
+</testsuite>
+```
 
 ## Reference Tables
 
@@ -260,11 +296,23 @@ class WorkflowTest extends TestCase
 |------|---------------|
 | `int` | `1` |
 | `string` | `'test'` |
+| `string` (id/primary key of a write method) | `bin2hex(random_bytes(16))` |
 | `bool` | `true` |
 | `float` | `1.0` |
 | `array` | `[]` |
 | `?type` (nullable) | `null` |
-| `DateTimeInterface` | `null` |
+| `DateTimeInterface` | `new DateTimeImmutable('now')` |
+
+**Why not `null` for `DateTimeInterface`?** For `#[DbQuery]` methods declared as
+`DateTimeInterface|null $x = null`, passing `null` explicitly *bypasses*
+Ray.MediaQuery auto-injection (which fires only when the argument is omitted)
+and inserts `NULL` into the column. Pass a real `DateTimeImmutable('now')` so the
+row is concrete and downstream reads (and the Entity) do not break on a null
+timestamp. Omit the argument only when testing the auto-injection path itself.
+
+**Why a random id for write methods?** A fixed `'test'` id causes duplicate-key
+failures on the second run. Use `bin2hex(random_bytes(16))` so each run inserts
+a unique row.
 
 ### HTTP Status Code Mapping
 
@@ -275,6 +323,10 @@ class WorkflowTest extends TestCase
 | `onPut` | `200` |
 | `onPatch` | `200` |
 | `onDelete` | `204` |
+
+These are the smoke-test default codes. The full convention (201 + Location,
+409 unique-key conflict, 422 validation, action-style POST = 200) is in
+`bear-clean-style/references/resource-patterns.md`.
 
 ## Output
 

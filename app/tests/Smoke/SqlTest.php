@@ -73,6 +73,9 @@ class SqlTest extends TestCase
                 $detail,
             ));
         }
+
+        // EXPLAIN ran and no full table scan was detected.
+        $this->addToAssertionCount(1);
     }
 
     private function assertMysqlExplain(string $sql, string $sqlFile): void

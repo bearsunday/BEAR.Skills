@@ -160,7 +160,7 @@ Operations:
 - No POST/PUT/DELETE operations
 - Only `category_list.sql` and `category_item.sql`
 - No migration (assume pre-existing table)
-- Only request schemas for GET operations
+- Only response schemas — request schemas are omitted here because these read operations take no input parameters beyond the id; a GET with query parameters still needs `#[JsonSchema(params: ...)]` validation
 
 ## Common Patterns
 
@@ -176,15 +176,18 @@ private function generateId(): string
 ### Pattern 2: Timestamp Fields
 
 ```php
-// In Command interface
+// In Command interface — explicit nullable; auto-injection fires only when omitted
 public function add(
     string $id,
     string $title,
-    DateTimeInterface $dateCreated
+    DateTimeInterface|null $dateCreated = null
 ): void;
 
-// In Resource onPost
-$this->command->add($id, $title, new DateTimeImmutable());
+// In Resource onPost — omit the timestamp so Ray.MediaQuery injects the current time
+$this->command->add($id, $title);
+
+// In smoke tests — pass a real DateTimeImmutable (passing null bypasses auto-injection)
+$this->command->add($id, $title, new DateTimeImmutable('now'));
 ```
 
 ### Pattern 3: 404 Handling

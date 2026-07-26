@@ -17,7 +17,7 @@ class Todo extends ResourceObject
     ) {
     }
 
-    #[JsonSchema(key: 'todos', schema: 'todo-list.json')]
+    #[JsonSchema(schema: 'todo-list.json')]
     public function onGet(): static
     {
         $this->body = [
@@ -27,7 +27,7 @@ class Todo extends ResourceObject
         return $this;
     }
 
-    #[JsonSchema(schema: 'todo-post.json')]
+    #[JsonSchema(schema: 'todo-created.json', params: 'todo-post.json')]
     public function onPost(string $title): static
     {
         $id = $this->generateId();

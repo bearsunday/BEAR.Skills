@@ -1,5 +1,10 @@
 # HTTP and REST Patterns
 
+> The canonical HTTP status / REST convention (including 201 + Location, 409
+> unique-key conflict, 422 validation, action-style POST = 200) lives in
+> `bear-clean-style/references/resource-patterns.md`. This file focuses on the
+> **review** angle: how to detect status-code and Location-header issues.
+
 ## HTTP Status Codes
 
 Return appropriate status codes.
@@ -51,13 +56,15 @@ public function onPost(string $title): static
 
 ## Page Resource Restrictions
 
-Page resources should only use `onGet` and `onPost`.
+Page resources conventionally use only `onGet` and `onPost` (HTML forms submit
+GET/POST); the framework itself allows other methods on Page resources, so
+treat violations as a review question, not an error.
 
 ```php
-// ❌ Problem: onPut/onDelete in Page
+// ⚠ Review: onPut/onDelete in Page — usually belongs in the App resource
 class UserPage extends ResourceObject {
-    public function onDelete(int $id): static  // NG
+    public function onDelete(int $id): static
 }
 
-// ✅ Recommended: CRUD in App resource, Page uses GET/POST only
+// ✅ Conventional: CRUD in App resource, Page uses GET/POST only
 ```

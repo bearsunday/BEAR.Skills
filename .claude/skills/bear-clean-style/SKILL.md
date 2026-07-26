@@ -33,9 +33,13 @@ Use `bear-clean-style-consultant` first when the user is still deciding whether 
 
 ## Levels
 
+Canonical definitions and the topic-file index live in
+`references/clean-style-conventions.md`; load only the topic files a change
+touches (see Workflow step 2). The table below is the quick reference.
+
 | Level | Name | Apply when | Typical changes |
 |---|---|---|---|
-| 1 | Surface cleanup | User asks for safe cleanup or “名前だけ/returnだけ” | `ResourceObject` return type to `static`, literal `$this->body`, method order, dependency property naming, Query/Command/SQL naming alignment, removing generic `LogicException`/`RuntimeException` in favour of domain exceptions |
+| 1 | Surface cleanup | User asks for safe cleanup or “名前だけ/returnだけ” | `ResourceObject` return type to `static`, literal `$this->body`, method order, dependency property naming, Query/Command/SQL naming alignment, removing generic `LogicException`/`RuntimeException`/`InvalidArgumentException` in favour of domain exceptions (exception swaps change the thrown contract — first verify no caller, test, or error handler catches the generic type; if any does, treat as Level 3) |
 | 2 | Contract and QA hardening | User asks for schemas, docs, tests, or confidence before migration | JsonSchema in/out, body array-shape PHPDoc, ALPS IDs, `#[Link]`/`#[Embed]` rel cleanup, ApiDoc/OpenAPI output, hypermedia workflow + HAL contract tests, SQL smoke, Resource smoke, SQLQuality, PHPMD complexity gates, `#[Validate]` for stateful invariants, Page not-found template guard |
 | 3 | Semantic refactor | User asks for BDR, architecture, projection, or “semantic” migration | BDR/Ray.MediaQuery adoption, Query/Command split, `src/Result/*`, typed SELECT results, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert, `#[Pager]`/`PagesInterface` pagination, `#[Cacheable]` Shape A/B normalization |
 
@@ -74,9 +78,9 @@ Use `bear-clean-style-consultant` first when the user is still deciding whether 
    - Rename in lock-step: PHP symbols, SQL IDs, SQL filenames, tests, schemas, ALPS/OpenAPI references, and docs.
 
 5. **Handle Embed correctly**
-   - `#[Embed]` is for GET representation composition. Do not discuss POST/PUT/DELETE as Embed candidates.
-   - Prefer `#[Embed]` when an `onGet` response embeds related resource representations and the rel is a taxonomy noun.
-   - Keep ResourceClient/resource calls when the fetched data is transient orchestration, validation, authorization, branching, or write workflow data rather than part of the final GET representation.
+   - `#[Embed]` is GET-only representation composition with taxonomy-noun rels; do not discuss POST/PUT/DELETE as Embed candidates.
+   - Decide reachability first: does the information belong in an `app://` resource, with the Page referencing it?
+   - For the reachability premise, the embed-kind choice (normal vs `_self`), and the `_self`-requires-`#[Cacheable]` rule, see [hypermedia.md](references/hypermedia.md).
 
 6. **Verify**
    - Run the narrowest meaningful project checks first: targeted PHPUnit, smoke tests, composer scripts, static analysis, or syntax checks.

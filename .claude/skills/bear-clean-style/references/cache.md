@@ -54,7 +54,7 @@ Pick A whenever the dependency set is `#[Embed]`-expressible. Reach for B only w
 
 ## Anti-patterns
 
-The scanner emits findings for each of these.
+The scanner flags the first three; the fourth must be confirmed by reading the resource.
 
 - **Writing the self URI into `Header::SURROGATE_KEY`** — the framework's `SurrogateKeys::setSurrogateHeader` already does this.
 - **Calling `DonutRepositoryInterface::invalidateTags()` from `onPut` / `onDelete`** — `CommandInterceptor` + `RefreshSameCommand` already purge the self URI tag on writes to `#[Cacheable]` resources.

@@ -4,8 +4,9 @@ description: >-
   Generate ALPS profiles from existing BEAR.Sunday projects. Reads #[Alps]
   attributes or infers from resource structure to create ALPS profiles.
   Optionally adds #[Alps] attributes to resources. Use when user says
-  "generate ALPS", "ALPSプロファイル生成", "resource to ALPS", "API
-  documentation", or asks to create an ALPS profile from existing resources.
+  "generate ALPS", "ALPSプロファイル生成", "resource to ALPS", "extract ALPS
+  from resources", "ALPS抽出", or asks to create an ALPS profile from
+  existing resources.
 user-invocable: true
 ---
 
@@ -13,16 +14,9 @@ user-invocable: true
 
 A skill that scans existing BEAR.Sunday projects to generate ALPS profiles.
 
-## When to Use This Skill
-
-- You want to create an API design document (ALPS profile) from an existing BEAR.Sunday project
-- You want to add #[Alps] attributes to existing resources
-- You want to visualize resource structure with ALPS
-- You want to automate API design documentation
-
 ## Prerequisites
 
-- PHP 8.1 or higher
+- PHP 8.1 or higher (BEAR.Sunday framework baseline; 8.3+ recommended, 8.1 reached EOL 2025-12)
 - An existing BEAR.Sunday project
 - asd (app-state-diagram) command - Used for ALPS validation and HTML generation
 
@@ -152,7 +146,7 @@ Actions:
 
 ```text
 Warning: Circular reference detected
-  UserList -> goUser -> UserDetail -> goUserList -> UserList
+  UserList -> goUser -> User -> goUserList -> UserList
 
 Actions:
 This is acceptable in ALPS. Verify that the state transition diagram has a cycle.
@@ -227,7 +221,7 @@ Actions:
   - #[Link] rel updated: users -> goUserList, edit -> doUpdateUser
 
 ### Additional Packages
-composer require bear/api-doc (already added or needs to be added)
+composer require bear/api-doc  (run only if bear/api-doc is not already in composer.json)
 
 ### Generated Files
 - docs/alps.json

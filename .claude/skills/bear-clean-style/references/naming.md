@@ -27,7 +27,7 @@ Imperative verbs: `add`, `update`, `delete`. Link-table commands may use `clear`
 
 ## SQL filenames
 
-- Pattern: `<entity>_<verb>.sql` in `var/db/sql/`
+- Pattern: `<entity>_<verb>.sql` in `var/sql/`
 - Verbs match the method names above
 - Examples: `article_item.sql`, `article_by_slug.sql`, `article_list.sql`, `article_add.sql`, `article_update.sql`, `article_delete.sql`, `article_tag_clear.sql`, `article_tag_link.sql`
 
@@ -58,7 +58,7 @@ ALPS has two distinct layers and HAL has two distinct collections (`_links` and 
 
 | Where | Source layer | Examples |
 |---|---|---|
-| `#[Link]` rel | ALPS **Choreography** (transition verbs) | `goArticleList`, `goAuthor`, `doCreateArticle`, `doDeleteTag` |
+| `#[Link]` rel | ALPS **Choreography** (transition verbs) | `goArticleList`, `goAuthor`, `doCreateArticle` |
 | `#[Embed]` rel | ALPS **Taxonomy** (entity nouns) | `author`, `category`, `tagList` |
 
 Do not mix: `#[Embed(rel: 'goAuthor', ...)]` is wrong because `go*` is a Choreography (client-followable transition), while embed is a server-included taxonomy instance. The HAL envelope shape is pinned in a contract test (see [tests.md](tests.md)) so slips fail one isolated test.

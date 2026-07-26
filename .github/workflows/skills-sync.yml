@@ -1,0 +1,16 @@
+name: Skills tree sync
+
+on:
+  push:
+    branches: [1.x]
+  pull_request:
+
+jobs:
+  sync-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: skills/ and .claude/skills/ must be identical
+        run: diff -r skills .claude/skills
+      - name: skills/ and .agents/skills/ must be identical
+        run: diff -r skills .agents/skills

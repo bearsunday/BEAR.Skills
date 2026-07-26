@@ -46,6 +46,8 @@ Operations:
 
 Provide an ALPS JSON profile with semantic definitions.
 
+For worked input/output examples of both formats, see `references/examples.md`.
+
 ## Step-by-Step Implementation Process
 
 ### Step 1: Analyze Input
@@ -83,7 +85,9 @@ Reference: [Database Media documentation](https://bearsunday.github.io/manuals/1
 
 #### 1. DateTimeInterface Auto-Injection
 
-Use `DateTimeInterface $fieldName = null` for timestamp fields. The null default enables auto-injection by DI. Resource callers omit these parameters -- current time is injected automatically. This makes timestamps testable.
+Use `DateTimeInterface|null $fieldName = null` (explicit nullable, PHP 8.4-safe) for timestamp fields. The null default enables auto-injection by DI: when a caller OMITS the parameter, Ray.MediaQuery injects the bound current time. This makes timestamps testable.
+
+**Important:** auto-injection fires only when the argument is *omitted*. Passing `null` explicitly inserts `NULL` into the column — it does not trigger injection. Resource callers therefore omit the parameter; smoke tests pass a real `DateTimeImmutable` (see `bear-smoke-test`).
 
 #### 2. Exclude Auto-Generated and Default Value Fields
 
@@ -122,13 +126,17 @@ HTTP Status Codes:
 - DELETE: 204 No Content / 404 Not Found
 - 400 Bad Request: Automatically handled by JsonSchema validation
 
+For the full HTTP status convention (201 + Location, 409 unique-key conflict,
+422 validation failure, action-style POST = 200), see
+`bear-clean-style/references/resource-patterns.md`.
+
 See `references/templates.md` for the template.
 
 For advanced patterns (#[Embed], #[ResourceParam]), see `references/advanced-patterns.md`.
 
 ### Step 8: Generate JsonSchema Files
 
-Create response schema in `var/schema/response/{entity}.json` and request schemas in `var/schema/request/{entity}-post.json`, `{entity}-put.json`.
+Create response schema in `var/json_schema/{entity}.json` and request schemas in `var/json_validate/{entity}-post.json`, `{entity}-put.json`.
 
 See `references/jsonschema-templates.md` for the templates.
 
@@ -148,8 +156,8 @@ mkdir -p src/Entity
 mkdir -p src/Resource/App
 mkdir -p var/sql
 mkdir -p var/phinx/migrations
-mkdir -p var/schema/request
-mkdir -p var/schema/response
+mkdir -p var/json_validate
+mkdir -p var/json_schema
 mkdir -p tests/Resource/App
 mkdir -p tests/Entity
 ```
@@ -166,7 +174,7 @@ Generated Files:
 - SQL Files: var/sql/{entity}_*.sql (5 files)
 - Entity: src/Entity/{Entity}.php
 - Resource: src/Resource/App/{Entity}.php
-- JsonSchema: var/schema/response/{entity}.json, var/schema/request/{entity}-*.json (3 files)
+- JsonSchema: var/json_schema/{entity}.json, var/json_validate/{entity}-*.json (3 files)
 - Tests: tests/Resource/App/{Entity}Test.php, tests/Entity/{Entity}Test.php
 ```
 

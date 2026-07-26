@@ -16,7 +16,7 @@ A skill that generates an entire BEAR.Sunday project from an ALPS profile.
 
 ## Prerequisites
 
-- PHP 8.1 or higher
+- PHP 8.1 or higher (BEAR.Sunday framework baseline; 8.3+ recommended, 8.1 reached EOL 2025-12)
 - Composer
 - asd (app-state-diagram) command - used for ALPS validation
 
@@ -98,13 +98,15 @@ Phase 2: Implementation (executed separately)
 # Create project
 composer create-project bear/skeleton {Vendor}.{Package}
 cd {Vendor}.{Package}
+# (koriym/env-json and bear/api-doc are already included in bear/skeleton)
 
 # Common packages
-composer require koriym/env-json
-composer require bear/api-doc  # #[Alps] attribute
+composer require --dev robmorgan/phinx  # Migrations
 composer require bear/aura-router-module ^2.0  # Only when Aura Router is selected
 
 # When Inside-Out is selected
+# bear/fake-json is not on Packagist (GitHub-only), so register the vcs repository first
+composer config repositories.fake-json vcs https://github.com/bearsunday/BEAR.FakeJson
 composer require --dev bear/fake-json
 
 # When Outside-In is selected
@@ -113,7 +115,7 @@ composer require ray/media-query
 
 ### Step 4: Generate Configuration Files
 
-Generate all configuration files for the project: composer.json, env.json, env.schema.json, env.dist.json, phinx.php, .gitignore, bin/app.php, public/index.php, tests/bootstrap.php, and place the ALPS profile.
+Generate or update configuration files for the project: composer.json, env.json, env.schema.json, env.dist.json, phinx.php, .gitignore, tests/bootstrap.php, and place the ALPS profile. The skeleton entry points (bin/app.php, public/index.php) stay as-is.
 
 See references/config-templates.md for details.
 
@@ -139,15 +141,15 @@ $semantics = array_filter($descriptors, fn($d) =>
     (!isset($d['type']) || $d['type'] === 'semantic')
 );
 
-// 2. Extract Taxonomy (states/resources) - UpperCamelCase with child descriptors
+// 2. Extract Taxonomy (states/resources) - UpperCamelCase with child descriptors, type unspecified or semantic
 $states = array_filter($descriptors, fn($d) =>
     isset($d['id']) &&
     $isUpperCamelCase($d['id']) &&
     isset($d['descriptor']) &&
-    !isset($d['type'])
+    (!isset($d['type']) || $d['type'] === 'semantic')
 );
 
-// 3. Extract Choreography (transitions) - go*/do* prefix or has type specified
+// 3. Extract Choreography (transitions) - type is safe/unsafe/idempotent
 $transitions = array_filter($descriptors, fn($d) =>
     isset($d['type']) && in_array($d['type'], ['safe', 'unsafe', 'idempotent'])
 );
@@ -177,7 +179,7 @@ $transitions = array_filter($descriptors, fn($d) =>
 
 When Inside-Out is selected, execute Steps 6A through 6E, then Phase 2 after user agreement.
 
-See references/inside-out-flow.md for details on FakeJson generation, stub resources, FakeJsonModule configuration, tests, API Doc generation, and Phase 2 implementation steps.
+See references/inside-out-flow.md for details on FakeJson generation, stub resources, FakeModule configuration, tests, API Doc generation, and Phase 2 implementation steps.
 
 ---
 
@@ -188,6 +190,10 @@ When Outside-In is selected, invoke bear-resource-gen for each entity, then add 
 See references/outside-in-flow.md for details on ALPS-to-resource conversion, #[Alps] attribute mapping, and #[Link] rel usage.
 
 ---
+
+## Common Finishing Steps (Both Flows)
+
+Steps 8-11 apply to both flows. Step 10 (Create Directories) may run earlier — before the generation flows — so the generators have directories to write into.
 
 ### Step 8: Routing Configuration (When Aura Router is Selected)
 
@@ -225,7 +231,7 @@ use BEAR\Package\PackageModule;
 use BEAR\Resource\Module\JsonSchemaModule;
 use BEAR\AuraRouterModule\AuraRouterModule;
 use Ray\AuraSqlModule\AuraSqlModule;
-use Ray\MediaQuery\MediaQueryModule;
+use Ray\MediaQuery\MediaQuerySqlModule;
 
 class AppModule extends AbstractAppModule
 {
@@ -241,13 +247,15 @@ class AppModule extends AbstractAppModule
 
         // MediaQuery - auto-binds interfaces with #[DbQuery] annotations
         // Query/Command interfaces are automatically mapped to SQL files via DbQuery annotations
-        $sqlDir = $this->appMeta->appDir . '/var/sql';
-        $this->install(new MediaQueryModule($sqlDir));
+        $this->install(new MediaQuerySqlModule(
+            interfaceDir: $this->appMeta->appDir . '/src/Query',
+            sqlDir: $this->appMeta->appDir . '/var/sql',
+        ));
 
         // JsonSchema validation
         $this->install(new JsonSchemaModule(
-            $this->appMeta->appDir . '/var/schema/response',
-            $this->appMeta->appDir . '/var/schema/request'
+            $this->appMeta->appDir . '/var/json_schema',
+            $this->appMeta->appDir . '/var/json_validate'
         ));
 
         // Aura Router (only when selected)
@@ -260,7 +268,7 @@ class AppModule extends AbstractAppModule
 }
 ```
 
-**Note:** Interface methods annotated with `#[DbQuery]` are automatically bound to SQL files by MediaQueryModule. For example, `#[DbQuery('user_item')]` executes `var/sql/user_item.sql`.
+**Note:** Interface methods annotated with `#[DbQuery]` are automatically bound to SQL files by MediaQuerySqlModule. For example, `#[DbQuery('user_item')]` executes `var/sql/user_item.sql`.
 
 ### Step 10: Create Directories
 
@@ -272,8 +280,8 @@ mkdir -p var/sql
 mkdir -p var/db
 mkdir -p var/phinx/migrations
 mkdir -p var/phinx/seeds
-mkdir -p var/schema/request
-mkdir -p var/schema/response
+mkdir -p var/json_validate
+mkdir -p var/json_schema
 mkdir -p var/conf
 mkdir -p docs
 mkdir -p tests/Resource/App

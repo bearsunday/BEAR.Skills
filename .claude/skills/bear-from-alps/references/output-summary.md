@@ -18,18 +18,17 @@
 ✓ composer.json
 ✓ env.json + env.schema.json + env.dist.json
 ✓ .gitignore
-✓ bin/app.php, public/index.php
 ✓ docs/alps.json (ALPS)
 ✓ docs/alps.html (ASD)
 
 #### FakeJson ({n} resources)
 ✓ var/fake/App/*.json
-✓ var/fake/Page/*.json
 
 #### Resources (Stub Version)
-✓ src/Resource/App/*.php (using FakeJsonModule)
-✓ src/Module/FakeJsonModule.php
-✓ var/schema/**/*.json
+✓ src/Resource/App/*.php (faked by FakeJson)
+✓ src/Module/FakeModule.php
+✓ var/json_schema/*.json
+✓ var/json_validate/*.json
 
 #### Tests
 ✓ tests/bootstrap.php
@@ -64,10 +63,10 @@
 #### Resources (Production Version)
 ✓ src/Entity/*.php
 ✓ src/Query/*Interface.php
-✓ src/Resource/App/*.php (using MediaQueryModule)
+✓ src/Resource/App/*.php (using MediaQuerySqlModule)
 
 #### Deleted Files
-✗ src/Module/FakeJsonModule.php (deleted)
+✗ src/Module/FakeModule.php (deleted)
 ✗ var/fake/ (deleted or retained)
 
 ### Next Steps
@@ -100,7 +99,6 @@
 ✓ env.json + env.schema.json + env.dist.json + env.test.json
 ✓ phinx.php
 ✓ .gitignore (excluding env.json, var/db/*.sqlite3)
-✓ bin/app.php, public/index.php (EnvJson loading added)
 ✓ tests/bootstrap.php
 ✓ docs/alps.json (ALPS)
 ✓ docs/alps.html (ASD)
@@ -110,7 +108,8 @@
 ✓ src/Query/*Interface.php
 ✓ src/Resource/App/*.php
 ✓ var/sql/*.sql
-✓ var/schema/**/*.json
+✓ var/json_schema/*.json
+✓ var/json_validate/*.json
 ✓ var/phinx/migrations/*.php
 
 #### Module
