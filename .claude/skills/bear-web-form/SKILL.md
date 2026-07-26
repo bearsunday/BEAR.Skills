@@ -13,8 +13,8 @@ description: >-
   "Ray.WebFormModule", "#[FormValidation]", "#[JsonSchema]", "CSRF",
   "#[CsrfToken]", "#[SameOrigin]", "SameSite", "SPA form", "Vuelidate",
   "400 on submit", "empty field 400", "string vs int schema", or when a form
-  submit returns an opaque 400. Distilled from BEAR.AppKata (A1),
-  BEAR.Examples + MyVendor.Cms (A2), and Hpplus.Spur (B).
+  submit returns an opaque 400. Distilled from koriym/BEAR.AppKata (A1),
+  BEAR.Kata + MyVendor.Cms (A2), and Hpplus.Spur (B).
 ---
 
 # BEAR Web Form
@@ -31,7 +31,7 @@ The axis is **(1) where the form is rendered** — server or client — and **(2
 
 | | **(A1) Server-rendered form-object** | **(A2) Server-rendered, schema-decomposed** | **(B) Client-rendered SPA / JSON** |
 |---|---|---|---|
-| Anchor | BEAR.AppKata | BEAR.Examples, MyVendor.Cms | Hpplus.Spur |
+| Anchor | koriym/BEAR.AppKata | BEAR.Kata, MyVendor.Cms | Hpplus.Spur (private) |
 | Renders | server (Aura form object + Qiq) | server (Twig/Qiq) | client (Vue/React) |
 | Validation | Aura.Filter in the Form class, `#[FormValidation]` | JSON Schema `#[JsonSchema(params:)]` | JSON Schema (server backstop) + client (e.g. Vuelidate) |
 | Rules shared as one SSOT? | no — server-only | yes — one schema for server + client + API | yes — schema |
@@ -52,7 +52,7 @@ The bug is structural: any `integer`/`number` field a form can leave blank is a 
 
 ## (A1) Server-rendered form-object — Ray.WebFormModule + `#[FormValidation]`
 
-Anchor: **BEAR.AppKata** (`bear/resource` 1.32, attribute-based). The Form class is the cohesive unit and is a **current** style, not a deprecated one.
+Anchor: **koriym/BEAR.AppKata** (`bear/resource` 1.32, attribute-based). The Form class is the cohesive unit and is a **current** style, not a deprecated one.
 
 - A `Form` class (`extends AbstractForm`) `init()`s: `setField()` (field + HTML render attribs), `$this->filter->validate(...)->is(...)` (Aura.Filter validation rules), and `useFieldMessage()` (the per-field message). CSRF is mixed in via an antiCsrf token (e.g. AppKata's `AntiCsrfSetter` trait injecting `Aura\Input\AntiCsrfInterface`) — a synchronizer token rendered into the form.
 - The resource marks the mutating method `#[FormValidation]`; on failure the form **re-renders with per-field errors**, on success `$this->form->getValues()`.
@@ -61,19 +61,19 @@ Anchor: **BEAR.AppKata** (`bear/resource` 1.32, attribute-based). The Form class
 
 ## (A2) Server-rendered, schema-decomposed — JSON Schema SSOT + ray/csrf + Twig/Qiq
 
-Anchor: **BEAR.Examples, MyVendor.Cms**. Decompose the monolith into focused pieces so the validation can be one SSOT.
+Anchor: **BEAR.Kata, MyVendor.Cms**. Decompose the monolith into focused pieces so the validation can be one SSOT.
 
 - **Type request schemas to the wire.** Form fields are `"string"` + string constraints (`pattern`/`enum`/`format`/`maxLength`); string enums (`["draft","valid"]`); `$ref` to shared `json_schema/` definitions. Reserve `"integer"`/typed for inputs whose wire is genuinely typed JSON. Note: `CHECK_MODE_TYPE_CAST` lets a numeric string pass an `integer` schema, so a *required, always-filled* integer survives (Cms types IDs this way) — but an **optional integer a form can leave blank** arrives as `""` and `400`s, so **string-type anything blank-able**.
 - **Convert at the PHP boundary** after the schema passes (`$stock = ($stock === '' || $stock === null) ? null : (int) $stock;`) — never a coercive `int` param for a form field.
 - **One schema, both ends.** The same `*.json` is the structural SSOT for the server, the client (AJV), and the API.
 - **CSRF:** ray/csrf **`#[CsrfToken]`** (synchronizer token); render the hidden token field.
-- **Surface errors via the framework hook.** `bear/resource` 1.33.0+ delivers a `JsonSchemaRequestException` carrying structured `$e->getErrors()` (`->byProperty()`, `->format()`). Bind a `JsonSchemaRequestExceptionHandlerInterface` in bootstrap, throw a domain `ValidationException` carrying the `field => messages` map, and have one `ExceptionStatusMapper` emit it as a JSON `{errors}` body *and* an HTML per-field list, so JSON and HTML share one shape. (Today BEAR.Examples/Cms build the handler + `ValidationException` + mapper but catch it *per-resource* in the Page layer for HTML re-render; surfacing the map **centrally** — so every HAL+JSON caller gets it too — is the completing step.)
+- **Surface errors via the framework hook.** `bear/resource` 1.33.0+ delivers a `JsonSchemaRequestException` carrying structured `$e->getErrors()` (`->byProperty()`, `->format()`). Bind a `JsonSchemaRequestExceptionHandlerInterface` in bootstrap, throw a domain `ValidationException` carrying the `field => messages` map, and have one `ExceptionStatusMapper` emit it as a JSON `{errors}` body *and* an HTML per-field list, so JSON and HTML share one shape. (Today BEAR.Kata/Cms build the handler + `ValidationException` + mapper but catch it *per-resource* in the Page layer for HTML re-render; surfacing the map **centrally** — so every HAL+JSON caller gets it too — is the completing step.)
 - **Layer validation:** structural in JSON Schema; contextual/domain (uniqueness, FK, stock, state) in the resource/Becoming with typed exceptions, same error shape.
 - **Use when** the validation must also serve a JS/AJV client or an API — one schema, no duplicate rule sets.
 
 ## (B) Client-rendered SPA / JSON API
 
-Anchor: **Hpplus.Spur**. The client (Vue/React) renders and submits **JSON**, so the rules invert.
+Anchor: **Hpplus.Spur** (private; not publicly readable). The client (Vue/React) renders and submits **JSON**, so the rules invert.
 
 - **Type to the JSON wire.** Use real types — `boolean` for flags, `integer` for genuine integers (ids, page/limit). Most fields are still `string` because the data is string (ISO date-time, enum *codes*, ULIDs, slugs, URLs) — a convention, **not** the "forms send only strings" constraint. `$ref` shared definitions throughout; no `errorMessage` needed.
 - **CSRF:** ray/csrf **`#[SameOrigin]`** (Origin/Referer validation) + **SameSite=Lax** cookies. This is a valid **token-less** defense for a JSON API: a cross-site `fetch` with `Content-Type: application/json` triggers a CORS preflight and the `Origin` header can't be spoofed. (ray/csrf's origin mode descends from Spur's own `#[CsrfProtection]` interceptor — its author's feedback shaped the package.)
@@ -101,11 +101,11 @@ Anchor: **Hpplus.Spur**. The client (Vue/React) renders and submits **JSON**, so
 
 ## References
 
-- **BEAR.AppKata** (A1) — `Ray.WebFormModule` + `#[FormValidation]` (attribute-migrated) + Aura antiCsrf form-object; the cohesive server-form style.
-- **BEAR.Examples / MyVendor.Cms** (A2) — `#[JsonSchema]` SSOT, `JsonSchemaRequestExceptionHandlerInterface` → `ValidationException` → one `ExceptionStatusMapper` for `{errors}` body + HTML list; MyVendor.Cms attaches schema `errorMessage` (ajv-errors), Examples/Spur keep messages in code.
-- **Hpplus.Spur** (B) — production SPA + JSON API: JSON-typed schemas, `#[SameOrigin]` (Origin/Referer) + SameSite CSRF, Vuelidate client validation, server schema backstop.
+- [koriym/BEAR.AppKata](https://github.com/koriym/BEAR.AppKata) (A1) — `Ray.WebFormModule` + `#[FormValidation]` (attribute-migrated) + Aura antiCsrf form-object; the cohesive server-form style. Its `composer.json` pins a pre-release fork of the module because it predates `ray/web-form-module` 1.0.1; require the released `^1.0` instead, which carries the same `#[FormValidation]` attribute.
+- [BEAR.Kata](https://github.com/bearsunday/BEAR.Kata) / MyVendor.Cms (A2) — `#[JsonSchema]` SSOT, `JsonSchemaRequestExceptionHandlerInterface` → `ValidationException` → one `ExceptionStatusMapper` for `{errors}` body + HTML list; MyVendor.Cms attaches schema `errorMessage` (ajv-errors), BEAR.Kata/Spur keep messages in code. (BEAR.Kata was named BEAR.Examples when this skill was written; it is also the corpus behind the `bear-kata` skill, where `admin-prg-form` is the A2 form Kata.)
+- **Hpplus.Spur** (B) — **a private production app, not publicly readable**; cited for provenance only. Production SPA + JSON API: JSON-typed schemas, `#[SameOrigin]` (Origin/Referer) + SameSite CSRF, Vuelidate client validation, server schema backstop.
 - [BEAR.Sunday validation manual](https://bearsunday.github.io/manuals/1.0/en/validation.html) — `#[JsonSchema]`, request/response exception split, `getErrors()` (`byProperty()`/`format()`), default `ThrowableHandler` 400.
-- BEAR.Resource 1.33.0 — the `JsonSchemaRequestException` (4xx) / `JsonSchemaResponseException` (5xx) split ([#369](https://github.com/bearsunday/BEAR.Resource/pull/369)) and the request-exception handler hook ([#370](https://github.com/bearsunday/BEAR.Resource/pull/370)); the structured-failure source (`getErrors()`) for A2.
+- BEAR.Resource 1.33.0 — the `JsonSchemaRequestException` (4xx) / `JsonSchemaResponseException` (5xx) split ([#369](https://github.com/bearsunday/BEAR.Resource/issues/369)) and the request-exception handler hook ([#370](https://github.com/bearsunday/BEAR.Resource/pull/370)); the structured-failure source (`getErrors()`) for A2.
 - [Ray.Csrf](https://github.com/ray-di/Ray.Csrf) — `#[CsrfToken]` (token, A2) and `#[SameOrigin]` (origin, B); the standard CSRF package, shaped by the Spur author's feedback.
 - [Ray.WebFormModule](https://github.com/ray-di/Ray.WebFormModule) — the A1 form-object module (`AbstractForm`, `#[FormValidation]`, Aura antiCsrf).
 - Related skills: `bear-hypermedia` (JSON-API `#[Link]`/`#[Embed]`), `bear-clean-style` (resource conventions, JsonSchema in/out, Input DTO).
