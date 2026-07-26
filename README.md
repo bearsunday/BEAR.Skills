@@ -41,6 +41,14 @@ Just tell your AI assistant what you want:
 /plugin install bear-skills
 ```
 
+### bear-kata (separate plugin)
+
+`bear-kata` is catalogued by this marketplace but ships from its own repository, [bearsunday/BEAR.Kata](https://github.com/bearsunday/BEAR.Kata). It is not one of the bundled skills below: it is a router into a reference corpus (`index.md` and `kata/*.md`) that lives there, so it is sourced rather than copied in. Install it alongside `bear-skills`:
+
+```bash
+/plugin install bear-kata@bear-skills
+```
+
 ### Update
 
 ```bash
@@ -59,6 +67,8 @@ Just tell your AI assistant what you want:
 git clone https://github.com/bearsunday/BEAR.Skills.git
 cp -r BEAR.Skills/skills/ /path/to/your/project/.claude/skills/
 ```
+
+This copies the bundled skills only. `bear-kata` is not among them — install it as a plugin, or copy it from a clone of [bearsunday/BEAR.Kata](https://github.com/bearsunday/BEAR.Kata).
 
 ## Quick Start
 
