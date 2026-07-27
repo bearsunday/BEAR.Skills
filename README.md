@@ -160,8 +160,7 @@ The full item-by-item catalog lives in [skills/bear-clean-style/SKILL.md](skills
 
 ```text
 BEAR.Skills/
-├── .claude/skills/      # Development
-├── skills/              # Distribution (plugin)
+├── skills/              # Distribution (plugin) — canonical, edit here
 │   ├── bear-audit-fix/
 │   ├── bear-cacheable/
 │   ├── bear-clean-style/
@@ -178,8 +177,12 @@ BEAR.Skills/
 │   ├── bear-smoke-test/
 │   ├── bear-to-alps/
 │   └── bear-web-form/
+├── .claude/skills/      # Mirror — loaded in local Claude Code sessions
+├── .agents/skills/      # Mirror — for other agent runtimes
 └── .claude-plugin/      # Plugin manifest
 ```
+
+The three skill trees hold identical copies. Edit `skills/`, then mirror it into the other two — CI fails if they differ.
 
 ## References
 
