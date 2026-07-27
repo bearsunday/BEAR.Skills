@@ -135,6 +135,7 @@ The full item-by-item catalog lives in [skills/bear-clean-style/SKILL.md](skills
 |-------|---------|----------------|
 | `bear-hypermedia` | Add #[Link] attributes | "Add hypermedia links to resources" |
 | `bear-cacheable` | Apply cache attributes | "Analyze and add cache attributes" |
+| `bear-web-form` | Web-form request policy across 3 architectures (server form-object / schema-decomposed / client SPA): typing, validation, CSRF, errors, tests | "Form submit returns 400" / "which form architecture?" |
 
 ### Migration
 
@@ -159,8 +160,7 @@ The full item-by-item catalog lives in [skills/bear-clean-style/SKILL.md](skills
 
 ```text
 BEAR.Skills/
-├── .claude/skills/      # Development
-├── skills/              # Distribution (plugin)
+├── skills/              # Distribution (plugin) — canonical, edit here
 │   ├── bear-audit-fix/
 │   ├── bear-cacheable/
 │   ├── bear-clean-style/
@@ -175,9 +175,14 @@ BEAR.Skills/
 │   ├── bear-review/
 │   ├── bear-security-setup/
 │   ├── bear-smoke-test/
-│   └── bear-to-alps/
+│   ├── bear-to-alps/
+│   └── bear-web-form/
+├── .claude/skills/      # Mirror — loaded in local Claude Code sessions
+├── .agents/skills/      # Mirror — for other agent runtimes
 └── .claude-plugin/      # Plugin manifest
 ```
+
+The three skill trees hold identical copies. Edit `skills/`, then mirror it into the other two — CI fails if they differ.
 
 ## References
 
