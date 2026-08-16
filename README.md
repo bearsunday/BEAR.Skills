@@ -87,6 +87,7 @@ Or describe your task naturally - Claude will automatically select the appropria
 | Skill | Purpose | Example Prompt |
 |-------|---------|----------------|
 | `bear-review` | Code quality review | "Review this resource" |
+| `bear-exception-naming` | Semantic exceptions: class, properties, message, doc comment | "セマンティック例外にして" |
 
 ### Code Generation
 
@@ -166,6 +167,7 @@ BEAR.Skills/
 │   ├── bear-clean-style/
 │   ├── bear-clean-style-consultant/
 │   ├── bear-documenter/
+│   ├── bear-exception-naming/
 │   ├── bear-from-alps/
 │   ├── bear-hypermedia/
 │   ├── bear-migration/
