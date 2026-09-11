@@ -121,7 +121,7 @@ double arm, or an unwritable destination all show up there.
 | Why wasn't it saved | `{reason, code}` on `put_skipped` (`etag-present`/`error-code`/`not-cacheable`) |
 | Was the miss a genuinely empty store, or could the store not be read | If the same scope also has `cache_error{operation: read}`, that's the unreadable side (degraded). Otherwise it's cold. **Read-only sessions are not retained in production**, so this distinction is a development-time one — count degradations through the app's warning channel (`trigger_error`) |
 | Who wrote / deleted it | `source` on the `command` scope; direct calls are `manual_store`/`manual_purge`/`manual_invalidate`. An `invalidate` immediately after `pre_write_cleanup` is pre-write cleanup, not a real invalidation |
-| Dependency propagation | `depends_on`, cross-checked against `save_*`'s `tags` vs `invalidate`'s `tags` |
+| Dependency propagation | The parent's declaration decides the evidence: `#[Cacheable]` emits `depends_on` and merges the child's URI tag into its own `save_*` `tags` (cross-check those against `invalidate`'s `tags`); `#[CacheableResponse]` emits no edge — the child's tag is on `save_etag` / `save_donut_view`, never on `save_donut`; `#[DonutCache]` records none, so the child's own entry decides freshness |
 
 Follow llms-full.txt for the detailed reading rules (do not fill gaps with your own
 interpretation).

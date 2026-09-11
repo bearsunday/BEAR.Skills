@@ -13,13 +13,20 @@ declare(strict_types=1);
  * checks the invariants that a working cache has to satisfy:
  *
  *   1. the cold read stores something (`save_*` with `saved: true`)
- *   2. the second read is a hit
- *   3. an embedded child appears as a `depends_on` edge, and the parent's save carries the
- *      child's tag: without that the child's write cannot reach the parent
+ *   2. the parent's own read closes as a hit the second time
+ *   3. an embedded child left the evidence the parent's declaration records - which evidence that
+ *      is depends on the declaration, so the oracle reads the kind off the parent's saves first:
+ *        - `#[Cacheable]` (`save_value`/`save_view`): a `depends_on` edge, and every child tag on
+ *          the parent's save tags
+ *        - `#[CacheableResponse]` (`save_donut_view`): no edge is emitted; the child's URI tag is
+ *          on the parent's `save_etag`/`save_donut_view` tags
+ *        - `#[DonutCache]` (`save_donut` only): nothing is recorded, by design - the page is
+ *          recomposed on every read and the child's own entry decides its freshness
  *   4. the write announces the change - an `invalidate` that is not the writer's own marker-preceded
  *      cleanup - and its tags meet the parent's save tags (set intersection). The CDN outcome of
  *      that announcement is printed; `failed` is a violation, `skipped` means no purger is bound
- *   5. the read after the write is a miss again - a hit here is stale content
+ *   5. the parent's read after the invalidation serves new content: a miss for `#[Cacheable]`, and
+ *      for a donut parent a hit carrying `refresh_donut` - its template survives on purpose
  *   6. no entry is saved with an empty tag list, which no invalidation can ever reach
  *
  * Exit code 0 means the log proved it. Non-zero prints which invariant failed and the tree.
@@ -37,11 +44,11 @@ use BEAR\RepositoryModule\Annotation\CacheLog;
 use BEAR\QueryRepository\QueryRepositoryInterface;
 use BEAR\QueryRepository\UriScopedHttpCacheInterface;
 use BEAR\QueryRepository\ResourceStorageInterface;
+use BEAR\QueryRepository\UriTag;
 use BEAR\Resource\ResourceInterface;
 use BEAR\Sunday\Extension\Transfer\HttpCacheInterface;
 use BEAR\Resource\Uri;
 use Koriym\SemanticLogger\LogJson;
-use Koriym\SemanticLogger\SemanticLogger;
 use Koriym\SemanticLogger\SemanticLoggerInterface;
 use MyVendor\BeMart\Injector;
 use Ray\Di\AbstractModule;
@@ -215,9 +222,10 @@ $override = new class ($dsn, ($flow['mode'] ?? '') === 'cdn') extends AbstractMo
         $this->install($this->dsn === ''
             ? new ProdQueryRepositoryModule()
             : new StorageRedisDsnModule($this->dsn));
-        // Recording on, by replacing the one binding that decides it
+        // Recording on, by replacing the one binding that decides it. No sink: this script
+        // flushes every session itself, and a sink would drain them somewhere else.
         $this->bind(SemanticLoggerInterface::class)->annotatedWith(CacheLog::class)
-            ->toInstance(new SafeSemanticLogger(new SemanticLogger()));
+            ->toInstance(new SafeSemanticLogger());
 
         if ($this->cdn) {
             // The CDN flavour BeMart would deploy behind, with the purge recorded instead of sent.
@@ -271,12 +279,19 @@ function typesOf(array $entries): array
     return array_map(static fn (array $e): string => $e['type'], $entries);
 }
 
-/** @param list<array{type: string, context: array<string, mixed>}> $entries */
-function tagsOf(array $entries, string $prefix): array
+/**
+ * @param list<array{type: string, context: array<string, mixed>}> $entries
+ * @param string|null                                              $uri     Only what this URI emitted; a nested child's saves are not the parent's
+ */
+function tagsOf(array $entries, string $prefix, string|null $uri = null): array
 {
     $tags = [];
     foreach ($entries as $entry) {
         if (! str_starts_with($entry['type'], $prefix)) {
+            continue;
+        }
+
+        if ($uri !== null && ($entry['context']['uri'] ?? null) !== $uri) {
             continue;
         }
 
@@ -286,6 +301,119 @@ function tagsOf(array $entries, string $prefix): array
     }
 
     return array_values(array_unique($tags));
+}
+
+/**
+ * The save events this URI emitted itself
+ *
+ * @param list<array{type: string, context: array<string, mixed>}> $entries
+ *
+ * @return list<string>
+ */
+function savesOf(array $entries, string $uri): array
+{
+    $saves = [];
+    foreach ($entries as $entry) {
+        if (str_starts_with($entry['type'], 'save_') && ($entry['context']['uri'] ?? null) === $uri) {
+            $saves[] = $entry['type'];
+        }
+    }
+
+    return array_values(array_unique($saves));
+}
+
+/**
+ * Which cache declaration the parent read under, from what it stored
+ *
+ * The declaration decides what a dependency looks like in the log, and the attribute is not in
+ * the log: only the saves name it. `#[CacheableResponse]` and `#[DonutCache]` both open with
+ * `put_donut`, and the second stores no page entry at all - `save_donut_view` is what separates
+ * them. Null means the parent stored nothing, so there is nothing to judge a dependency against.
+ *
+ * @param list<string> $saves the parent's own save types, from savesOf()
+ *
+ * @return 'cacheable'|'cacheable-response'|'donut-cache'|null
+ */
+function parentKindOf(array $saves): string|null
+{
+    if (in_array('save_donut_view', $saves, true)) {
+        return 'cacheable-response';
+    }
+
+    if (in_array('save_donut', $saves, true)) {
+        return 'donut-cache';
+    }
+
+    if (array_intersect(['save_value', 'save_view'], $saves) !== []) {
+        return 'cacheable';
+    }
+
+    return null;
+}
+
+/**
+ * The `get` scope this URI opened, depth first
+ *
+ * @param array<string, mixed> $tree LogJson::toArray(), or a node of it
+ *
+ * @return array<string, mixed>|null
+ */
+function scopeOf(array $tree, string $uri): array|null
+{
+    foreach ((array) ($tree['open'] ?? []) as $child) {
+        $node = (array) $child;
+        $context = (array) ($node['context'] ?? []);
+        if ((string) ($node['type'] ?? '') === 'get' && ($context['uri'] ?? null) === $uri) {
+            return $node;
+        }
+
+        $found = scopeOf($node, $uri);
+        if ($found !== null) {
+            return $found;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * The close of the `get` scope this URI opened
+ *
+ * A read nests the children it embeds, so a session-wide `cache_hit` may be a child's answer and
+ * not the parent's: a close belongs to a scope, and only the tree keeps that.
+ *
+ * @param array<string, mixed> $tree LogJson::toArray()
+ *
+ * @return array{type: string, context: array<string, mixed>}|null
+ */
+function closeOf(array $tree, string $uri): array|null
+{
+    $scope = scopeOf($tree, $uri);
+    $close = (array) ($scope['close'] ?? []);
+
+    return $close === [] ? null : ['type' => (string) ($close['type'] ?? ''), 'context' => (array) ($close['context'] ?? [])];
+}
+
+/**
+ * The URIs of the `get` scopes nested directly under this URI's own: the children it embeds
+ *
+ * @param array<string, mixed> $tree LogJson::toArray()
+ *
+ * @return list<string>
+ */
+function childUrisOf(array $tree, string $uri): array
+{
+    $scope = scopeOf($tree, $uri);
+    $uris = [];
+    foreach ((array) ($scope['open'] ?? []) as $child) {
+        $node = (array) $child;
+        $childUri = (string) (((array) ($node['context'] ?? []))['uri'] ?? '');
+        if ((string) ($node['type'] ?? '') === 'get' && $childUri !== '') {
+            $uris[] = $childUri;
+        }
+    }
+
+    return array_values(array_unique($uris));
 }
 
 /**
@@ -358,13 +486,17 @@ function record(string $violation, array &$violations, array &$known): void
 $violations = [];
 $known = [];
 $sessions = [];
+// The same sessions unflattened - what closeOf() and childUrisOf() match on
+$trees = [];
 
 $codes = [];
-$read = static function (string $label) use ($resource, $logger, $flow, &$sessions, &$codes): array {
+$read = static function (string $label) use ($resource, $logger, $flow, &$sessions, &$trees, &$codes): array {
     $ro = $resource->get($flow['read']);
     $codes[$label] = $ro->code;
-    $entries = flatten($logger->flush());
+    $log = $logger->flush();
+    $entries = flatten($log);
     $sessions[$label] = $entries;
+    $trees[$label] = $log->toArray();
 
     return $entries;
 };
@@ -692,15 +824,16 @@ foreach ($saves as $save) {
     }
 }
 
-// 3. an embedded child has to show up as an edge, and its tag has to be on the parent's entry
-if ($flow['embeds']) {
-    if (! in_array('depends_on', $types, true)) {
-        $violations[] = '3: no depends_on edge - the parent is not stored under its children tags';
-    }
+$parentSaves = savesOf($cold, $flow['read']);
+$parentKind = parentKindOf($parentSaves);
+$donutParent = in_array($parentKind, ['cacheable-response', 'donut-cache'], true);
+printf("%-18s %s (%s)\n", 'parent kind', $parentKind ?? 'unknown', $parentSaves === [] ? 'the parent stored nothing' : implode(' ', $parentSaves));
 
+// 3. an embedded child has to leave the evidence its parent's declaration records
+if ($flow['embeds'] && $parentKind === 'cacheable') {
     $childTags = [];
     foreach ($cold as $entry) {
-        if ($entry['type'] !== 'depends_on') {
+        if ($entry['type'] !== 'depends_on' || ($entry['context']['parent'] ?? null) !== $flow['read']) {
             continue;
         }
 
@@ -709,21 +842,110 @@ if ($flow['embeds']) {
         }
     }
 
-    $parentTags = tagsOf($cold, 'save_');
-    if ($childTags !== [] && array_intersect($childTags, $parentTags) === []) {
+    if ($childTags === []) {
+        $violations[] = '3: no depends_on edge - the parent is not stored under its children tags';
+    }
+
+    $parentTags = tagsOf($cold, 'save_', $flow['read']);
+    $absent = array_values(array_diff($childTags, $parentTags));
+    if ($absent !== []) {
         $violations[] = sprintf(
             '3: the child tags %s are absent from the parent save tags %s',
-            json_encode($childTags),
+            json_encode($absent),
             json_encode($parentTags),
         );
     }
 }
 
-// 2. the second read is a hit
-$warm = $read('warm read');
-if (! in_array('cache_hit', typesOf($warm), true)) {
+if ($flow['embeds'] && $parentKind === 'cacheable-response') {
+    // No depends_on here: the donut writer never calls CacheDependency. The child's URI tag
+    // riding on the page's own save tags is the whole record of the dependency.
+    $viewTags = array_values(array_unique([
+        ...tagsOf($cold, 'save_etag', $flow['read']),
+        ...tagsOf($cold, 'save_donut_view', $flow['read']),
+    ]));
+    // Direct children only: what a grandchild reaches is the child's own entry to answer for. A
+    // child that is no cache target opens no scope, so an empty list is not a missing dependency.
+    $childTags = array_map(static fn (string $uri): string => (new UriTag())(new Uri($uri)), childUrisOf($trees['cold read'], $flow['read']));
+    if ($childTags === []) {
+        printf("%-18s %s\n", 'dependency', 'no child opened a get scope, so the log names no child tag to look for');
+    }
+
+    $absent = array_values(array_diff($childTags, $viewTags));
+    if ($absent !== []) {
+        $violations[] = sprintf(
+            '3: the child tags %s are absent from the parent save tags %s',
+            json_encode($absent),
+            json_encode($viewTags),
+        );
+    }
+}
+
+if ($flow['embeds'] && $parentKind === 'donut-cache') {
+    printf("%-18s %s\n", 'dependency', 'a putDonut page records none: it is recomposed on every read, and the child entry decides the child');
+}
+
+if ($flow['embeds'] && $parentKind === null) {
+    printf("%-18s %s\n", 'dependency', 'not judged: the parent stored nothing, so no declaration can be read off it');
+}
+
+/**
+ * What the parent's own read says after an invalidation, and the evidence behind it
+ *
+ * A donut parent closes as a hit even when it rebuilt - its template survives the child's
+ * invalidation on purpose - so `refresh_donut` is what separates a recomposed page from a
+ * replayed one. `unknown` is a parent that opened no scope at all: nothing hit, so nothing here
+ * is stale.
+ *
+ * @return 'rebuilt'|'stale'|'template-gone'|'unknown'
+ */
+$verdictOn = static function (string $label) use (&$trees, &$sessions, $flow, $donutParent): string {
+    $close = closeOf($trees[$label] ?? [], $flow['read']);
+    if ($close === null) {
+        printf("%-18s %s: no get scope for the parent\n", 'parent close', $label);
+
+        return 'unknown';
+    }
+
+    $evidence = array_values(array_unique(array_map(
+        static fn (array $e): string => $e['type'],
+        array_filter(
+            $sessions[$label] ?? [],
+            static fn (array $e): bool => in_array($e['type'], ['refresh_donut', 'save_donut_view'], true) && ($e['context']['uri'] ?? null) === $flow['read'],
+        ),
+    )));
+    printf(
+        "%-18s %s: %s{%s}%s\n",
+        'parent close',
+        $label,
+        $close['type'],
+        (string) ($close['context']['layer'] ?? ''),
+        $evidence === [] ? '' : ' ' . implode(' ', $evidence),
+    );
+
+    if (! $donutParent) {
+        return $close['type'] === 'cache_miss' ? 'rebuilt' : 'stale';
+    }
+
+    if ($close['type'] === 'cache_miss') {
+        printf("%-18s %s\n", 'dependency', 'the invalidation reached the template too, so the page was rebuilt from scratch');
+
+        return 'template-gone';
+    }
+
+    return in_array('refresh_donut', $evidence, true) ? 'rebuilt' : 'stale';
+};
+
+// 2. the second read is a hit - the parent's own, not a child's
+$read('warm read');
+$warmClose = closeOf($trees['warm read'], $flow['read']);
+if ($warmClose === null || $warmClose['type'] !== 'cache_hit') {
     $violations[] = '2: the second read is not a hit';
 }
+
+// A putDonut page stores no page entry, so it has no tag set for an invalidation to meet: the
+// intersections below would judge the absence of a design rather than a defect.
+$storesPage = $parentKind !== 'donut-cache';
 
 $purgeTags = $flow['purgeTags'] ?? null;
 if ($purgeTags !== null) {
@@ -732,8 +954,8 @@ if ($purgeTags !== null) {
     $tagEntries = flatten($logger->flush());
     $sessions['invalidate tag'] = $tagEntries;
 
-    $savedTags = tagsOf($cold, 'save_');
-    if (array_intersect($purgeTags, $savedTags) === []) {
+    $savedTags = tagsOf($cold, 'save_', $flow['read']);
+    if ($storesPage && array_intersect($purgeTags, $savedTags) === []) {
         $violations[] = sprintf(
             '4: the announced tags %s are absent from what the read stored %s',
             json_encode($purgeTags),
@@ -741,9 +963,12 @@ if ($purgeTags !== null) {
         );
     }
 
-    $afterTag = $read('read after invalidate');
-    if (in_array('cache_hit', typesOf($afterTag), true)) {
-        $violations[] = '5: the entry still hits after its tag was invalidated - stale content';
+    $read('read after invalidate');
+    $verdict = $verdictOn('read after invalidate');
+    if ($verdict === 'stale') {
+        $violations[] = $donutParent
+            ? '5: the parent served its stored view after its tag was invalidated - stale content'
+            : '5: the entry still hits after its tag was invalidated - stale content';
     }
 }
 
@@ -754,10 +979,10 @@ if ($purgeUri !== null) {
     $purgeEntries = flatten($logger->flush());
     $sessions['purge child'] = $purgeEntries;
 
-    $savedTags = tagsOf($cold, 'save_');
+    $savedTags = tagsOf($cold, 'save_', $flow['read']);
     $purgedTags = tagsOf($purgeEntries, 'invalidate');
     // 4. the purge has to reach a tag the parent was stored under
-    if (array_intersect($purgedTags, $savedTags) === []) {
+    if ($storesPage && array_intersect($purgedTags, $savedTags) === []) {
         $violations[] = sprintf(
             '4: purging the child invalidated %s, which does not meet the parent read tags %s',
             json_encode($purgedTags),
@@ -765,10 +990,20 @@ if ($purgeUri !== null) {
         );
     }
 
-    // 5. the parent must rebuild
-    $afterPurge = $read('read after purge');
-    if (in_array('cache_hit', typesOf($afterPurge), true)) {
-        $violations[] = '5: the parent still hits after its child was purged - stale content';
+    // 5. the parent must serve new content
+    $read('read after purge');
+    $verdict = $verdictOn('read after purge');
+    if ($verdict === 'stale') {
+        $violations[] = $donutParent
+            ? '5: the parent served its stored view after its child was purged - stale content'
+            : '5: the parent still hits after its child was purged - stale content';
+    }
+
+    // A donut page is recomposed from whatever the child answers, so the child answering from its
+    // own stale entry is the page's staleness - and the parent's close cannot show it.
+    $childClose = $donutParent && ($flow['childCached'] ?? true) ? closeOf($trees['read after purge'], $purgeUri) : null;
+    if ($childClose !== null && $childClose['type'] !== 'cache_miss') {
+        $violations[] = '5: the child still hits after being purged - the page recomposes from stale child content';
     }
 }
 
@@ -785,14 +1020,15 @@ if ($flow['write'] !== null) {
     $writeLog = $logger->flush();
     $writeEntries = flatten($writeLog);
     $sessions['write'] = $writeEntries;
+    $trees['write'] = $writeLog->toArray();
 
-    $announced = realInvalidations($writeLog->toArray());
+    $announced = realInvalidations($trees['write']);
     $invalidateTags = tagsOf($announced, 'invalidate');
-    $savedTags = tagsOf($cold, 'save_');
+    $savedTags = tagsOf($cold, 'save_', $flow['read']);
     // 4. the write has to announce the change, and announce a tag the parent was stored under
     if ($announced === [] && in_array('invalidate', typesOf($writeEntries), true)) {
         $violations[] = '28: the write only cleaned up its own entry (marker-preceded invalidate) - nothing announced the change, the parent stays warm until its TTL';
-    } elseif (array_intersect($invalidateTags, $savedTags) === []) {
+    } elseif ($storesPage && array_intersect($invalidateTags, $savedTags) === []) {
         $violations[] = sprintf(
             '4: the write invalidated %s, which does not meet the read tags %s',
             json_encode($invalidateTags),
@@ -812,10 +1048,13 @@ if ($flow['write'] !== null) {
         );
     }
 
-    // 5. the read after the write must rebuild
-    $after = $read('read after write');
-    if (in_array('cache_hit', typesOf($after), true)) {
-        $violations[] = '5: the read after the write is a hit - stale content is being served';
+    // 5. the read after the write must serve new content
+    $read('read after write');
+    $verdict = $verdictOn('read after write');
+    if ($verdict === 'stale') {
+        $violations[] = $donutParent
+            ? '5: the parent served its stored view after the write - stale content is being served'
+            : '5: the read after the write is a hit - stale content is being served';
     }
 }
 

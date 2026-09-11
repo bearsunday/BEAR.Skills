@@ -87,19 +87,45 @@ One entry in `FLOWS` is one flow. Keys:
 | `childCached` | `false` when the child is also not a cache target |
 | `dsn` | Use a different store for this flow only (for `cache-down`) |
 
+`embeds` only says there is a child to look for. Which evidence the oracle then demands comes from
+the parent's declaration, which it reads off the log — no entry here selects it.
+
 Verdicts are numbered violation strings (`27: hit was not cheaper than the miss …`). **Never
 remove a number, only add new ones.**
 
-### The four ways a dependency breaks show up as separate violations
+### What a dependency looks like depends on the parent's declaration
 
-"The parent stays stale after the child is updated" is one symptom with four distinct causes,
-each fixed differently. The oracle returns **the first broken link**, alongside the two related
-tag sets.
+"The parent stays stale after the child is updated" is one symptom, and what proves the link is
+there differs per declaration. The oracle reads the declaration off the parent's own `save_*`
+events, prints it as `parent kind`, and asks only for the evidence that declaration records. Each
+violation names the two tag sets it compared.
+
+| Parent's declaration | What it records about the child | How a broken link reads |
+|---|---|---|
+| `#[Cacheable]` — `save_value` / `save_view` | A `depends_on` edge, and the child's tags merged into the parent's save tags | `3: no depends_on edge`, then `3: the child tags [..] are absent from the parent save tags [..]` |
+| `#[CacheableResponse]` — `save_donut_view` | No edge. The child's URI tag is on the parent's `save_etag` / `save_donut_view` tags and on the response `Surrogate-Key` | `3: the child tags [..] are absent from the parent save tags [..]` — the same words, with no edge to precede them |
+| `#[DonutCache]` — `save_donut` alone | Nothing. Only the template is stored, and the hole is refilled from the child on every read | Nothing to report — judge the child's entry instead |
+
+A `#[Cacheable]` parent with no edge at all is usually a missing `#[Embed]`, or a body that
+replaced the embedded request before the put. A `final` parent never gets this far: it receives no
+interceptor, stores nothing, and fails 1.
+
+**Reporting "no dependency" on a `#[DonutCache]` parent is wrong.** Its child's tags are kept off
+`save_donut` deliberately, so demanding a `depends_on` edge — or a child tag on the parent's save
+tags — fails a page that is behaving as designed. What has to hold is that the purged child's own
+`get` closes `cache_miss`; a child that still hits is the page's staleness
+(`5: the child still hits after being purged`).
+
+The declaration decides two more verdicts. **5**: after an invalidation a `#[Cacheable]` parent
+must close `cache_miss`, while a donut parent stays a `cache_hit` and carries `refresh_donut` —
+its template survives on purpose, and a hit without `refresh_donut` is the stale one. **4**: a
+`#[DonutCache]` parent stores no page entry, so it has no tag set for an announcement to meet and
+the intersection is not judged.
+
+The write side breaks independently of all three:
 
 | Violation | Broken link | Where to fix it |
 |---|---|---|
-| `3: no depends_on edge` | The parent's cold read did not record embedding the child | Presence of `#[Embed]` / `#[Cacheable]`, or `final` |
-| `3: the child tags [..] are absent from the parent save tags [..]` | The edge exists, but the child's tag never landed on the parent's `save_*` | `CacheDependency` propagation |
 | `28: the write only cleaned up its own entry` | The write's `invalidate` is **only** the one immediately after `pre_write_cleanup` — it cleared its own entry and told nobody about the change | The write side's `#[Refresh]`/`#[Purge]`, or its `invalidateTags()` call |
 | `4: the write invalidated [..], which does not meet the read tags [..]` | It did announce, but the tag doesn't intersect what the parent saved | How the tags were chosen (URI tag vs. shared surrogate key) |
 
