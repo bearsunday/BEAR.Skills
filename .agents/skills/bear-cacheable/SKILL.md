@@ -21,8 +21,7 @@ Every proposal below rests on these. Do not propose anything that contradicts th
 |---|---|
 | `#[Cacheable]` is class-level (`TARGET_CLASS`); `#[DonutCache]`/`#[CacheableResponse]` allow class or method | Put `#[Cacheable]` on the class, never on `onGet` |
 | `#[Cacheable]` and `#[CacheableResponse]` are exclusive: the first is woven by `CacheInterceptor` (TTL / tag), the second by the donut interceptors (event-driven) | Never propose both on one class |
-| On a `#[Cacheable]` class, `onPut`/`onPatch`/`onDelete` are intercepted by `CommandInterceptor`: the same-URI entry is purged and re-read (`RefreshSameCommand`), then any `#[Refresh]`/`#[Purge]` on the method run | Do not propose `#[Purge]` for the resource's own URI on its own writes - it is automatic, and an explicit same-URI purge runs *after* the refresh and busts the entry it just rebuilt |
-| **`onPost` on a `#[Cacheable]` class is not intercepted at all** - no same-URI refresh, and a `#[Refresh]`/`#[Purge]` written on it is silently dropped (the `RefreshInterceptor` that handles those attributes is bound only for non-`#[Cacheable]` classes) | A create that must invalidate a cached list is a finding: propose the invalidation on a non-cacheable writer, or report that the list has no reachable invalidation |
+| On a `#[Cacheable]` class, `onPost`/`onPut`/`onPatch`/`onDelete` are all intercepted by `CommandInterceptor`: the same-URI entry is purged and re-read (`RefreshSameCommand`), then any `#[Refresh]`/`#[Purge]` on the method run (`onPost` included since bear/query-repository#214 - the matcher used to skip it, dropping any `#[Refresh]`/`#[Purge]` written there with no error) | Do not propose `#[Purge]` for the resource's own URI on its own writes - it is automatic, and an explicit same-URI purge runs *after* the refresh and busts the entry it just rebuilt |
 | `#[Refresh]`/`#[Purge]` are method-level and repeatable; `uri` is required and takes `{param}` templates bound from the method arguments | The target URI must be spellable from the writer's own parameters |
 | A `final` resource class cannot be woven (Ray.Aop subclasses it); its attributes are inert and the log shows no `cache_miss` at all | `final` + any cache attribute is a finding, not a proposal |
 | Embedded children (`#[Embed]`) propagate their `Surrogate-Key` into the parent automatically (`CacheDependency::depends()` merges child tags into whatever `Header::SURROGATE_KEY` the parent already set - a manual key does not disable the merge) | A parent may carry a shared key and embed children at once; what matters is that every writer of the parent's data announces a tag the parent stores. Rows-derived dependency sets use `UriTagInterface::fromAssoc` (`bear-clean-style/references/cache.md`) |
@@ -63,9 +62,8 @@ For every `onPost`/`onPut`/`onPatch`/`onDelete` in the project, record what data
 This is the check the issue exists for. For every `#[Cacheable]`/`#[CacheableResponse]` you propose or that already exists:
 
 - list the write methods from step 2 that change its data
-- for each, state whether invalidation already reaches this resource (same-URI automatic on `onPut`/`onPatch`/`onDelete` of the same class; explicit `#[Refresh]`/`#[Purge]` elsewhere; embed propagation from a child that is itself invalidated)
+- for each, state whether invalidation already reaches this resource (same-URI automatic on `onPost`/`onPut`/`onPatch`/`onDelete` of the same class; explicit `#[Refresh]`/`#[Purge]` elsewhere; embed propagation from a child that is itself invalidated)
 - a write that changes the data and reaches nothing is the finding: **unpaired cacheable**. Report it as such even when the resource already carries `#[Cacheable]` today - an existing attribute is not evidence that it is right
-- `onPost` on the cacheable class itself is always in this list (see the facts table) - it never invalidates
 
 ### 5. Report
 
@@ -96,7 +94,6 @@ One block per resource. The confidence is about the evidence, not about the attr
 | resource | writer that reaches nothing | why |
 |---|---|---|
 | App\Product\Stock | Admin\Inventory::onPost | no attribute |
-| App\Article\Listing | App\Article::onPost | onPost on a #[Cacheable] class is not intercepted |
 
 ### Declined
 | resource | reason |
