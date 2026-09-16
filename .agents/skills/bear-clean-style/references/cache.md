@@ -4,7 +4,7 @@
 
 ## Default — user-zero-code leaf
 
-A read resource that does not aggregate other resources needs only `#[Cacheable]`. The framework writes the self URI tag and `RefreshSameCommand` purges it on `PUT` / `POST` / `PATCH` / `DELETE` to the same URI. **Do not** touch `Header::SURROGATE_KEY`, inject `UriTagInterface`, or call `DonutRepositoryInterface::invalidateTags()` on a leaf resource. Each duplicates framework behaviour and breaks the `CacheDependency::depends()` assertion that forbids mixing manual and automatic Surrogate-Key writes on the same response.
+A read resource that does not aggregate other resources needs only `#[Cacheable]`. The framework writes the self URI tag and `RefreshSameCommand` purges it on `PUT` / `POST` / `PATCH` / `DELETE` to the same URI. **Do not** touch `Header::SURROGATE_KEY`, inject `UriTagInterface`, or call `DonutRepositoryInterface::invalidateTags()` on a leaf resource. Each duplicates framework behaviour a leaf resource does not need.
 
 ## Cross-resource — two shapes only
 
