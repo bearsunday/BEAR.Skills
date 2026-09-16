@@ -36,15 +36,23 @@ cp <skill>/harness/* var/loop/
 chmod +x var/loop/*.sh
 ```
 
-Only three places need editing:
+Editing checklist — miss any of these and the run fails before it judges anything:
 
-1. **`FLOWS` in `verify-cache.php`** — the application's URIs. This is the bulk of the
+1. **The `use ...\Injector;` import at the top of `verify-cache.php`** — the application's own
+   injector class. Left pointing at another app, the file fatals on load before `FLOWS` is even
+   read.
+2. **`FLOWS` in `verify-cache.php`** — the application's URIs. This is the bulk of the
    app-specific part
-2. **The `for flow in ...` line in `verify-all.sh`** — the flow names to run. **Defining one in
+3. **The `for flow in ...` line in `verify-all.sh`** — the flow names to run. **Defining one in
    `FLOWS` but forgetting to list it here means it never runs** (this actually happened: adding
    it turned the gate red and surfaced the `final` defect)
-3. **The environment defaults** — `DATABASE_URL` / `CACHE_DSN` / `APP_CONTEXT`. All overridable
+4. **The environment defaults** — `DATABASE_URL` / `CACHE_DSN` / `APP_CONTEXT`. All overridable
    via env
+
+The conditional-request block (`10`–`14`) hardcodes two more URIs as literals, independent of
+`FLOWS` — editing `FLOWS` does not reach them: the `REQUEST_URI` fallback offered to the unscoped
+`HttpCacheInterface::isNotModified()`, and the second page fetched to prove a validator is not
+answered for the wrong resource. Point both at pages that exist in the target application.
 
 `var/loop/last-*.txt` holds run results. Do not track it in the repository (add it to
 `.gitignore`).
