@@ -566,9 +566,9 @@ def find_manual_surrogate_key(root: Path) -> list[Finding]:
                 ))
             if has_embed and has_fromassoc:
                 findings.append(Finding(
-                    "P1", rel(root, path), line_no(text, m.start()),
+                    "P2", rel(root, path), line_no(text, m.start()),
                     "Resource mixes #[Embed] composition with manual fromAssoc() Surrogate-Key write.",
-                    "Pick Shape A (#[Embed] only) or Shape B (fromAssoc only) — assigning SURROGATE_KEY short-circuits the body-walk auto-merge.",
+                    "Harmless - CacheDependency::depends() merges into whatever SURROGATE_KEY is already set, no data loss. Pick Shape A (#[Embed] only) or Shape B (fromAssoc only) so the dependency set has one source of truth to read.",
                 ))
         for m in invalidate_pattern.finditer(text):
             findings.append(Finding(

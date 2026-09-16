@@ -4,7 +4,7 @@
 
 ## Default — user-zero-code leaf
 
-A read resource that does not aggregate other resources needs only `#[Cacheable]`. The framework writes the self URI tag and `RefreshSameCommand` purges it on `PUT` / `POST` / `PATCH` / `DELETE` to the same URI. **Do not** touch `Header::SURROGATE_KEY`, inject `UriTagInterface`, or call `DonutRepositoryInterface::invalidateTags()` on a leaf resource. Each duplicates framework behaviour and breaks the `CacheDependency::depends()` assertion that forbids mixing manual and automatic Surrogate-Key writes on the same response.
+A read resource that does not aggregate other resources needs only `#[Cacheable]`. The framework writes the self URI tag and `RefreshSameCommand` purges it on `PUT` / `POST` / `PATCH` / `DELETE` to the same URI. **Do not** touch `Header::SURROGATE_KEY`, inject `UriTagInterface`, or call `DonutRepositoryInterface::invalidateTags()` on a leaf resource. Each duplicates framework behaviour a leaf resource does not need.
 
 ## Cross-resource — two shapes only
 
@@ -58,5 +58,5 @@ The scanner flags the first three; the fourth must be confirmed by reading the r
 
 - **Writing the self URI into `Header::SURROGATE_KEY`** — the framework's `SurrogateKeys::setSurrogateHeader` already does this.
 - **Calling `DonutRepositoryInterface::invalidateTags()` from `onPut` / `onDelete`** — `CommandInterceptor` + `RefreshSameCommand` already purge the self URI tag on writes to `#[Cacheable]` resources.
-- **Mixing `#[Embed]` and `fromAssoc()` on the same response** — assigning `Header::SURROGATE_KEY` manually short-circuits the body-walk auto-merge (`setCacheDependency` early-returns when the header is already set), so the embed's child tags are silently dropped unless you include them in your `fromAssoc` list yourself. Pick one shape per resource — A or B, never both.
+- **Mixing `#[Embed]` and `fromAssoc()` on the same response** — harmless as of the current `CacheDependency::depends()` (it merges into whatever `Header::SURROGATE_KEY` is already set; there is no early-return), but two sources of truth make the resource's actual dependency set unclear to read. Pick one shape per resource — A or B, never both.
 - **Reaching for `fromAssoc()` when there is no cross-resource dependency** — the default `#[Cacheable]`-only leaf is the correct shape.
