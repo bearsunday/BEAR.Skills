@@ -79,7 +79,7 @@ One block per resource. The confidence is about the evidence, not about the attr
 ### src/Resource/App/Article.php
 - Propose: `#[Cacheable]` on the class (type value, no TTL argument)
 - Evidence: onGet(id) → ArticleQuery::item(id) only; no session/clock/random. Embeds app://self/author{?id}, itself #[Cacheable].
-- Pairing: onPut/onDelete on this class → automatic same-URI refresh. App\Comment::onPost changes articles.comment_count → propose `#[Refresh(uri: 'app://self/article?id={articleId}')]` on it (Comment is not #[Cacheable], so the attribute is honoured).
+- Pairing: onPut/onDelete on this class → automatic same-URI refresh. App\Comment::onPost changes articles.comment_count → propose `#[Refresh(uri: 'app://self/article?id={articleId}')]` on it - a write on a different resource, so the invalidation has to be placed there explicitly.
 - Confidence: high
 
 ### src/Resource/Page/Dashboard.php
