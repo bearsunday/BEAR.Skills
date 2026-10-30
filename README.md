@@ -136,8 +136,15 @@ The full item-by-item catalog lives in [skills/bear-clean-style/SKILL.md](skills
 | `bear-hypermedia` | Add #[Link] attributes | "Add hypermedia links to resources" |
 | `bear-cacheable` | Apply cache attributes | "Analyze and add cache attributes" |
 | `bear-web-form` | Web-form request policy across 3 architectures (server form-object / schema-decomposed / client SPA): typing, validation, CSRF, errors, tests | "Form submit returns 400" / "which form architecture?" |
-| `bear-cache-log` | Install, read and verify the semantic cache log | "Is the cache actually working?" |
+| `bear-observe` (in [BEAR.EventSourcing](https://github.com/bearsunday/BEAR.EventSourcing/blob/1.x/skills/bear-observe/SKILL.md)) | Install the observation context, read one request as a tree, reconcile it with the declared intent | "Is the cache actually working?" |
 | `bear-cache-gate` | Log-reading oracle that proves store/hit/invalidation per flow | "Set up the cache gate" |
+
+`bear-observe` ships with BEAR.EventSourcing, not with this plugin. Install it into the project:
+
+```bash
+composer require --dev bear/event-sourcing
+mkdir -p .claude/skills && cp -r vendor/bear/event-sourcing/skills/bear-observe .claude/skills/
+```
 
 ### Migration
 

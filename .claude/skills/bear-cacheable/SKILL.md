@@ -107,7 +107,7 @@ One block per resource. The confidence is about the evidence, not about the attr
 
 Applying the proposal changes behaviour that no unit test observes: a resource that stopped caching still answers correctly. After applying:
 
-1. bind a real store and turn recording on (`bear-cache-log`, section 1)
+1. bind a real store and turn recording on ([bear-observe](https://github.com/bearsunday/BEAR.EventSourcing/blob/1.x/skills/bear-observe/SKILL.md), sections 1-2)
 2. run the flow read → write → read and apply the tag-intersection rule from
    `docs/reading-the-log.md`: the write's `invalidate` tags must meet the parent's `save_*` tags,
    and the second read must be a `cache_miss`
