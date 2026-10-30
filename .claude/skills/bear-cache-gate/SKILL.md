@@ -15,7 +15,8 @@ Track record: this caught **4 already-released defects** that BEAR.QueryReposito
 were passing. On the application side, it found 17 missed invalidations that a 30-second TTL was
 hiding, and 2 cache declarations that had never actually taken effect because of `final`.
 
-How to read the log and what the events mean is `skill://bear-cache-log`. This skill is **how to
+How to read the log and what the events mean is `skill://bear-observe` (ships with
+[BEAR.EventSourcing](https://github.com/bearsunday/BEAR.EventSourcing)). This skill is **how to
 run it**.
 
 ## Layout
@@ -166,7 +167,7 @@ is forbidden. Remove it once the issue closes — if the defect comes back, the 
 
 Attaching a short TTL makes a missed invalidation "fix itself in a few seconds," hiding it.
 Decide first **whether the design genuinely needs a TTL, or whether it's just concealing the
-leak.** The questions for deciding are in `skill://bear-cache-log`.
+leak.** The questions for deciding are in `skill://bear-observe` §4.
 
 ## The autonomous loop (`run-loop.sh`)
 

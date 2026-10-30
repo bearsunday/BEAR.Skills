@@ -136,8 +136,9 @@ The full item-by-item catalog lives in [skills/bear-clean-style/SKILL.md](skills
 | `bear-hypermedia` | Add #[Link] attributes | "Add hypermedia links to resources" |
 | `bear-cacheable` | Apply cache attributes | "Analyze and add cache attributes" |
 | `bear-web-form` | Web-form request policy across 3 architectures (server form-object / schema-decomposed / client SPA): typing, validation, CSRF, errors, tests | "Form submit returns 400" / "which form architecture?" |
-| `bear-cache-log` | Install, read and verify the semantic cache log | "Is the cache actually working?" |
 | `bear-cache-gate` | Log-reading oracle that proves store/hit/invalidation per flow | "Set up the cache gate" |
+
+To observe what a request did (resource requests, SQL and cache decisions in one tree), use `bear-observe`, which ships with [BEAR.EventSourcing](https://github.com/bearsunday/BEAR.EventSourcing) (`composer require --dev bear/event-sourcing`). It replaces the retired `bear-cache-log`.
 
 ### Migration
 
