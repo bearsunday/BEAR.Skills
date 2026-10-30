@@ -17,3 +17,7 @@ mkdir -p .claude/skills && cp -r vendor/bear/event-sourcing/skills/bear-observe 
 `bear-observe` installs the observation context, proves the wiring, runs a request and reads the
 tree: the cache decisions this skill used to cover, nested inside the resource requests that
 caused them.
+
+Production logging is outside `bear-observe`. For `ProdQueryRepositoryLogModule` (sampling and
+retention), see the Observability section of the
+[cache manual](https://bearsunday.github.io/manuals/1.0/en/cache.html).
