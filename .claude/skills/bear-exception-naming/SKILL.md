@@ -29,8 +29,10 @@ fact in the channel that can be extracted from:
 Prose in the **message** is the only thing none of them can read. Prose in the
 **doc comment** is welcome and can be as detailed as the case deserves.
 
-`catch (Exception $e)` is the opposite of this: it throws away the one channel
-that carries meaning, and leaves the reader to reconstruct it from a stack trace.
+`catch (Exception $e)` that swallows the exception, or rethrows it as a generic
+one, is the opposite of this: it throws away the one channel that carries meaning,
+and leaves the reader to reconstruct it from a stack trace. A broad catch that
+logs and rethrows the original, or branches on its class, keeps it.
 A codebase where every exception has its own class never needs that archaeology.
 
 ## Principles
@@ -47,16 +49,21 @@ A codebase where every exception has its own class never needs that archaeology.
 4. **The message is the values.** One value: the value itself. Several: label each
    with the one word that says which is which. Never restate the class name, never
    explain, never give a remedy - all three rot the moment the code changes.
+   Only values that are safe to show belong in it: the message reaches logs and
+   error pages. Keep a password, a token, a personal detail or a raw request body
+   in a property only, or mask it before it goes into the message.
 5. **The doc comment is the explanation.** One line of what happened when the name
    needs it, then the detail: the path that reaches the throw, the design reason,
    what the caller should do, the message format when the message is values-only.
-6. **Catch and test by class.** Tests assert the exception class; they never match
-   message text. A test that pins prose fails on rewording and passes on real bugs.
+6. **Catch and test by class.** Tests assert the exception class and, when it
+   matters, a property; they never match prose. A test that pins prose fails on
+   rewording and passes on real bugs. A message format the doc comment documents
+   is a contract, and an exact assertion on it is fine.
 
 ## The renderer invariant
 
 A values-only message is readable only where the class is rendered next to it.
-BEAR.Sunday holds that end up - `ErrorLogger` logs `e:%s(%s)` with `$e::class`,
+BEAR.Sunday holds up that end - `ErrorLogger` logs `e:%s(%s)` with `$e::class`,
 `ExceptionAsString` prints `%s(%s)` - so anything that renders an exception itself
 (a worker script, a CLI entry, a custom handler) must print the class too:
 
@@ -115,7 +122,8 @@ and no generator can pull it into documentation.
  * Recompiling writes to the script directory, which an archive or an immutable
  * image does not allow, so the boot stops here instead of failing on the write.
  *
- * Message format: script directory, compiled write directory, this boot's
+ * Message format: script directory, compiled write directory, this boot's write
+ * directory
  *
  * @see https://bearsunday.github.io/manuals/1.0/en/phar.html#when-the-build-stops
  * @see \BEAR\Package\Injector\PackageInjector::prodInjector() the only thrower
@@ -156,8 +164,9 @@ form in. Check the project before you pick.
    properties, and build the message from them.
 4. **Move the prose.** Whatever the message explained goes to the doc comment; a
    remedy, a reason, or a list of conditions never belongs in a runtime string.
-5. **Point the tests at the class.** Replace message assertions with
-   `expectException()`; keep an assertion on a property when the value matters.
+5. **Point the tests at the class.** Replace prose assertions with
+   `expectException()`; keep an assertion on a property when the value matters,
+   and on the message only when its format is documented.
 6. **Verify.** Run the project's coding-standard, static-analysis and test
    commands, and confirm behaviour is unchanged.
 
@@ -169,7 +178,7 @@ form in. Check the project before you pick.
 | `class ArticleException` | one class for every article failure; the caller must read the message to tell them apart |
 | `'The entry does not ship: the archive holds no .env, autoload.php, tests…'` | a remedy list in a message; it went stale the day the rule changed |
 | `assertStringContainsString('not found', $e->getMessage())` | the test pins prose, not behaviour |
-| `catch (Throwable $e)` around a resource body | throws away every distinction the classes were built to keep |
+| `catch (Throwable $e)` around a resource body that returns a generic error | throws away every distinction the classes were built to keep |
 
 ## Output
 
