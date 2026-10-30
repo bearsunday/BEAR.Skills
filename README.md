@@ -138,7 +138,12 @@ The full item-by-item catalog lives in [skills/bear-clean-style/SKILL.md](skills
 | `bear-web-form` | Web-form request policy across 3 architectures (server form-object / schema-decomposed / client SPA): typing, validation, CSRF, errors, tests | "Form submit returns 400" / "which form architecture?" |
 | `bear-cache-gate` | Log-reading oracle that proves store/hit/invalidation per flow | "Set up the cache gate" |
 
-To observe what a request did (resource requests, SQL and cache decisions in one tree), use `bear-observe`, which ships with [BEAR.EventSourcing](https://github.com/bearsunday/BEAR.EventSourcing) (`composer require --dev bear/event-sourcing`). It replaces the retired `bear-cache-log`.
+To observe what a request did (resource requests, SQL and cache decisions in one tree), use `bear-observe`, which ships with [BEAR.EventSourcing](https://github.com/bearsunday/BEAR.EventSourcing). It replaces the retired `bear-cache-log`:
+
+```bash
+composer require --dev bear/event-sourcing
+mkdir -p .claude/skills && cp -r vendor/bear/event-sourcing/skills/bear-observe .claude/skills/
+```
 
 ### Migration
 
