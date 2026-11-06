@@ -34,7 +34,7 @@ declare(strict_types=1);
 
 use BEAR\QueryRepository\Cdn\FastlyCacheControlHeaderSetter;
 use BEAR\QueryRepository\CdnCacheControlHeaderSetterInterface;
-use BEAR\QueryRepository\Exception\CacheStoreFailure;
+use BEAR\QueryRepository\Exception\CacheStoreException;
 use BEAR\QueryRepository\PurgerInterface;
 use BEAR\QueryRepository\Log\SafeSemanticLogger;
 use BEAR\QueryRepository\ProdQueryRepositoryModule;
@@ -182,9 +182,14 @@ final class RecordingPurger implements PurgerInterface
         return self::$instance ??= new self();
     }
 
+    /** One call carries one or more keys separated by a space, the PurgerInterface contract */
     public function __invoke(string $tag): void
     {
-        $this->purged[] = $tag;
+        foreach (explode(' ', $tag) as $key) {
+            if ($key !== '') {
+                $this->purged[] = $key;
+            }
+        }
     }
 }
 
@@ -1041,7 +1046,7 @@ if ($flow['write'] !== null) {
     $purgeFailed = null;
     try {
         $resource->put($flow['write']);
-    } catch (CacheStoreFailure $purgeFailed) {
+    } catch (CacheStoreException $purgeFailed) {
     }
 
     $writeLog = $logger->flush();
@@ -1071,7 +1076,8 @@ if ($flow['write'] !== null) {
     if ($purgeFailed !== null) {
         $violations[] = sprintf(
             '29: the CDN purge failed (%s) - the local pools are clean and the edge is still serving the old page',
-            $purgeFailed->getMessage(),
+            // The exception carries no message of its own; the purger's failure is its cause
+            ($purgeFailed->getPrevious() ?? $purgeFailed)->getMessage(),
         );
     }
 
