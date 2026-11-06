@@ -236,7 +236,7 @@ $override = new class ($dsn, ($flow['mode'] ?? '') === 'cdn') extends AbstractMo
 
 // Context is a parameter: the sql contexts talk to a database that may hold no products, the
 // fake contexts carry a deterministic corpus. A cache is indifferent to which, the assertions are
-// not - so the store cleared above and the injector built here have to be the same one.
+// not - so the store cleared below has to be the one the injector built here hands out.
 $injector = Injector::getOverrideInstance($context, $override);
 $resource = $injector->getInstance(ResourceInterface::class);
 $logger = $injector->getInstance(SemanticLoggerInterface::class, CacheLog::class);
