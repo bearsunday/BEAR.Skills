@@ -34,13 +34,14 @@ declare(strict_types=1);
 
 use BEAR\QueryRepository\Cdn\FastlyCacheControlHeaderSetter;
 use BEAR\QueryRepository\CdnCacheControlHeaderSetterInterface;
-use BEAR\QueryRepository\Exception\CacheStoreFailure;
+use BEAR\QueryRepository\Exception\CacheStoreException;
 use BEAR\QueryRepository\PurgerInterface;
 use BEAR\QueryRepository\Log\SafeSemanticLogger;
 use BEAR\QueryRepository\ProdQueryRepositoryModule;
 use BEAR\QueryRepository\StorageRedisDsnModule;
 use BEAR\QueryRepository\QueryRepositoryModule;
 use BEAR\RepositoryModule\Annotation\CacheLog;
+use BEAR\RepositoryModule\Annotation\ResourceObjectPool;
 use BEAR\QueryRepository\QueryRepositoryInterface;
 use BEAR\QueryRepository\UriScopedHttpCacheInterface;
 use BEAR\QueryRepository\ResourceStorageInterface;
@@ -52,6 +53,7 @@ use Koriym\SemanticLogger\LogJson;
 use Koriym\SemanticLogger\SemanticLoggerInterface;
 use MyVendor\BeMart\Injector;
 use Ray\Di\AbstractModule;
+use Symfony\Component\Cache\Adapter\AdapterInterface;
 use Symfony\Component\Cache\Adapter\RedisAdapter;
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
@@ -180,9 +182,14 @@ final class RecordingPurger implements PurgerInterface
         return self::$instance ??= new self();
     }
 
+    /** One call carries one or more keys separated by a space, the PurgerInterface contract */
     public function __invoke(string $tag): void
     {
-        $this->purged[] = $tag;
+        foreach (explode(' ', $tag) as $key) {
+            if ($key !== '') {
+                $this->purged[] = $key;
+            }
+        }
     }
 }
 
@@ -194,19 +201,11 @@ if (! isset(FLOWS[$flowName])) {
 
 $flow = FLOWS[$flowName];
 
-// The oracle owns its cold state, or "cold read" is a lie. The default context is the one
-// verify-all.sh exports, so running this script directly clears the same store the gate does.
+// The default context is the one verify-all.sh exports, so running this script directly clears
+// the same store the gate does.
 $context = getenv('APP_CONTEXT') ?: 'cli-fake-hal-app';
 $dsnForFlush = getenv('CACHE_DSN') ?: '';
-if ($dsnForFlush !== '') {
-    // Through symfony, not a client class: the app declares no redis client, and the pools this
-    // oracle judges are built the same way - ext-redis when it is there, predis when it is not.
-    RedisAdapter::createConnection($dsnForFlush)->flushall();
-} else {
-    exec('rm -rf ' . escapeshellarg(dirname(__DIR__) . '/tmp/' . $context . '/cache'));
-}
-
-$dsn = $flow['dsn'] ?? (getenv('CACHE_DSN') ?: '');
+$dsn = $flow['dsn'] ?? $dsnForFlush;
 $override = new class ($dsn, ($flow['mode'] ?? '') === 'cdn') extends AbstractModule {
     public function __construct(private string $dsn, private bool $cdn)
     {
@@ -237,11 +236,43 @@ $override = new class ($dsn, ($flow['mode'] ?? '') === 'cdn') extends AbstractMo
 
 // Context is a parameter: the sql contexts talk to a database that may hold no products, the
 // fake contexts carry a deterministic corpus. A cache is indifferent to which, the assertions are
-// not - so the store cleared above and the injector built here have to be the same one.
+// not - so the store cleared below has to be the one the injector built here hands out.
 $injector = Injector::getOverrideInstance($context, $override);
 $resource = $injector->getInstance(ResourceInterface::class);
 $logger = $injector->getInstance(SemanticLoggerInterface::class, CacheLog::class);
 
+// The oracle owns its cold state, or "cold read" is a lie: a filesystem pool outlives the process
+// that filled it, so the previous run's entries are what the first read would hit.
+if ($dsnForFlush !== '') {
+    // Through symfony, not a client class: the app declares no redis client, and the pools this
+    // oracle judges are built the same way - ext-redis when it is there, predis when it is not.
+    RedisAdapter::createConnection($dsnForFlush)->flushall();
+} elseif (! isset($flow['dsn'])) {
+    // The pool the injector hands out, wherever this context keeps it. A flow that brings its own
+    // DSN points at a store that cannot be reached, and there is nothing in it to clear.
+    $injector->getInstance(AdapterInterface::class, ResourceObjectPool::class)->clear();
+}
+
+/**
+ * The public document, refused when it is not one this oracle can read
+ *
+ * Every walk below reads the root `log` list. Reading a document without one as empty would pass
+ * the flows whose proof is an empty session and fail the rest with "wrote nothing" - neither says
+ * the format moved.
+ *
+ * @return array<string, mixed>
+ */
+function treeOf(LogJson $log): array
+{
+    $tree = $log->toArray();
+    if (! is_array($tree['log'] ?? null)) {
+        fwrite(STDERR, sprintf("unreadable log: no root `log` list (keys: %s) - the oracle cannot judge this document\n", implode(', ', array_keys($tree))));
+
+        exit(2);
+    }
+
+    return $tree;
+}
 
 /** @return list<array{type: string, context: array<string, mixed>}> */
 function flatten(LogJson $log): array
@@ -249,24 +280,15 @@ function flatten(LogJson $log): array
     $flat = [];
     $walk = static function (array $node) use (&$walk, &$flat): void {
         $flat[] = ['type' => (string) $node['type'], 'context' => (array) ($node['context'] ?? [])];
-        foreach ((array) ($node['open'] ?? []) as $child) {
+        foreach ((array) ($node['log'] ?? []) as $child) {
             $walk((array) $child);
-        }
-
-        foreach ((array) ($node['events'] ?? []) as $event) {
-            $walk((array) $event);
         }
 
         if (isset($node['close'])) {
             $walk((array) $node['close']);
         }
     };
-    $tree = $log->toArray();
-    foreach ((array) ($tree['open'] ?? []) as $node) {
-        $walk((array) $node);
-    }
-
-    foreach ((array) ($tree['events'] ?? []) as $node) {
+    foreach ((array) treeOf($log)['log'] as $node) {
         $walk((array) $node);
     }
 
@@ -360,7 +382,7 @@ function parentKindOf(array $saves): string|null
  */
 function scopeOf(array $tree, string $uri): array|null
 {
-    foreach ((array) ($tree['open'] ?? []) as $child) {
+    foreach ((array) ($tree['log'] ?? []) as $child) {
         $node = (array) $child;
         $context = (array) ($node['context'] ?? []);
         if ((string) ($node['type'] ?? '') === 'get' && ($context['uri'] ?? null) === $uri) {
@@ -405,7 +427,7 @@ function childUrisOf(array $tree, string $uri): array
 {
     $scope = scopeOf($tree, $uri);
     $uris = [];
-    foreach ((array) ($scope['open'] ?? []) as $child) {
+    foreach ((array) ($scope['log'] ?? []) as $child) {
         $node = (array) $child;
         $childUri = (string) (((array) ($node['context'] ?? []))['uri'] ?? '');
         if ((string) ($node['type'] ?? '') === 'get' && $childUri !== '') {
@@ -419,11 +441,14 @@ function childUrisOf(array $tree, string $uri): array
 /**
  * The invalidations that announce a change, without the writer clearing its own entry
  *
- * Same rule as the library's retention policy: an `invalidate` is cleanup iff the event
- * immediately before it *in the same scope* is `pre_write_cleanup`. Matched on the tree, not
- * on flatten()'s output - flatten emits a scope's nested opens before its own events, so flat
- * adjacency would misjudge an `invalidate` that sits inside a nested `manual_invalidate`. A
- * write whose only invalidation is cleanup has told nobody about the change.
+ * Same rule as the library's retention policy: an `invalidate` is cleanup iff the point record
+ * immediately before it *among its own scope's events* is `pre_write_cleanup`. A scope's `log`
+ * interleaves its events with the scopes it nests, and a nested scope is skipped, not reset
+ * against: the marker and its invalidate come out of one storage call, so whatever opened between
+ * them is a bystander, and resetting on it would report cleanup as an announcement. Matched on the
+ * tree, not on flatten()'s output - flat adjacency would misjudge an `invalidate` that sits inside
+ * a nested `manual_invalidate`. A write whose only invalidation is cleanup has told nobody about
+ * the change.
  *
  * @param array<string, mixed> $tree LogJson::toArray()
  *
@@ -434,18 +459,25 @@ function realInvalidations(array $tree): array
     $real = [];
     $walk = static function (array $node) use (&$walk, &$real): void {
         $previous = null;
-        foreach ((array) ($node['events'] ?? []) as $event) {
-            $event = (array) $event;
-            $type = (string) ($event['type'] ?? '');
+        foreach ((array) ($node['log'] ?? []) as $child) {
+            $child = (array) $child;
+            if (isset($child['log']) || isset($child['close'])) {
+                $walk($child);
+
+                continue;
+            }
+
+            // An orphan close is neither this scope's event nor a scope of its own
+            if (isset($child['openId'])) {
+                continue;
+            }
+
+            $type = (string) ($child['type'] ?? '');
             if ($type === 'invalidate' && $previous !== 'pre_write_cleanup') {
-                $real[] = ['type' => $type, 'context' => (array) ($event['context'] ?? [])];
+                $real[] = ['type' => $type, 'context' => (array) ($child['context'] ?? [])];
             }
 
             $previous = $type;
-        }
-
-        foreach ((array) ($node['open'] ?? []) as $child) {
-            $walk((array) $child);
         }
     };
     $walk($tree);
@@ -496,7 +528,7 @@ $read = static function (string $label) use ($resource, $logger, $flow, &$sessio
     $log = $logger->flush();
     $entries = flatten($log);
     $sessions[$label] = $entries;
-    $trees[$label] = $log->toArray();
+    $trees[$label] = treeOf($log);
 
     return $entries;
 };
@@ -1014,13 +1046,13 @@ if ($flow['write'] !== null) {
     $purgeFailed = null;
     try {
         $resource->put($flow['write']);
-    } catch (CacheStoreFailure $purgeFailed) {
+    } catch (CacheStoreException $purgeFailed) {
     }
 
     $writeLog = $logger->flush();
     $writeEntries = flatten($writeLog);
     $sessions['write'] = $writeEntries;
-    $trees['write'] = $writeLog->toArray();
+    $trees['write'] = treeOf($writeLog);
 
     $announced = realInvalidations($trees['write']);
     $invalidateTags = tagsOf($announced, 'invalidate');
@@ -1044,7 +1076,8 @@ if ($flow['write'] !== null) {
     if ($purgeFailed !== null) {
         $violations[] = sprintf(
             '29: the CDN purge failed (%s) - the local pools are clean and the edge is still serving the old page',
-            $purgeFailed->getMessage(),
+            // The exception carries no message of its own; the purger's failure is its cause
+            ($purgeFailed->getPrevious() ?? $purgeFailed)->getMessage(),
         );
     }
 
