@@ -126,7 +126,9 @@ tags — fails a page that is behaving as designed. What has to hold is that the
 
 The declaration decides two more verdicts. **5**: after an invalidation a `#[Cacheable]` parent
 must close `cache_miss`, while a donut parent stays a `cache_hit` and carries `refresh_donut` —
-its template survives on purpose, and a hit without `refresh_donut` is the stale one. **4**: a
+its template survives on purpose, and a hit without `refresh_donut` is the stale one. After a
+write, a hit is the new entry when the write stored the page again after invalidating it — a
+`#[Refresh]`, or a `#[CacheableResponse]` page's own write — and the `refreshed` line says so. **4**: a
 `#[DonutCache]` parent stores no page entry, so it has no tag set for an announcement to meet and
 the intersection is not judged.
 
@@ -145,6 +147,10 @@ apart — only adjacency to the marker can. This is the same rule the library's 
 The `cdn on write` line is the same `invalidate`'s three-valued `cdn`. `skipped` means no purger
 is bound (normal for a local verdict); `failed` is violation 29 — the local copy cleared but the
 edge stayed stale.
+
+The `refreshed` line means the write session stored the page (`save_value`, `save_view` or
+`save_donut_view`, not refused) after the last `invalidate` that reached its cold-read tags, so the
+hit after the write is not judged stale.
 
 **When the log can't answer**: the oracle binds and flushes its own logger, so it is unaffected
 by the retention policy. Trying the same judgment against a log written by the application's
