@@ -25,8 +25,9 @@ declare(strict_types=1);
  *   4. the write announces the change - an `invalidate` that is not the writer's own marker-preceded
  *      cleanup - and its tags meet the parent's save tags (set intersection). The CDN outcome of
  *      that announcement is printed; `failed` is a violation, `skipped` means no purger is bound
- *   5. the parent's read after the invalidation serves new content: a miss for `#[Cacheable]`, and
- *      for a donut parent a hit carrying `refresh_donut` - its template survives on purpose
+ *   5. the parent's read after the invalidation serves new content: a miss for `#[Cacheable]`, or a
+ *      hit when the write itself saved the read again after invalidating it (`#[Refresh]`); for a
+ *      donut parent a hit carrying `refresh_donut` - its template survives on purpose
  *   6. no entry is saved with an empty tag list, which no invalidation can ever reach
  *
  * Exit code 0 means the log proved it. Non-zero prints which invariant failed and the tree.
@@ -320,6 +321,32 @@ function savesOf(array $entries, string $uri): array
     }
 
     return array_values(array_unique($saves));
+}
+
+/**
+ * Whether the write saved this URI again after the last invalidation that reached its saved tags
+ *
+ * An invalidation whose tags miss the read's says nothing about it, and a save followed by another
+ * reaching invalidation was dropped again.
+ *
+ * @param list<array{type: string, context: array<string, mixed>}> $entries
+ * @param list<string>                                             $savedTags the read's tags from its cold save
+ */
+function refreshedAfterInvalidation(array $entries, string $uri, array $savedTags): bool
+{
+    $reached = null;
+    $saved = null;
+    foreach ($entries as $i => $entry) {
+        if ($entry['type'] === 'invalidate' && array_intersect((array) ($entry['context']['tags'] ?? []), $savedTags) !== []) {
+            $reached = $i;
+        }
+
+        if (str_starts_with($entry['type'], 'save_') && ($entry['context']['uri'] ?? null) === $uri) {
+            $saved = $i;
+        }
+    }
+
+    return $reached !== null && $saved !== null && $saved > $reached;
 }
 
 /**
@@ -1048,10 +1075,14 @@ if ($flow['write'] !== null) {
         );
     }
 
-    // 5. the read after the write must serve new content
+    // 5. the read after the write must serve new content. A #[Refresh] re-saves the read inside the
+    // write, after the invalidation, so the next read is a hit on the new entry.
+    $refreshed = refreshedAfterInvalidation($writeEntries, $flow['read'], $savedTags);
     $read('read after write');
     $verdict = $verdictOn('read after write');
-    if ($verdict === 'stale') {
+    if ($verdict === 'stale' && ! $donutParent && $refreshed) {
+        printf("%-18s %s\n", 'refreshed', 'the write saved the read again after invalidating it, so the hit is the new entry');
+    } elseif ($verdict === 'stale') {
         $violations[] = $donutParent
             ? '5: the parent served its stored view after the write - stale content is being served'
             : '5: the read after the write is a hit - stale content is being served';

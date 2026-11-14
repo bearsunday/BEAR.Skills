@@ -125,7 +125,8 @@ tags — fails a page that is behaving as designed. What has to hold is that the
 (`5: the child still hits after being purged`).
 
 The declaration decides two more verdicts. **5**: after an invalidation a `#[Cacheable]` parent
-must close `cache_miss`, while a donut parent stays a `cache_hit` and carries `refresh_donut` —
+must close `cache_miss`, unless the write saved it again after invalidating it (`#[Refresh]`):
+then the hit is the new entry. A donut parent stays a `cache_hit` and carries `refresh_donut` —
 its template survives on purpose, and a hit without `refresh_donut` is the stale one. **4**: a
 `#[DonutCache]` parent stores no page entry, so it has no tag set for an announcement to meet and
 the intersection is not judged.
