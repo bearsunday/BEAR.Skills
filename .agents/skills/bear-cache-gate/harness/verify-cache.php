@@ -27,8 +27,9 @@ declare(strict_types=1);
  *      that announcement is printed; `failed` is a violation, `skipped` means no purger is bound
  *   5. the parent's read after the invalidation serves new content: a miss for `#[Cacheable]`, and
  *      for a donut parent a hit carrying `refresh_donut` - its template survives on purpose. After a
- *      write, a hit is new content too when the write stored the page again after invalidating it
- *      (`#[Refresh]`, or a `#[CacheableResponse]` page's own write)
+ *      write, a hit is also accepted when the write stored the page again after invalidating it
+ *      (`#[Refresh]`, or a `#[CacheableResponse]` page's own write): the entry is new, though the
+ *      log cannot show that what it was built from is
  *   6. no entry is saved with an empty tag list, which no invalidation can ever reach
  *
  * Exit code 0 means the log proved it. Non-zero prints which invariant failed and the tree.
