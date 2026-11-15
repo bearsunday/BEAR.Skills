@@ -10,7 +10,7 @@ Topic files live alongside this index. Load only what the current task needs.
 |---|---|---|
 | 1 | Surface cleanup | `ResourceObject` return type to `static`, literal response body assignment, method order, resource dependency property names, Query/Command/SQL naming, removing generic `LogicException`/`RuntimeException` (exception swaps change the thrown contract — verify no caller/test/error handler catches the generic type first; if any does, treat as Level 3) |
 | 2 | Contract and QA hardening | JsonSchema response/request validation, body array-shape PHPDoc, ALPS IDs, `#[Link]`, `#[Embed]`, ApiDoc/OpenAPI, hypermedia workflow + HAL contract tests, SQL smoke, Resource smoke, SQLQuality, PHPMD complexity checks, `#[Validate]` for stateful invariants, Page not-found template guard |
-| 3 | Semantic refactor | BDR/Ray.MediaQuery, Read/Write split, typed Result classes, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert, `#[Pager]`/`PagesInterface` pagination, `#[Cacheable]` Shape A/B normalization |
+| 3 | Semantic refactor | BDR/Ray.MediaQuery, Read/Write split, typed Result classes, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert, `#[Pager]`/`PagesInterface` pagination, `#[Cacheable]` Shape A/B/C normalization |
 
 Prefer Level 1 before Level 3 in large legacy projects. Level 3 changes move responsibilities and need tests, even when behaviour should remain the same.
 
@@ -56,7 +56,7 @@ Read each only when the candidate change touches that area.
 | [naming.md](naming.md) | Query/Command method names, SQL filenames, resource dependency property names, ALPS/HAL rel naming | Renaming methods, files, or properties; aligning a Read/Write split |
 | [resource-patterns.md](resource-patterns.md) | `ResourceObject` return type, body construction, HTTP status codes, not-found handling, method order, exceptions, pagination, named arguments | Touching `on*` handlers, return shapes, or call-site argument style |
 | [hypermedia.md](hypermedia.md) | `#[Embed]` vs `#[Link]`, ALPS taxonomy/choreography split, hypermedia workflow tests with `#[Depends]` chains | Adding embeds/links, writing rel-following workflow tests |
-| [cache.md](cache.md) | `#[Cacheable]` defaults, Shape A (`#[Embed]` only) vs Shape B (`fromAssoc`), anti-patterns | Adding cache, debugging stale tags, refactoring invalidation |
+| [cache.md](cache.md) | `#[Cacheable]` defaults, Shape A (`#[Embed]` only), Shape B (`#[DependsOn]`, `fromAssoc` for array rows), Shape C (virtual resource for a list), anti-patterns | Adding cache, debugging stale tags, refactoring invalidation |
 | [data-contract.md](data-contract.md) | Insert/write contracts, `lastInsertId` avoidance, `AffectedRows`, SELECT/Entity column-order lock-step | Touching SQL projections, entity constructors, or write paths |
 | [input-validation.md](input-validation.md) | Scalar vs Input DTO decision rule, typed-array DTO pitfall, `#[Validate]` for stateful invariants | Designing a new POST/PUT signature or validation rule |
 | [template-projection.md](template-projection.md) | Template Projection Lift, `IteratorAggregate` + named `Generator` traversals, `src/Result/*` placement | Loop-local domain branching or repeated display logic in templates |
@@ -68,4 +68,4 @@ Read each only when the candidate change touches that area.
 2. Level 1B: naming alignment for Query/Command methods, SQL ids/files, resource properties; removing generic SPL exceptions.
 3. Level 2: schemas, body PHPDoc, ALPS/Link/Embed cleanup, smoke/hypermedia/SQLQuality/PHPMD, `#[Validate]` for stateful invariants, Page not-found template guards.
 4. Level 3A: Template Projection Lift for one visible read path.
-5. Level 3B: BDR/Query/Command/Input/FileUpload/AffectedRows migration by resource family, `#[Cacheable]` Shape A/B normalization.
+5. Level 3B: BDR/Query/Command/Input/FileUpload/AffectedRows migration by resource family, `#[Cacheable]` Shape A/B/C normalization.
