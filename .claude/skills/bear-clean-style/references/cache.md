@@ -29,7 +29,7 @@ final class AuthorProfile extends ResourceObject
 
 ### Shape B — `#[DependsOn]` (what `onGet` reads itself)
 
-When `onGet` reads the data itself (a query, a row list), declare what it read. On `onGet`, the template variables are its parameters; on a row class, they are the row's public properties, and each row in the stored body adds its tag:
+When `onGet` reads the data itself (a query, a row list), declare what it read. On `onGet`, the template variables are its parameters; on a row class, they are the row's public properties, and each row in the stored body adds its tag - rows in arrays and public properties are found, rows inside a `Traversable` (`ArrayObject`, a collection, a `Generator`) are not. Row tags reach only rows already in the list, so a list that an insert changes also depends on a list-level URI (Shape C, or the list's own) that the insert purges:
 
 ```php
 #[DependsOn(uri: 'app://self/article?id={id}')]
@@ -71,7 +71,7 @@ A set that several resources read but that has no URI of its own (the latest art
 
 ## Anti-patterns
 
-The scanner flags the first three; the rest must be confirmed by reading the resource.
+The scanner flags the first three where it can see them: it matches `invalidateTags()` only when `DonutRepositoryInterface` appears in the same statement, so a call through a typed property (`$this->repository->invalidateTags(...)`) is not flagged. Confirm the rest, and any such call, by reading the resource.
 
 - **Writing the self URI into `Header::SURROGATE_KEY`** — the framework's `SurrogateKeys::setSurrogateHeader` already does this.
 - **Calling `DonutRepositoryInterface::invalidateTags()` from `onPut` / `onDelete`** — `CommandInterceptor` + `RefreshSameCommand` already purge the self URI tag on writes to `#[Cacheable]` resources.
