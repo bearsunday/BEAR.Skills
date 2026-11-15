@@ -29,7 +29,7 @@ final class AuthorProfile extends ResourceObject
 
 ### Shape B — `#[DependsOn]` (what `onGet` reads itself)
 
-When `onGet` reads the data itself (a query, a row list), declare what it read. On `onGet`, the template variables are its parameters; on a row class, they are the row's public properties, and each row in the stored body adds its tag - rows in arrays and public properties are found, rows inside a `Traversable` (`ArrayObject`, a collection, a `Generator`) are not. Row tags reach only rows already in the list, so a list that an insert changes also depends on a list-level URI (Shape C, or the list's own) that the insert purges:
+When `onGet` reads the data itself (a query, a row list), declare what it read. On `onGet`, the template variables are its parameters; on a row class, they are the row's public properties, and each row in the stored body adds its tag - rows in arrays and public properties are found, rows inside a `Traversable` (`ArrayObject`, a collection, a `Generator`) are not. Row tags reach only rows already in the list, so a list also depends on a list-level URI (Shape C, or the list's own) that every write that can add a row to it purges - an insert, or an update that moves a row into the list:
 
 ```php
 #[DependsOn(uri: 'app://self/article?id={id}')]
