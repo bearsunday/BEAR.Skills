@@ -10,7 +10,7 @@ Topic files live alongside this index. Load only what the current task needs.
 |---|---|---|
 | 1 | Surface cleanup | `ResourceObject` return type to `static`, literal response body assignment, method order, resource dependency property names, Query/Command/SQL naming, removing generic `LogicException`/`RuntimeException` (exception swaps change the thrown contract — verify no caller/test/error handler catches the generic type first; if any does, treat as Level 3) |
 | 2 | Contract and QA hardening | JsonSchema response/request validation, body array-shape PHPDoc, ALPS IDs, `#[Link]`, `#[Embed]`, ApiDoc/OpenAPI, hypermedia workflow + HAL contract tests, SQL smoke, Resource smoke, SQLQuality, PHPMD complexity checks, `#[Validate]` for stateful invariants, Page not-found template guard |
-| 3 | Semantic refactor | BDR/Ray.MediaQuery, Read/Write split, typed Result classes, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert, `#[Pager]`/`PagesInterface` pagination, `#[Cacheable]` Shape A/B normalization |
+| 3 | Semantic refactor | BDR/Ray.MediaQuery, Read/Write split, typed Result classes, named `Generator`, Template Projection Lift, Input DTO, FileUpload value object, AffectedRows, natural-key reselect after insert, `#[Pager]`/`PagesInterface` pagination, `#[Cacheable]` Shape A/B/C normalization |
 
 Prefer Level 1 before Level 3 in large legacy projects. Level 3 changes move responsibilities and need tests, even when behaviour should remain the same.
 
@@ -68,4 +68,4 @@ Read each only when the candidate change touches that area.
 2. Level 1B: naming alignment for Query/Command methods, SQL ids/files, resource properties; removing generic SPL exceptions.
 3. Level 2: schemas, body PHPDoc, ALPS/Link/Embed cleanup, smoke/hypermedia/SQLQuality/PHPMD, `#[Validate]` for stateful invariants, Page not-found template guards.
 4. Level 3A: Template Projection Lift for one visible read path.
-5. Level 3B: BDR/Query/Command/Input/FileUpload/AffectedRows migration by resource family, `#[Cacheable]` Shape A/B normalization.
+5. Level 3B: BDR/Query/Command/Input/FileUpload/AffectedRows migration by resource family, `#[Cacheable]` Shape A/B/C normalization.
