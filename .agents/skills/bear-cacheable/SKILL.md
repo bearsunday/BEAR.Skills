@@ -123,6 +123,8 @@ Before running anything, [qr-graph](https://github.com/bearsunday/BEAR.QueryRepo
 
 A test pins one declaration: cache the reader, check that its `Surrogate-Key` carries the tag, and check that removing the declaration fails the test. When the same tag also reaches the reader by another path, removing one declaration fails nothing; check each reader on its own, not only the page.
 
+A `#[Purge]`/`#[Refresh]` template takes its variables from the write's response body and the request URI's query. The method's arguments are used only when the write is called without a URI (an object taken from the injector and called directly). So a caller that requests the write with `content_type` leaves `{contentType}` empty, and the purge expands to `app://self/contents?type=`, which meets no reader. qr-graph does not see this, and a test that calls the write with the template's own spelling, or directly on the object, does not either. Test each write the way its real callers call it (a batch, a page, a form), and check the expanded URI, not only that a purge ran.
+
 After applying:
 
 1. bind a real store and turn recording on ([bear-observe](https://github.com/bearsunday/BEAR.EventSourcing/blob/1.x/skills/bear-observe/SKILL.md), sections 1-2)
