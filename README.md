@@ -136,6 +136,7 @@ The full item-by-item catalog lives in [skills/bear-clean-style/SKILL.md](skills
 |-------|---------|----------------|
 | `bear-hypermedia` | Add #[Link] attributes | "Add hypermedia links to resources" |
 | `bear-cacheable` | Apply cache attributes | "Analyze and add cache attributes" |
+| `bear-embed-dependency` | Replace hand-made surrogate keys and template `resource()` pulls with `#[Embed]`, layout attributes and `#[DependsOn]` | "Move cache dependencies to declarations" |
 | `bear-web-form` | Web-form request policy across 3 architectures (server form-object / schema-decomposed / client SPA): typing, validation, CSRF, errors, tests | "Form submit returns 400" / "which form architecture?" |
 | `bear-observe` (in [BEAR.EventSourcing](https://github.com/bearsunday/BEAR.EventSourcing/blob/1.x/skills/bear-observe/SKILL.md)) | Install the observation context, read one request as a tree, reconcile it with the declared intent | "Is the cache actually working?" |
 | `bear-cache-gate` | Log-reading oracle that proves store/hit/invalidation per flow | "Set up the cache gate" |
@@ -176,6 +177,7 @@ BEAR.Skills/
 │   ├── bear-clean-style/
 │   ├── bear-clean-style-consultant/
 │   ├── bear-documenter/
+│   ├── bear-embed-dependency/
 │   ├── bear-exception-naming/
 │   ├── bear-from-alps/
 │   ├── bear-hypermedia/
